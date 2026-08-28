@@ -41,13 +41,16 @@ Each app pins a **tag** and upgrades when it wants to:
 }
 ```
 
-Write the URL as `git+https://…`, **not** the `github:OnDesk-cc/shared` shorthand.
-npm rewrites the shorthand to `git+ssh://` inside `package-lock.json`, and
-`npm ci` then fails on any machine without an SSH key for GitHub — which is
-every CI runner.
+Write the spec by hand in `package.json` rather than via `npm install <url>`,
+which saves the `github:OnDesk-cc/shared#v1.0.0` shorthand instead. Either
+spelling installs the same thing; the explicit URL just says what it is.
 
-The lockfile records the exact commit, so a build is reproducible and a rollback
-is reverting one line.
+`package-lock.json` will show the dependency as
+`git+ssh://git@github.com/OnDesk-cc/shared.git#<sha>` no matter which form
+`package.json` uses. That is cosmetic: for a GitHub URL npm clones over **https**
+first and only falls back to ssh if that fails, so no SSH key is needed anywhere —
+verified with `npm ci` on npm 11. The `<sha>` is what makes a build
+reproducible; a rollback is reverting one line.
 
 Then, in the app:
 
@@ -63,8 +66,16 @@ Then, in the app:
 2. **CI needs to read this private repo.** Before `npm ci` in the app's workflow:
 
    ```yaml
-   - run: git config --global url."https://x-access-token:${{ secrets.SHARED_READ_TOKEN }}@github.com/".insteadOf "https://github.com/"
+   - name: Authorize access to OnDesk-cc/shared
+     run: |
+       git config --global url."https://x-access-token:${SHARED_READ_TOKEN}@github.com/".insteadOf "https://github.com/"
+       git config --global url."https://x-access-token:${SHARED_READ_TOKEN}@github.com/".insteadOf "ssh://git@github.com/"
+     env:
+       SHARED_READ_TOKEN: ${{ secrets.SHARED_READ_TOKEN }}
    ```
+
+   The first rule is the one that matters (npm clones over https); the second
+   covers the ssh fallback so a failure is never silent.
 
    `SHARED_READ_TOKEN` is a fine-grained PAT with *Contents: read* on this
    repository only, stored once as an **organization secret** so every product

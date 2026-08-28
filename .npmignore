@@ -1,0 +1,7 @@
+# What a consumer's `npm install` copies into its node_modules. Everything not
+# listed here ships — the .ts/.tsx sources ARE the package.
+node_modules
+package-lock.json
+.github
+*.tsbuildinfo
+.DS_Store
