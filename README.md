@@ -17,7 +17,7 @@ typechecks it as part of its own program.
 | `hooks/`   | browser | `useIsMobile()`                                               |
 | `components/` | browser | `theme-provider` (the `dark`-class writer every app mounts), `confirm-delete-modal`, `form-modal` |
 | `calls/`   | browser | `ringer-lease` — one ringtone per browser across all products; `ring-tone` — the `<RingTone>` player (each app serves `/sounds/ringtone-{in,out}.mp3`) |
-| `worker/`  | Pages Functions | `response` — the `jsonOk` / `jsonError` helpers; `sso` — platform session + webhook verification (the products' side, never ondesk's) |
+| `worker/`  | Pages Functions | `response` — the `jsonOk` / `jsonError` helpers; `sso` — platform session + webhook verification (the products' side, never ondesk's); `cookies` — session-cookie reading; `jwt` — HS256 signing + audienced tickets; `middleware` — `createMiddleware(product)` → the four route wrappers; `email` — `createEmailer(brand)` + template helpers; `mirror` — the identical control-plane mirror writes |
 
 Import by path, no barrel:
 
