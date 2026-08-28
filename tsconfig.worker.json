@@ -1,0 +1,17 @@
+{
+  // Worker half: worker/ only. Mirrors each app's tsconfig.functions.json. Kept as a
+  // separate program because @cloudflare/workers-types and the DOM lib disagree on
+  // the same global names.
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022"],
+    "types": ["@cloudflare/workers-types"],
+    "strict": true,
+    "noEmit": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true
+  },
+  "include": ["worker"]
+}
