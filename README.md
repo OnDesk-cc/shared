@@ -77,10 +77,13 @@ Then, in the app:
    The first rule is the one that matters (npm clones over https); the second
    covers the ssh fallback so a failure is never silent.
 
-   `SHARED_READ_TOKEN` is a fine-grained PAT with *Contents: read* on this
-   repository only, stored once as an **organization secret** so every product
-   repo sees it. Locally nothing is needed — your existing GitHub credential
-   already covers it.
+   `SHARED_READ_TOKEN` is a fine-grained PAT (resource owner `OnDesk-cc`,
+   repository access: only this repo, permission *Contents: Read*), stored as a
+   **repository secret in each product repo**. It cannot be an organization
+   secret: on the GitHub Free plan those reach public repositories only and
+   arrive empty in private ones — the run fails at `npm ci` with "Repository
+   not found" and nothing hints at the cause. Locally nothing is needed — your
+   existing GitHub credential already covers it.
 
 3. Delete the app's copy of each file you now import from here. Two copies of a
    `Dialog` is how the six drifted apart in the first place.
