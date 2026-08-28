@@ -17,6 +17,7 @@ typechecks it as part of its own program.
 | `hooks/`   | browser | `useIsMobile()`                                               |
 | `components/` | browser | `theme-provider` (the `dark`-class writer every app mounts), `confirm-delete-modal`, `form-modal` |
 | `calls/`   | browser | `ringer-lease` — one ringtone per browser across all products; `ring-tone` — the `<RingTone>` player (each app serves `/sounds/ringtone-{in,out}.mp3`) |
+| `presence/` | browser | `status` — the presence vocabulary every product renders (`STATUS_META`, `presenceLabel`, `lastSeenShort`); `presence-dot` — the dot itself |
 | `worker/`  | Pages Functions | `response` — the `jsonOk` / `jsonError` helpers; `sso` — platform session + webhook verification (the products' side, never ondesk's); `cookies` — session-cookie reading; `jwt` — HS256 signing + audienced tickets; `middleware` — `createMiddleware(product)` → the four route wrappers; `email` — `createEmailer(brand)` + template helpers; `mirror` — the identical control-plane mirror writes |
 
 Import by path, no barrel:
@@ -27,7 +28,8 @@ import { cn } from "@ondesk/shared/lib/utils";
 import { jsonOk } from "@ondesk/shared/worker/response";
 ```
 
-`ui/`, `lib/`, `hooks/` and `calls/` assume the DOM; `worker/` assumes
+`ui/`, `lib/`, `hooks/`, `components/`, `calls/` and `presence/` assume the DOM;
+`worker/` assumes
 `@cloudflare/workers-types`. Never import across that line — the two type
 universes disagree on the same global names, which is why there are two
 `tsconfig`s here and two in every app.
@@ -64,17 +66,15 @@ Then, in the app:
 
    Without it every shared component renders with no styles and nothing errors.
 
-2. **CI needs nothing.** This repository is **public**, so `npm ci` on a runner
-   clones it anonymously and the app's workflow stays as it is. That is a
-   deliberate trade: the six product repos are private, but on the GitHub Free
-   plan an organization secret never reaches a private repository (it is listed
-   as visible and arrives empty), and a PAT copied into six repos is exactly the
-   kind of machinery this package exists to remove.
+2. **CI needs a token once this repo is private.** While it is public, `npm ci`
+   on a runner clones it anonymously and the app workflows stay as they are.
+   The moment it is flipped to private that breaks in all six at once: the
+   default `GITHUB_TOKEN` is scoped to the app's own repository and cannot read
+   another private repo in the org, and the lockfile resolution is a git URL.
 
-   What follows from it: **nothing secret ever lands here** — no keys, no
-   internal hostnames, no platform logic you would not want read. Code that is
-   shared but sensitive stays in the apps until this repo goes private again, and
-   if it does, every app needs a token step before `npm ci`:
+   There is exactly one place to fix, because Cloudflare Pages does not build
+   from source — the workflow builds and then runs `wrangler pages deploy dist`.
+   So each app needs this before its `npm ci`:
 
    ```yaml
    - run: git config --global url."https://x-access-token:${SHARED_READ_TOKEN}@github.com/".insteadOf "https://github.com/"
