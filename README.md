@@ -92,8 +92,8 @@ Then, in the app:
 
 1. Change the file. Run `npm run typecheck`.
 2. Bump `version` in `package.json`, commit, tag: `git tag v1.1.0 && git push --tags`.
-3. In each app that wants it: `npm install git+https://github.com/OnDesk-cc/shared.git#v1.1.0`,
-   run its typecheck + build, open its PR.
+3. In each app that wants it: change the tag in `package.json` to `#v1.1.0`, run
+   `npm install`, then its typecheck + build, and open its PR.
 
 Semver is for people: **major** when a consumer has to change code, **minor**
 when something is added, **patch** for a fix. Apps that are not ready simply stay
