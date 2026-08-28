@@ -12,11 +12,12 @@ typechecks it as part of its own program.
 
 | Path       | Runs in | What                                                          |
 | ---------- | ------- | ------------------------------------------------------------- |
-| `ui/`      | browser | shadcn/ui primitives (`button`, `dialog`, `sidebar`, …)       |
-| `lib/`     | browser | `cn()`                                                        |
+| `ui/`      | browser | shadcn/ui primitives (`button`, `dialog`, `sidebar`, …) plus `sonner` (themed via `components/theme-provider`) |
+| `lib/`     | browser | `cn()`; `crud-api` / `crud-hooks` — the generic list/create/update/delete client + TanStack Query hooks |
 | `hooks/`   | browser | `useIsMobile()`                                               |
-| `calls/`   | browser | `ringer-lease` — one ringtone per browser across all products |
-| `worker/`  | Pages Functions | `response` — the `jsonOk` / `jsonError` helpers        |
+| `components/` | browser | `theme-provider` (the `dark`-class writer every app mounts), `confirm-delete-modal`, `form-modal` |
+| `calls/`   | browser | `ringer-lease` — one ringtone per browser across all products; `ring-tone` — the `<RingTone>` player (each app serves `/sounds/ringtone-{in,out}.mp3`) |
+| `worker/`  | Pages Functions | `response` — the `jsonOk` / `jsonError` helpers; `sso` — platform session + webhook verification (the products' side, never ondesk's) |
 
 Import by path, no barrel:
 
