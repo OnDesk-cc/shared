@@ -63,27 +63,23 @@ Then, in the app:
 
    Without it every shared component renders with no styles and nothing errors.
 
-2. **CI needs to read this private repo.** Before `npm ci` in the app's workflow:
+2. **CI needs nothing.** This repository is **public**, so `npm ci` on a runner
+   clones it anonymously and the app's workflow stays as it is. That is a
+   deliberate trade: the six product repos are private, but on the GitHub Free
+   plan an organization secret never reaches a private repository (it is listed
+   as visible and arrives empty), and a PAT copied into six repos is exactly the
+   kind of machinery this package exists to remove.
+
+   What follows from it: **nothing secret ever lands here** — no keys, no
+   internal hostnames, no platform logic you would not want read. Code that is
+   shared but sensitive stays in the apps until this repo goes private again, and
+   if it does, every app needs a token step before `npm ci`:
 
    ```yaml
-   - name: Authorize access to OnDesk-cc/shared
-     run: |
-       git config --global url."https://x-access-token:${SHARED_READ_TOKEN}@github.com/".insteadOf "https://github.com/"
-       git config --global url."https://x-access-token:${SHARED_READ_TOKEN}@github.com/".insteadOf "ssh://git@github.com/"
+   - run: git config --global url."https://x-access-token:${SHARED_READ_TOKEN}@github.com/".insteadOf "https://github.com/"
      env:
-       SHARED_READ_TOKEN: ${{ secrets.SHARED_READ_TOKEN }}
+       SHARED_READ_TOKEN: ${{ secrets.SHARED_READ_TOKEN }}   # fine-grained PAT, Contents: read, a REPOSITORY secret in each app
    ```
-
-   The first rule is the one that matters (npm clones over https); the second
-   covers the ssh fallback so a failure is never silent.
-
-   `SHARED_READ_TOKEN` is a fine-grained PAT (resource owner `OnDesk-cc`,
-   repository access: only this repo, permission *Contents: Read*), stored as a
-   **repository secret in each product repo**. It cannot be an organization
-   secret: on the GitHub Free plan those reach public repositories only and
-   arrive empty in private ones — the run fails at `npm ci` with "Repository
-   not found" and nothing hints at the cause. Locally nothing is needed — your
-   existing GitHub credential already covers it.
 
 3. Delete the app's copy of each file you now import from here. Two copies of a
    `Dialog` is how the six drifted apart in the first place.
