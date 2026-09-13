@@ -32,6 +32,25 @@ export type EffectiveStatus = "online" | "away" | "busy" | "offline";
  */
 export type PresenceActivity = "meeting";
 
+/**
+ * What somebody's working hours say about this minute.
+ *
+ * Not a status and not an activity: a status is chosen, an activity is asserted
+ * by a client, and this is derived from a week stored against the membership —
+ * see ondesk's `workspace_members.shift_*` and `_lib/shifts.ts`. It never
+ * overrides the status, and nothing here has to be asked for separately: the
+ * roster resolves it per request and puts it on the wire.
+ *
+ * `changes_at` is when the answer stops being true — the end of the window they
+ * are in, or the start of the next one — which is what lets a client say "back
+ * tomorrow at 09:00" without a second round trip. It is an instant, so it is
+ * rendered in the READER's zone: their question is when they can expect a reply.
+ */
+export interface ShiftState {
+	on: boolean;
+	changes_at: number | null;
+}
+
 export interface PublicPresence {
 	user_id: string;
 	status: EffectiveStatus;
@@ -39,6 +58,13 @@ export interface PublicPresence {
 	last_seen_at: number | null;
 	/** Only ever set alongside `status: "busy"` — the reason for it. */
 	activity: PresenceActivity | null;
+	/**
+	 * Their working hours, resolved. Null when they have set none, which is most
+	 * people; **optional** because the field arrived in ondesk before this package
+	 * did, and a product still on an older build must keep compiling against a
+	 * roster that carries it.
+	 */
+	shift?: ShiftState | null;
 }
 
 export interface OwnPresence {
@@ -145,12 +171,70 @@ export function lastSeenShort(lastSeenAt: number | null | undefined): string | n
 	return new Date(lastSeenAt * 1000).toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
+/** "", "tomorrow " or "on Monday " — how far off an instant is, in whole local days. */
+function dayPrefix(unixSeconds: number): string {
+	const then = new Date(unixSeconds * 1000);
+	const now = new Date();
+	const days = Math.round(
+		(new Date(then.getFullYear(), then.getMonth(), then.getDate()).getTime() -
+			new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()) /
+			86_400_000,
+	);
+	if (days <= 0) return "";
+	if (days === 1) return "tomorrow ";
+	if (days < 7) return `on ${then.toLocaleDateString([], { weekday: "long" })} `;
+	return `on ${then.toLocaleDateString([], { month: "short", day: "numeric" })} `;
+}
+
+/**
+ * The shift as a sentence: "Off shift · back tomorrow at 09:00", "On shift until
+ * 17:00", or null when there are no hours to say anything about.
+ *
+ * In the reader's clock, deliberately. The rules behind it are a statement about
+ * the other person's day and are shown in their zone wherever they are shown at
+ * all; this is a statement about when the reader can expect them, and converting
+ * it is the whole point of `changes_at` being an instant.
+ */
+export function shiftSentence(shift: ShiftState | null | undefined): string | null {
+	if (!shift) return null;
+	if (shift.changes_at === null) return shift.on ? "On shift" : "Off shift";
+	return shift.on
+		? `On shift until ${dayPrefix(shift.changes_at)}${clockOf(shift.changes_at)}`
+		: `Off shift · back ${dayPrefix(shift.changes_at)}at ${clockOf(shift.changes_at)}`;
+}
+
+/** "09:00" in the reader's zone, from an instant. */
+function clockOf(unixSeconds: number): string {
+	return new Date(unixSeconds * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
 /**
  * How somebody reads in one line: the state when they are there, the last-seen
  * when they are not, and nothing at all when neither is known.
+ *
+ * Once they have working hours, the shift explains an absence and annotates a
+ * presence, and it never contradicts the dot:
+ *
+ *  - away from their desk and off shift → the shift, because "back tomorrow at
+ *    09:00" is a plan and "Last seen 14h ago" is a fact the reader then has to
+ *    interpret;
+ *  - away from their desk during their hours → the last-seen, unchanged. They are
+ *    due in and they are not here, and "On shift until 17:00" beside a grey dot
+ *    would be the interface arguing with itself;
+ *  - at their desk but off shift → both, because somebody online at 22:00 is
+ *    genuinely reachable and genuinely on their own time;
+ *  - at their desk and on shift → the plain status. Everything is as expected and
+ *    saying so is noise.
+ *
+ * Somebody with no hours set reads exactly as they did before shifts existed.
  */
 export function presenceLine(presence: PublicPresence | undefined): string | null {
 	if (!presence) return null;
-	if (presence.status !== "offline") return presenceLabel(presence);
-	return lastSeenSentence(presence.last_seen_at);
+
+	const offShift = presence.shift != null && !presence.shift.on;
+
+	if (presence.status === "offline") {
+		return offShift ? shiftSentence(presence.shift) : lastSeenSentence(presence.last_seen_at);
+	}
+	return offShift ? `${presenceLabel(presence)} · ${shiftSentence(presence.shift)}` : presenceLabel(presence);
 }
