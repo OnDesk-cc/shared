@@ -1,35 +1,36 @@
 # @ondesk/shared — notas del proyecto
 
-> Este documento es el README original, conservado **literalmente y en inglés**.
-> Es la explicación de fondo más detallada que tiene el proyecto y no se
-> reescribe: el valor está en cómo está redactado.
+> Este documento es el README original del proyecto. Se conserva porque es la
+> explicación de fondo más detallada que existe del *por qué*. **Traducido del
+> inglés el 2026-09-19**; donde el texto se había quedado atrás respecto al
+> código, la corrección va marcada con «▸ **Hoy**».
 >
 > La navegación en español está en [README.md](README.md), el índice de `docs/`.
 
 ---
 
+Código que es idéntico en todos los productos de OnDesk — la consola, Pulse,
+Vault, Orbit, Nexus y Halo. Cada producto es su propio repositorio y se despliega
+por su cuenta; este paquete es la forma de que dejen de llevar seis copias
+byte a byte idénticas del mismo archivo.
 
-Code that is the same in every OnDesk product — the console, Pulse, Vault, Orbit,
-Nexus and Halo. Each product is its own repository and deploys on its own; this
-package is how they stop carrying six byte-identical copies of the same file.
+Se publica como **TypeScript en crudo**. No hay paso de compilación: el bundler
+de la app que lo consume (Vite para `src/`, wrangler para `functions/`) lo
+compila, y el `tsc` de la app lo comprueba como parte de su propio programa.
 
-It ships **raw TypeScript**. There is no build step: the consuming app's bundler
-(Vite for `src/`, wrangler for `functions/`) compiles it, and the app's `tsc`
-typechecks it as part of its own program.
+## Cómo está organizado
 
-## Layout
-
-| Path       | Runs in | What                                                          |
+| Ruta       | Corre en | Qué es                                                     |
 | ---------- | ------- | ------------------------------------------------------------- |
-| `ui/`      | browser | shadcn/ui primitives (`button`, `dialog`, `sidebar`, …) plus `sonner` (themed via `components/theme-provider`) |
-| `lib/`     | browser | `cn()`; `crud-api` / `crud-hooks` — the generic list/create/update/delete client + TanStack Query hooks |
-| `hooks/`   | browser | `useIsMobile()`                                               |
-| `components/` | browser | `theme-provider` (the `dark`-class writer every app mounts), `confirm-delete-modal`, `form-modal` |
-| `calls/`   | browser | `ringer-lease` — one ringtone per browser across all products; `ring-tone` — the `<RingTone>` player (each app serves `/sounds/ringtone-{in,out}.mp3`) |
-| `presence/` | browser | `status` — the presence vocabulary every product renders (`STATUS_META`, `presenceLabel`, `lastSeenShort`); `presence-dot` — the dot itself |
-| `worker/`  | Pages Functions | `response` — the `jsonOk` / `jsonError` helpers; `sso` — platform session + webhook verification (the products' side, never ondesk's); `cookies` — session-cookie reading; `jwt` — HS256 signing + audienced tickets; `middleware` — `createMiddleware(product)` → the four route wrappers; `email` — `createEmailer(brand)` + template helpers; `mirror` — the identical control-plane mirror writes |
+| `ui/`      | navegador | primitivas de shadcn/ui (`button`, `dialog`, `sidebar`, …) más `sonner` (con tema vía `components/theme-provider`) |
+| `lib/`     | navegador | `cn()`; `crud-api` / `crud-hooks` — el cliente genérico de listar/crear/actualizar/borrar y sus hooks de TanStack Query |
+| `hooks/`   | navegador | `useIsMobile()`                                               |
+| `components/` | navegador | `theme-provider` (el que escribe la clase `dark`, y lo monta toda app), `confirm-delete-modal`, `form-modal` |
+| `calls/`   | navegador | `ringer-lease` — un solo tono de llamada por navegador en todos los productos; `ring-tone` — el reproductor `<RingTone>` (cada app sirve `/sounds/ringtone-{in,out}.mp3`) |
+| `presence/` | navegador | `status` — el vocabulario de presencia que renderiza cada producto (`STATUS_META`, `presenceLabel`, `lastSeenShort`); `presence-dot` — el punto en sí |
+| `worker/`  | Pages Functions | `response` — los helpers `jsonOk` / `jsonError`; `sso` — sesión de plataforma y verificación de webhooks (el lado de los productos, nunca el de ondesk); `cookies` — lectura de la cookie de sesión; `jwt` — firma HS256 y tickets con audiencia; `middleware` — `createMiddleware(product)` → los cuatro envoltorios de ruta; `email` — `createEmailer(brand)` y helpers de plantilla; `mirror` — las escrituras del espejo del control plane, idénticas en todos |
 
-Import by path, no barrel:
+Se importa por ruta, sin barrel:
 
 ```ts
 import { Button } from "@ondesk/shared/ui/button";
@@ -37,15 +38,15 @@ import { cn } from "@ondesk/shared/lib/utils";
 import { jsonOk } from "@ondesk/shared/worker/response";
 ```
 
-`ui/`, `lib/`, `hooks/`, `components/`, `calls/` and `presence/` assume the DOM;
-`worker/` assumes
-`@cloudflare/workers-types`. Never import across that line — the two type
-universes disagree on the same global names, which is why there are two
-`tsconfig`s here and two in every app.
+`ui/`, `lib/`, `hooks/`, `components/`, `calls/` y `presence/` dan por hecho el
+DOM; `worker/` da por hecho `@cloudflare/workers-types`. **Nunca importes
+cruzando esa línea** — los dos universos de tipos no se ponen de acuerdo sobre
+los mismos nombres globales, que es por lo que aquí hay dos `tsconfig` y otros
+dos en cada app.
 
-## Consuming it
+## Consumirlo
 
-Each app pins a **tag** and upgrades when it wants to:
+Cada app fija un **tag** y actualiza cuando quiere:
 
 ```json
 "dependencies": {
@@ -53,67 +54,81 @@ Each app pins a **tag** and upgrades when it wants to:
 }
 ```
 
-Write the spec by hand in `package.json` rather than via `npm install <url>`,
-which saves the `github:OnDesk-cc/shared#v1.0.0` shorthand instead. Either
-spelling installs the same thing; the explicit URL just says what it is.
+Escribe la especificación a mano en `package.json` en vez de vía
+`npm install <url>`, que guarda el atajo `github:OnDesk-cc/shared#v1.0.0`. Las
+dos formas instalan lo mismo; la URL explícita sólo dice lo que es.
 
-`package-lock.json` will show the dependency as
-`git+ssh://git@github.com/OnDesk-cc/shared.git#<sha>` no matter which form
-`package.json` uses. That is cosmetic: for a GitHub URL npm clones over **https**
-first and only falls back to ssh if that fails, so no SSH key is needed anywhere —
-verified with `npm ci` on npm 11. The `<sha>` is what makes a build
-reproducible; a rollback is reverting one line.
+> ▸ **Hoy**: los diez consumidores usan el atajo `github:OnDesk-cc/shared#v1.4.0`,
+> no la URL larga. Funciona igual; esta sección describe una preferencia que en
+> la práctica no se siguió.
 
-Then, in the app:
+`package-lock.json` va a mostrar la dependencia como
+`git+ssh://git@github.com/OnDesk-cc/shared.git#<sha>` use la forma que use
+`package.json`. Eso es cosmético: para una URL de GitHub, npm clona primero por
+**https** y sólo cae a ssh si eso falla, así que no hace falta clave SSH en
+ninguna parte — verificado con `npm ci` en npm 11. El `<sha>` es lo que hace un
+build reproducible; hacer rollback es revertir una línea.
 
-1. **Tailwind v4 does not scan `node_modules`.** Add to the app's `index.css`,
-   right after the `@import`s:
+Después, en la app:
+
+1. **Tailwind v4 no escanea `node_modules`.** Añade al `index.css` de la app,
+   justo después de los `@import`:
 
    ```css
    @source "../node_modules/@ondesk/shared";
    ```
 
-   Without it every shared component renders with no styles and nothing errors.
+   Sin eso, cada componente compartido se renderiza sin estilos y no falla nada.
 
-2. **CI needs a token once this repo is private.** While it is public, `npm ci`
-   on a runner clones it anonymously and the app workflows stay as they are.
-   The moment it is flipped to private that breaks in all six at once: the
-   default `GITHUB_TOKEN` is scoped to the app's own repository and cannot read
-   another private repo in the org, and the lockfile resolution is a git URL.
+2. **CI necesita un token en cuanto este repo sea privado.** Mientras es público,
+   el `npm ci` de un runner lo clona anónimamente y los workflows de las apps se
+   quedan como están. En el momento en que se pase a privado, eso se rompe en los
+   seis a la vez: el `GITHUB_TOKEN` por defecto está limitado al repositorio de la
+   propia app y no puede leer otro repo privado de la organización, y la
+   resolución del lockfile es una URL de git.
 
-   There is exactly one place to fix, because Cloudflare Pages does not build
-   from source — the workflow builds and then runs `wrangler pages deploy dist`.
-   So each app needs this before its `npm ci`:
+   Hay exactamente un sitio donde arreglarlo, porque Cloudflare Pages **no
+   construye desde fuente** — el workflow construye y luego corre
+   `wrangler pages deploy dist`. Así que cada app necesita esto antes de su
+   `npm ci`:
 
    ```yaml
    - run: git config --global url."https://x-access-token:${SHARED_READ_TOKEN}@github.com/".insteadOf "https://github.com/"
      env:
-       SHARED_READ_TOKEN: ${{ secrets.SHARED_READ_TOKEN }}   # fine-grained PAT, Contents: read, a REPOSITORY secret in each app
+       SHARED_READ_TOKEN: ${{ secrets.SHARED_READ_TOKEN }}   # PAT de grano fino, Contents: read, un secreto DE REPOSITORIO en cada app
    ```
 
-3. Delete the app's copy of each file you now import from here. Two copies of a
-   `Dialog` is how the six drifted apart in the first place.
+3. Borra la copia que la app tenga de cada archivo que ahora importes de aquí.
+   Dos copias de un `Dialog` es exactamente como los seis se separaron.
 
-## Releasing
+## Publicar una versión
 
-1. Change the file. Run `npm run typecheck`.
-2. Bump `version` in `package.json`, commit, tag: `git tag v1.1.0 && git push --tags`.
-3. In each app that wants it: change the tag in `package.json` to `#v1.1.0`, run
-   `npm install`, then its typecheck + build, and open its PR.
+1. Cambia el archivo. Corre `npm run typecheck`.
+2. Sube `version` en `package.json`, commit, tag:
+   `git tag v1.1.0 && git push --tags`.
+3. En cada app que lo quiera: cambia el tag en `package.json` a `#v1.1.0`, corre
+   `npm install`, luego su typecheck y su build, y abre su PR.
 
-Semver is for people: **major** when a consumer has to change code, **minor**
-when something is added, **patch** for a fix. Apps that are not ready simply stay
-on the older tag.
+> ⚠️ **El pin es al TAG, no a master.** Un commit empujado sin tag rompió el CI
+> de los seis productos a la vez. Y `npm install` a secas **no vuelve a resolver
+> un tag** que ya está en el lockfile: hace falta
+> `npm install @ondesk/shared@git+…#vX.Y.Z` explícito.
 
-## Rules
+El semver es para las personas: **major** cuando un consumidor tiene que cambiar
+código, **minor** cuando se añade algo, **patch** para un arreglo. Las apps que no
+estén listas simplemente se quedan en el tag anterior.
 
-- Only code that is genuinely identical across products belongs here. Something
-  that needs an `if (app === "halo")` belongs in the app, or needs to be
-  parameterised *before* it moves in.
-- Relative imports only inside this package (`../lib/utils`, not `@/lib/utils`).
-  The `@/` alias is each app's; the consumer's bundler knows nothing about ours.
-- Runtime dependencies are **peerDependencies**, never `dependencies`. A second
-  copy of React inside `node_modules/@ondesk/shared/` breaks every hook.
-- No `exports` field on purpose: with `moduleResolution: "bundler"` a subpath
-  import resolves straight to the `.ts`/`.tsx` file, and every new file is
-  importable without editing `package.json`.
+## Las reglas
+
+- Aquí sólo pertenece el código que es genuinamente idéntico entre productos. Algo
+  que necesite un `if (app === "halo")` pertenece a la app, o necesita
+  parametrizarse *antes* de mudarse aquí.
+- Dentro de este paquete, **sólo imports relativos** (`../lib/utils`, no
+  `@/lib/utils`). El alias `@/` es de cada app; el bundler del consumidor no sabe
+  nada del nuestro.
+- Las dependencias de runtime son **peerDependencies**, nunca `dependencies`. Una
+  segunda copia de React dentro de `node_modules/@ondesk/shared/` rompe todos los
+  hooks.
+- **No hay campo `exports` a propósito**: con `moduleResolution: "bundler"`, un
+  import de subruta resuelve directo al archivo `.ts`/`.tsx`, y cada archivo nuevo
+  es importable sin tocar `package.json`.

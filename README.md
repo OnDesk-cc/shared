@@ -16,7 +16,7 @@ consume lo compila y su `tsc` lo comprueba.
 | [modulos.md](docs/modulos.md) | qué hay dentro, y la frontera navegador ↔ worker |
 | [uso.md](docs/uso.md) | consumirlo, publicarlo, y las reglas de qué entra |
 | [pendiente.md](docs/pendiente.md) | lo abierto y las trampas |
-| [decisiones.md](docs/decisiones.md) | el texto original en inglés |
+| [decisiones.md](docs/decisiones.md) | el texto original, con el razonamiento completo |
 
 ## ⚠️ Aquí vive el middleware de los seis productos
 
