@@ -1,3 +1,35 @@
+/**
+ * El cliente CRUD que se repetía en cada feature, escrito una vez.
+ *
+ * Casi todos los recursos de los productos hablan el mismo dialecto con su
+ * backend: `GET /x` devuelve `{ xs: [...] }`, `GET /x/:id` devuelve
+ * `{ x: {...} }`, POST y PATCH devuelven el recurso y DELETE no devuelve nada.
+ * Las dos fábricas de aquí construyen ese cliente a partir de tres datos
+ * (`basePath`, `listKey`, `itemKey`) en vez de que cada feature escriba cinco
+ * `fetch` idénticos.
+ *
+ * ── Las dos formas ───────────────────────────────────────────────────────────
+ *
+ *   createWorkspaceScopedApi  el recurso pertenece a un workspace. El id va en
+ *                             la query (`?workspace_id=`) y NO en el cuerpo: en
+ *                             `create` se saca del input a propósito, porque el
+ *                             servidor lo lee de la query para comprobar la
+ *                             pertenencia ANTES de mirar lo que le mandas.
+ *   createUserScopedApi       el recurso es de la persona. No hay workspace: lo
+ *                             que se puede ver sale de la sesión.
+ *
+ * ── Dos cosas que hay que saber ──────────────────────────────────────────────
+ *
+ * Todo va con `credentials: "include"`, que es lo que hace que funcione la
+ * cookie compartida de `.ondesk.cc` contra el subdominio del producto.
+ *
+ * Un fallo se convierte en `throw new Error(err.error)`, leyendo el
+ * `{ error: string }` que garantiza `worker/response.ts`. Eso significa que el
+ * CÓDIGO de estado se pierde: quien necesite distinguir un 402 `plan_limit` de
+ * un 403 no puede usar estas fábricas y tiene que llamar a `fetch` a mano.
+ *
+ * Lo usan pulse, orbit, nexus, halo y atlas. Vault no.
+ */
 interface CrudApiConfig {
 	basePath: string;
 	listKey: string;

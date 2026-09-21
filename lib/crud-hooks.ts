@@ -1,3 +1,27 @@
+/**
+ * Los hooks de React Query que van encima de `crud-api.ts`.
+ *
+ * Fabrican, para un recurso, los dos de lectura (`useAll`, `useById`) y los tres
+ * de escritura (`useCreate`, `useUpdate`, `useDelete`) con la invalidación ya
+ * cableada — que es la parte que se olvida y deja una lista sin refrescar
+ * después de crear algo.
+ *
+ * ── Las claves ───────────────────────────────────────────────────────────────
+ *
+ *   all(workspaceId)  ["recurso", workspaceId]   ← la lista de un workspace
+ *   detail(id)        ["recurso", id]            ← una ficha
+ *
+ * Comparten prefijo, así que invalidar la lista NO toca las fichas ni al revés:
+ * por eso `useUpdate` invalida las dos explícitamente.
+ *
+ * `staleTime` de 5 minutos en todo. Es un valor de catálogo — listas que cambian
+ * poco —, no de bandeja: lo que tiene que estar fresco (tickets, mensajes,
+ * notificaciones) NO usa estas fábricas, tiene sus propios hooks con su propio
+ * tiempo.
+ *
+ * Las mutaciones no hacen nada optimista: se espera al servidor y luego se
+ * invalida. Hoy el único consumidor es pulse.
+ */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 const STALE_TIME = 1000 * 60 * 5;

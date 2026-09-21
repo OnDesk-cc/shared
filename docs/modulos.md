@@ -77,15 +77,15 @@ Módulos de las carpetas publicadas (46), con la primera línea de su comentario
 | --- | --- |
 | [`calls/ring-tone.tsx`](../calls/ring-tone.tsx) | The two ringtones. |
 | [`calls/ringer-lease.ts`](../calls/ringer-lease.ts) | One ringtone per browser, however many OnDesk tabs are open. |
-| [`components/confirm-delete-modal.tsx`](../components/confirm-delete-modal.tsx) | — |
+| [`components/confirm-delete-modal.tsx`](../components/confirm-delete-modal.tsx) | «¿Seguro?» antes de un borrado, igual en los seis productos. |
 | [`components/console.tsx`](../components/console.tsx) | Console primitives — hard corners, hairline grids, mono telemetry labels, lime scan-lines. |
-| [`components/form-modal.tsx`](../components/form-modal.tsx) | — |
+| [`components/form-modal.tsx`](../components/form-modal.tsx) | El envoltorio de cualquier formulario en diálogo: título, descripción y hueco. |
 | [`components/theme-provider.tsx`](../components/theme-provider.tsx) | The scaffold bound `d` to a theme toggle globally. |
-| [`hooks/use-mobile.ts`](../hooks/use-mobile.ts) | — |
-| [`lib/crud-api.ts`](../lib/crud-api.ts) | — |
-| [`lib/crud-hooks.ts`](../lib/crud-hooks.ts) | — |
+| [`hooks/use-mobile.ts`](../hooks/use-mobile.ts) | ¿Estamos en una pantalla estrecha? El corte es 768 px (`md` de Tailwind). |
+| [`lib/crud-api.ts`](../lib/crud-api.ts) | El cliente CRUD que se repetía en cada feature, escrito una vez. |
+| [`lib/crud-hooks.ts`](../lib/crud-hooks.ts) | Los hooks de React Query que van encima de `crud-api.ts`. |
 | [`lib/initials.ts`](../lib/initials.ts) | Two letters standing in for somebody who has no avatar yet. |
-| [`lib/utils.ts`](../lib/utils.ts) | — |
+| [`lib/utils.ts`](../lib/utils.ts) | `cn` — juntar clases de Tailwind sin que se peleen entre ellas. |
 | [`presence/presence-dot.tsx`](../presence/presence-dot.tsx) | Draws the ring that separates it from whatever it is pinned to. |
 | [`presence/status.ts`](../presence/status.ts) | The presence vocabulary. |
 | [`ui/alert-dialog.tsx`](../ui/alert-dialog.tsx) | — |
@@ -119,7 +119,7 @@ Módulos de las carpetas publicadas (46), con la primera línea de su comentario
 | [`worker/jwt.ts`](../worker/jwt.ts) | HS256 signing and audienced verification, on Web Crypto. |
 | [`worker/middleware.ts`](../worker/middleware.ts) | The auth/tenancy middleware every satellite product wraps its routes in. |
 | [`worker/mirror.ts`](../worker/mirror.ts) | The mirror of OnDesk state — the writes every product performs identically. |
-| [`worker/response.ts`](../worker/response.ts) | — |
+| [`worker/response.ts`](../worker/response.ts) | Las tres respuestas JSON que devuelve cualquier handler de Pages Functions. |
 | [`worker/sso.ts`](../worker/sso.ts) | Platform token verification for the OnDesk control plane. |
 
 <!-- END generated:modules -->

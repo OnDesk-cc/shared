@@ -385,6 +385,40 @@ function spaRoutes() {
  * base de datos
  * ──────────────────────────────────────────────────────────────────────────── */
 
+/**
+ * Las líneas de la cabecera de una migración que NO son prosa.
+ *
+ * Casi todas abren igual: el rótulo «Apply with:» y las dos órdenes de
+ * `wrangler` para local y remoto. Son instrucciones de aplicación, no una
+ * descripción, y como el resumen se construye uniendo todas las líneas `--`
+ * acababan DENTRO de la celda «Qué hace» — media tabla decía «… mirrored
+ * wrangler d1 execute vault-db --local --file=…».
+ */
+const isMigrationBoilerplate = (l) =>
+	/^(wrangler|npx|npm|pnpm|yarn)\s/.test(l) || /^apply with:?$/i.test(l) || /^aplicar con:?$/i.test(l);
+
+/**
+ * El título de una migración es un párrafo de UNA línea, corto y sin punto
+ * final. Aparece de dos formas, y las dos son lo mismo:
+ *
+ *     -- ═══════════════════════          -- 001 — Per-product seats
+ *     -- 023 — The compliance console     --
+ *     -- ═══════════════════════          -- Before this, being a member…
+ *
+ * Se le ponen dos puntos, porque justo después viene otra frase y sin ellos las
+ * dos se pegan en una sola («001 — Per-product seats Before this, being a
+ * member of a workspace…»).
+ */
+function punctuateTitles(lines) {
+	const isBreak = (l) => l === undefined || l === "" || isRule(l);
+	return lines.map((l, i) => {
+		if (!l || isRule(l)) return l;
+		const alone = isBreak(lines[i - 1]) && isBreak(lines[i + 1]);
+		if (!alone || l.length > 80 || /[.:;!?]$/.test(l)) return l;
+		return `${l}:`;
+	});
+}
+
 function migrations() {
 	const dir = join(ROOT, "functions", "_db", "migrations");
 	if (!exists(dir)) return [];
@@ -393,11 +427,14 @@ function migrations() {
 		.sort()
 		.map((f) => {
 			const src = read(join(dir, f));
-			const comment = src
+			// Las líneas en blanco se conservan hasta después de puntuar los títulos:
+			// son lo que delimita un párrafo, y sin ellas no se sabe cuál lo es.
+			const rawLines = src
 				.split(/\r?\n/)
 				.filter((l) => l.trim().startsWith("--"))
-				.map((l) => l.replace(/^\s*--\s?/, "").trim())
-				.filter((l) => l && !isRule(l))
+				.map((l) => l.replace(/^\s*--\s?/, "").trim());
+			const comment = punctuateTitles(rawLines)
+				.filter((l) => !isRule(l) && !isMigrationBoilerplate(l))
 				.join(" ");
 			const tables = [...src.matchAll(/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?[`"]?(\w+)/gi)].map((m) => m[1]);
 			const altered = [...src.matchAll(/ALTER\s+TABLE\s+[`"]?(\w+)/gi)].map((m) => m[1]);
@@ -486,6 +523,29 @@ function objectLikeAfter(src, from) {
  */
 const ROOT_SOURCE_DIRS = ["calls", "components", "hooks", "lib", "presence", "ui", "worker"];
 
+/**
+ * ¿Es este archivo un diccionario de traducción que no dice nada propio?
+ *
+ * `src/i18n/locales/en/` es el original: ahí es donde se explica POR QUÉ una
+ * página dice lo que dice, y esas cabeceras valen su fila en la tabla. Los
+ * `es/` y `pt/` son la misma estructura con el texto traducido, y una cabecera
+ * suya sólo podría decir «esto es la traducción del de al lado», que es una
+ * fila de ruido repetida treinta y tres veces.
+ *
+ * Así que un espejo silencioso — sin cabecera propia y con un original en
+ * `en/` — no sale en la tabla ni cuenta como hueco. Un espejo que SÍ tiene
+ * cabecera es porque se apartó del original (`es/common.ts` documenta cómo se
+ * pregunta el país, `pt/index.ts` aclara que es portugués de Brasil), y ese se
+ * lista como cualquier otro módulo. La distribución de los idiomas se explica a
+ * mano en `docs/frontend.md`, que es donde se lee entera.
+ */
+function isSilentLocaleMirror(file, summary) {
+	const m = file.match(/^src\/i18n\/locales\/([a-z-]+)\/(.+\.tsx?)$/);
+	if (!m || m[1] === "en") return false;
+	if (summary) return false;
+	return exists(join(ROOT, "src", "i18n", "locales", "en", m[2]));
+}
+
 function modules() {
 	const bases = exists(join(ROOT, "src"))
 		? [join(ROOT, "src")]
@@ -502,6 +562,7 @@ function modules() {
 			file: rel(f),
 			summary: firstProse(leadingDocComment(read(f))),
 		}))
+		.filter((m) => !isSilentLocaleMirror(m.file, m.summary))
 		.sort((a, b) => a.file.localeCompare(b.file));
 }
 
