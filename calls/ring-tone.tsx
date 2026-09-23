@@ -4,69 +4,77 @@ import { Button } from "../ui/button";
 import { useRingerLease } from "./ringer-lease";
 
 /**
- * The two ringtones. Served straight from `public/`, so replacing a sound is
- * dropping a different file at `nexus/public/sounds/` under the same name — see
- * the README there.
+ * Los dos tonos de llamada. Se sirven tal cual desde `public/`, así que cambiar
+ * un sonido es dejar otro archivo en `nexus/public/sounds/` con el mismo nombre
+ * — ver el README de allí.
+ * ▸ Hoy: este componente vive en `shared` y lo montan los seis productos y
+ * ondesk; cada uno sirve su propia copia desde su `public/sounds/`, así que
+ * cambiar un sonido es cambiar el archivo en los siete.
  */
 const INCOMING_SOUND = "/sounds/ringtone-in.mp3";
 const OUTGOING_SOUND = "/sounds/ringtone-out.mp3";
-/** An incoming ring has to be heard across a room; an outgoing one is feedback. */
+/** Un timbre entrante tiene que oírse desde el otro lado de la sala; uno saliente es sólo feedback. */
 const INCOMING_VOLUME = 0.8;
 const OUTGOING_VOLUME = 0.45;
 
 export type RingMode = "in" | "out" | null;
 
 /**
- * Two elements, mounted for the life of the shell, one playing while something
- * rings: the incoming tone when somebody is calling you, the outgoing one while
- * your own call rings. Paused and rewound between rings so each file is fetched
- * and decoded once, at load, not at the moment somebody calls.
+ * Dos elementos, montados durante toda la vida del shell, uno reproduciéndose
+ * mientras algo suena: el tono entrante cuando alguien te llama, el saliente mientras
+ * suena tu propia llamada. Se pausan y se rebobinan entre timbres para que cada
+ * archivo se descargue y se decodifique una sola vez, al cargar, y no en el
+ * momento en que alguien llama.
  *
- * "For the life of the shell" is load-bearing and is the overlay's job to keep
- * true: this used to sit inside the overlay's early `return null`, which meant
- * the elements were created at the moment of the ring and destroyed after it —
- * so nothing was ever preloaded, and nothing below could ever have worked.
+ * «Durante toda la vida del shell» es una condición de la que depende todo, y
+ * mantenerla cierta es trabajo del overlay: esto antes estaba dentro del
+ * `return null` temprano del overlay, lo que significaba que los elementos se
+ * creaban en el momento del timbre y se destruían después — así que nunca se
+ * precargaba nada, y nada de lo que sigue podría haber funcionado jamás.
  *
- * ─── Autoplay, and why a ring can sound without anybody pressing anything ─────
+ * ─── Autoplay, y por qué un timbre puede sonar sin que nadie pulse nada ───────
  *
- * A ringtone is the case autoplay policy exists for: sound in a tab the person
- * has not just clicked in. Every browser refuses `play()` until the page has
- * seen a user gesture, and Safari goes further — it is the ELEMENT that has to
- * have been played from a gesture, not the page. So each element unlocks itself
- * on the first gesture the document sees, whenever that is: a muted `play()`
- * followed by a `pause()`, inside the event handler, which is the shape all
- * three engines accept and which nobody hears. A ring an hour later is then a
- * plain `play()` on an element the browser already trusts. Any click in the
- * shell counts — opening a conversation, focusing the composer — which is why
- * this needs no button of its own and no permission prompt.
+ * Un tono de llamada es justo el caso para el que existe la política de
+ * autoplay: sonido en una pestaña en la que la persona no acaba de hacer clic.
+ * Todos los navegadores rechazan `play()` hasta que la página ha visto un gesto
+ * del usuario, y Safari va más allá — es el ELEMENTO el que tiene que haberse
+ * reproducido desde un gesto, no la página. Así que cada elemento se desbloquea
+ * solo con el primer gesto que vea el documento, sea cuando sea: un `play()`
+ * silenciado seguido de un `pause()`, dentro del handler del evento, que es la
+ * forma que aceptan los tres motores y que nadie oye. Un timbre una hora después
+ * es entonces un simple `play()` sobre un elemento del que el navegador ya se
+ * fía. Cualquier clic en el shell cuenta — abrir una conversación, poner el foco
+ * en el cuadro de redacción — y por eso esto no necesita un botón propio ni un
+ * aviso de permiso.
  *
- * What it cannot do is ring a tab that has been loaded and never touched, and
- * that is what the fallback below is for: when `play()` is refused the ring
- * still shows — the card is the primary signal, the sound the second — and a
- * "Turn on sound" control is offered. The very next gesture anywhere, that
- * button or not, replays the tone synchronously inside the gesture, because in
- * Safari a retry scheduled from a state update can land outside the window in
- * which the click still counts.
+ * Lo que no puede hacer es sonar en una pestaña que se cargó y nunca se tocó, y
+ * para eso está la alternativa de abajo: cuando se rechaza `play()` el timbre se
+ * sigue mostrando — la tarjeta es la señal principal, el sonido la secundaria —
+ * y se ofrece un control «Turn on sound». El siguiente gesto en cualquier sitio,
+ * sea ese botón o no, vuelve a reproducir el tono de forma síncrona dentro del
+ * gesto, porque en Safari un reintento programado desde una actualización de
+ * estado puede caer fuera de la ventana en la que el clic todavía cuenta.
  *
- * Only the refusal gets the button. A missing file rejects too, and offering a
- * button that does nothing twice is worse than silence.
+ * Sólo el rechazo recibe el botón. Un archivo que falta también rechaza, y
+ * ofrecer un botón que no hace nada dos veces es peor que el silencio.
  *
- * ─── One tab sounds the incoming ring ────────────────────────────────────────
+ * ─── Una sola pestaña hace sonar el timbre entrante ──────────────────────────
  *
- * The card is drawn in every OnDesk tab the person has open; the tone comes
- * from one of them — the one they are in, or any one when they are in none.
- * That election is `useRingerLease` (a cookie on `.ondesk.cc`, since the tabs
- * are on different origins), and it decides only the INCOMING loop: the
- * outgoing tone already plays in exactly one place, the tab the call was placed
- * from. A tab that loses the lease keeps the card and shows no button.
+ * La tarjeta se dibuja en cada pestaña de OnDesk que la persona tenga abierta;
+ * el tono sale de una de ellas — aquella en la que está, o cualquiera cuando no
+ * está en ninguna. Esa elección es `useRingerLease` (una cookie en `.ondesk.cc`,
+ * porque las pestañas están en orígenes distintos), y decide sólo el bucle
+ * ENTRANTE: el tono saliente ya suena en un único sitio, la pestaña desde la que
+ * se hizo la llamada. Una pestaña que pierde el lease conserva la tarjeta y no
+ * muestra botón.
  */
 export function RingTone({ mode }: { mode: RingMode }) {
 	const [blocked, setBlocked] = useState(false);
 	const [attempt, setAttempt] = useState(0);
 	const audible = useRingerLease(mode === "in", blocked);
 
-	// Stable, so the loops' effects depend on what actually changed rather than
-	// re-running play()/pause() on every render of the overlay.
+	// Estables, para que los efectos de los bucles dependan de lo que de verdad
+	// cambió y no vuelvan a ejecutar play()/pause() en cada render del overlay.
 	const onBlocked = useCallback(() => setBlocked(true), []);
 	const onUnblocked = useCallback(() => setBlocked(false), []);
 
@@ -106,7 +114,7 @@ export function RingTone({ mode }: { mode: RingMode }) {
 	);
 }
 
-/** The gestures a browser counts as user activation. Capture phase, so a handler that stops propagation cannot hide one. */
+/** Los gestos que un navegador cuenta como activación del usuario. En fase de captura, para que un handler que detenga la propagación no pueda ocultar ninguno. */
 const GESTURES: (keyof WindowEventMap)[] = ["pointerdown", "keydown"];
 
 function Loop({
@@ -125,13 +133,13 @@ function Loop({
 	onUnblocked: () => void;
 }) {
 	const ref = useRef<HTMLAudioElement>(null);
-	// What the gesture handler reads, since it is attached once and `active`
-	// changes under it. Written from an effect, never during render.
+	// Lo que lee el handler del gesto, porque se engancha una sola vez y `active`
+	// cambia por debajo. Se escribe desde un efecto, nunca durante el render.
 	const activeRef = useRef(active);
 	useEffect(() => {
 		activeRef.current = active;
 	}, [active]);
-	/** Whether this element has been played from a gesture yet. Once is enough. */
+	/** Si este elemento ya se ha reproducido desde un gesto. Con una vez basta. */
 	const primedRef = useRef(false);
 
 	useEffect(() => {
@@ -160,8 +168,8 @@ function Loop({
 
 		const onGesture = () => {
 			if (activeRef.current) {
-				// Ringing, and paused: the browser refused us and this click is the
-				// gesture it was waiting for. Play NOW, inside the handler.
+				// Sonando, y en pausa: el navegador nos rechazó y este clic es el
+				// gesto que estaba esperando. Reproducir YA, dentro del handler.
 				if (element.paused) void element.play().then(onUnblocked).catch(() => {});
 				primedRef.current = true;
 				return;
@@ -169,23 +177,24 @@ function Loop({
 			if (primedRef.current) return;
 			primedRef.current = true;
 
-			// Idle: unlock the element for later without anybody hearing it. Muted
-			// rather than volume 0, because iOS ignores volume. Unmuted again once
-			// the browser has answered either way.
+			// En reposo: desbloquear el elemento para después sin que nadie lo oiga.
+			// Silenciado y no a volumen 0, porque iOS ignora el volumen. Se le quita
+			// el silencio en cuanto el navegador ha respondido, en un sentido u otro.
 			element.muted = true;
 			element
 				.play()
 				.then(() => {
-					// A ring may have started while this was in flight; if so it is
-					// playing (muted, briefly) and must not be paused from under it.
+					// Puede que haya empezado un timbre mientras esto estaba en vuelo;
+					// si es así está sonando (silenciado, un instante) y no hay que
+					// pausarlo por debajo.
 					if (!activeRef.current) {
 						element.pause();
 						element.currentTime = 0;
 					}
 				})
 				.catch(() => {
-					// Refused even from a gesture, or no file. The ring-time path and
-					// its button remain; nothing to say here.
+					// Rechazado incluso desde un gesto, o no hay archivo. Queda el camino
+					// del momento del timbre y su botón; aquí no hay nada que decir.
 					primedRef.current = false;
 				})
 				.finally(() => {

@@ -1,48 +1,53 @@
 /**
- * Platform token verification for the OnDesk control plane.
+ * Verificación de los tokens de plataforma del control plane de OnDesk.
  *
- * A product Worker authenticates nobody and issues no cookies of its own. The
- * session is a single RS256 token minted by ondesk and carried in an
- * `access_token` cookie on `Domain=.ondesk.cc`, so the browser presents it here
- * exactly as it presents it to ondesk — signing in once is signing in
- * everywhere. This file verifies that token against ondesk's published JWKS;
- * a product holds public keys and never anything that could mint one.
+ * Un Worker de producto no autentica a nadie ni emite cookies propias. La sesión
+ * es un único token RS256 que emite ondesk y que viaja en una cookie
+ * `access_token` sobre `Domain=.ondesk.cc`, así que el navegador lo presenta aquí
+ * exactamente igual que se lo presenta a ondesk — entrar una vez es entrar en
+ * todas partes. Este archivo verifica ese token contra el JWKS publicado por
+ * ondesk; un producto guarda claves públicas y nunca nada que pueda emitir uno.
  *
- * The ONE implementation every product uses — halo, nexus, orbit, pulse, vault
- * and atlas import it from `@ondesk/shared/worker/sso`, so a fix to token
- * verification lands everywhere at once. ondesk itself never imports it: it is
- * the issuer, and verifying is not the issuer's problem.
+ * La ÚNICA implementación que usa cada producto — halo, nexus, orbit, pulse,
+ * vault y atlas la importan de `@ondesk/shared/worker/sso`, así que un arreglo en
+ * la verificación de tokens llega a todas partes a la vez. ondesk nunca la
+ * importa: es el emisor, y verificar no es problema del emisor.
  *
- * ── Two kinds of token, one key ──────────────────────────────────────────────
+ * ── Dos clases de token, una sola clave ──────────────────────────────────────
  *
- * Session tokens, ID tokens and OIDC access tokens are all RS256 signed with the
- * same RSA key, so a signature check alone tells you nothing about what you are
- * holding. Each verifier here pins the discriminator that makes its kind
- * unmistakable — `token_use: "session"` for a session, `client_id` + `scope` for
- * an access token — and refuses anything that does not carry it. An ID token
- * presented as a bearer token has neither and fails both.
+ * Los tokens de sesión, los ID tokens y los access tokens de OIDC van todos
+ * firmados en RS256 con la misma clave RSA, así que comprobar la firma por sí
+ * solo no te dice nada de lo que tienes en la mano. Cada verificador de aquí fija
+ * el discriminador que hace inconfundible su clase — `token_use: "session"` para
+ * una sesión, `client_id` + `scope` para un access token — y rechaza todo lo que
+ * no lo lleve. Un ID token presentado como bearer token no tiene ninguno de los
+ * dos y falla en ambos.
  *
- * See ondesk/docs/platform-architecture.md and ondesk/docs/developer-platform.md.
+ * Ver ondesk/docs/platform-architecture.md y ondesk/docs/developer-platform.md.
+ * ▸ Hoy: esos dos archivos ya no existen; los documentos son
+ * ondesk/docs/arquitectura-plataforma.md y
+ * ondesk/docs/plataforma-desarrolladores.md.
  */
 
 /**
- * What verification needs from the consumer's bindings, structurally — every
- * app's `Env` satisfies it without knowing about this type.
+ * Lo que la verificación necesita de los bindings de quien la consume,
+ * estructuralmente — el `Env` de cada app lo cumple sin saber nada de este tipo.
  */
 export interface SsoEnv {
-	/** Origin of the control plane. Defaults to https://ondesk.cc. */
+	/** Origen del control plane. Por defecto, https://ondesk.cc. */
 	ONDESK_ISSUER?: string;
-	/** HMAC secret for mirror-sync webhooks. Absent means webhooks are refused. */
+	/** Secreto HMAC para los webhooks de sincronización del espejo. Si falta, los webhooks se rechazan. */
 	ONDESK_WEBHOOK_SECRET?: string;
 }
 
 /**
- * The platform session, as ondesk signs it.
+ * La sesión de la plataforma, tal como la firma ondesk.
  *
- * `token_use` is the discriminator: ID tokens and OIDC access tokens are signed
- * with the same RSA key, and without it any of them would verify as a session.
- * `role` is the platform-level account role — what this person may do in a
- * given workspace comes from the mirrored membership, not from here.
+ * `token_use` es el discriminador: los ID tokens y los access tokens de OIDC se
+ * firman con la misma clave RSA, y sin él cualquiera de ellos se verificaría como
+ * una sesión. `role` es el rol de cuenta a nivel de plataforma — lo que esta
+ * persona puede hacer en un workspace concreto sale de la membresía espejada, no
+ * de aquí.
  */
 export interface SessionClaims {
 	iss: string;
@@ -78,10 +83,10 @@ export function ondeskIssuer(env: SsoEnv): string {
 	return (env.ONDESK_ISSUER ?? "https://ondesk.cc").replace(/\/$/, "");
 }
 
-// ─── Session token verification ───────────────────────────────────────────────
+// ─── Verificación del token de sesión ─────────────────────────────────────────
 
-// Cached across requests on a warm isolate. The TTL bounds how long a rotated-out
-// key stays trusted here.
+// Se cachea entre peticiones en un isolate caliente. El TTL acota cuánto tiempo
+// sigue siendo de confianza aquí una clave ya rotada.
 let jwksCache: { keys: Jwk[]; fetchedAt: number } | null = null;
 const JWKS_TTL = 60 * 60;
 
@@ -98,14 +103,14 @@ async function fetchJwks(env: SsoEnv): Promise<Jwk[]> {
 }
 
 /**
- * Everything true of any token ondesk signs: RS256, a key from the live JWKS,
- * our issuer, and not expired.
+ * Todo lo que es cierto de cualquier token que firma ondesk: RS256, una clave del
+ * JWKS vigente, nuestro emisor, y sin caducar.
  *
- * Deliberately not exported. What it returns is a verified *envelope* and
- * nothing more — it has not decided what kind of token this is, and a caller
- * holding its result would be one `sub` away from treating an ID token as a
- * session. The two exported verifiers below each pin their own discriminator on
- * top of it; go through one of them.
+ * No se exporta, a propósito. Lo que devuelve es un *sobre* verificado y nada más
+ * — no ha decidido qué clase de token es, y a quien tuviera su resultado le
+ * faltaría un `sub` para tratar un ID token como una sesión. Los dos verificadores
+ * exportados de abajo fijan cada uno su propio discriminador encima de esto; pasa
+ * por uno de ellos.
  */
 async function verifyEnvelope(env: SsoEnv, token: string): Promise<Record<string, unknown> | null> {
 	const parts = token.split(".");
@@ -122,8 +127,8 @@ async function verifyEnvelope(env: SsoEnv, token: string): Promise<Record<string
 	} catch {
 		return null;
 	}
-	// Pinned, not read: accepting whatever `alg` the token asks for is how
-	// "alg: none" became a category of vulnerability.
+	// Fijado, no leído: aceptar el `alg` que pida el token es como «alg: none»
+	// llegó a ser una categoría de vulnerabilidad.
 	if (header.alg !== "RS256") return null;
 
 	let keys: Jwk[];
@@ -132,7 +137,9 @@ async function verifyEnvelope(env: SsoEnv, token: string): Promise<Record<string
 	} catch {
 		return null;
 	}
-	// Match on kid when present; fall back to the sole key when the set has one.
+	// Buscar por kid cuando lo hay; si no, caer a la única clave cuando el conjunto
+	// sólo tiene una.
+	// ▸ Hoy: sin kid se coge `keys[0]`, tenga el conjunto las claves que tenga.
 	const jwk = header.kid ? keys.find((k) => k.kid === header.kid) : keys[0];
 	if (!jwk) return null;
 
@@ -164,13 +171,14 @@ async function verifyEnvelope(env: SsoEnv, token: string): Promise<Record<string
 }
 
 /**
- * Full verification: signature, issuer, expiry and `token_use`. Returns null on
- * any failure and never explains which check failed — the caller answers 401
- * either way, and a verifier that distinguishes them is an oracle.
+ * Verificación completa: firma, emisor, caducidad y `token_use`. Devuelve null
+ * ante cualquier fallo y nunca explica qué comprobación falló — quien llama
+ * responde 401 en cualquier caso, y un verificador que las distingue es un
+ * oráculo.
  *
- * Never decode a session token without this: an unverified token is
- * attacker-supplied JSON, and its `sub` is what we are about to trust as an
- * identity.
+ * Nunca decodifiques un token de sesión sin esto: un token sin verificar es JSON
+ * que pone el atacante, y su `sub` es lo que estamos a punto de aceptar como
+ * identidad.
  */
 export async function verifySessionToken(env: SsoEnv, token: string): Promise<SessionClaims | null> {
 	const claims = await verifyEnvelope(env, token);
@@ -179,37 +187,37 @@ export async function verifySessionToken(env: SsoEnv, token: string): Promise<Se
 	return claims as unknown as SessionClaims;
 }
 
-// ─── OIDC access token verification ───────────────────────────────────────────
+// ─── Verificación del access token de OIDC ────────────────────────────────────
 
 /**
- * An OIDC access token, as ondesk's token endpoint signs it.
+ * Un access token de OIDC, tal como lo firma el endpoint de tokens de ondesk.
  *
- * This is the Developer Platform's bearer token: a third party holds it on
- * behalf of a person, and it says three things — who the person is (`sub`),
- * which application is asking (`client_id`), and what that application was
- * allowed to ask for (`scope`).
+ * Es el bearer token de la Developer Platform: un tercero lo tiene en nombre de
+ * una persona, y dice tres cosas — quién es la persona (`sub`), qué aplicación
+ * pregunta (`client_id`), y qué se le permitió pedir a esa aplicación (`scope`).
  *
- * What it does NOT say is what the person may do. That is the whole point of
- * the model and the mistake the contract exists to prevent: a scope is a
- * ceiling on what the application may relay, never a statement about the
- * person's own access. See `createApiMiddleware` in `worker/api.ts`.
+ * Lo que NO dice es lo que la persona puede hacer. Ése es todo el sentido del
+ * modelo y el error que el contrato existe para impedir: un scope es un techo
+ * sobre lo que la aplicación puede transmitir, nunca una afirmación sobre el
+ * acceso propio de la persona. Ver `createApiMiddleware` en `worker/api.ts`.
  */
 export interface AccessTokenClaims {
 	iss: string;
-	/** The OnDesk user this token acts for. */
+	/** El usuario de OnDesk en cuyo nombre actúa este token. */
 	sub: string;
 	aud: string | string[];
-	/** The registered application presenting it. */
+	/** La aplicación registrada que lo presenta. */
 	client_id: string;
-	/** Space-delimited, RFC 6749 §3.3. Use `parseScopes` rather than substring matching. */
+	/** Separados por espacios, RFC 6749 §3.3. Usa `parseScopes` en vez de comparar subcadenas. */
 	scope: string;
 	/**
-	 * Web origins this application registered, derived from its redirect URIs.
+	 * Los orígenes web que registró esta aplicación, derivados de sus redirect
+	 * URIs.
 	 *
-	 * Present so a product can answer a browser client's CORS without knowing
-	 * anything about `oauth_clients`, which live in ondesk's database and are no
-	 * business of a product's. Absent on an older token, which simply means no
-	 * origin is reflected.
+	 * Está para que un producto pueda responder al CORS de un cliente de navegador
+	 * sin saber nada de `oauth_clients`, que viven en la base de datos de ondesk y
+	 * no son asunto de ningún producto. Falta en un token antiguo, lo que
+	 * simplemente significa que no se refleja ningún origen.
 	 */
 	origins?: string[];
 	iat: number;
@@ -217,18 +225,20 @@ export interface AccessTokenClaims {
 }
 
 /**
- * Verifies a bearer token from a Developer Platform application.
+ * Verifica un bearer token de una aplicación de la Developer Platform.
  *
- * `client_id` and `scope` are what make this an access token rather than one of
- * the other two things signed with the same key. A session token carries
- * `token_use: "session"` and neither of them; an ID token carries neither and is
- * audienced to the client. Requiring both here is what the platform doc means by
- * "do not trust `token_use`" — the presence of the claims an access token cannot
- * do without is a stronger test than the absence of a label.
+ * `client_id` y `scope` son lo que hace de esto un access token y no una de las
+ * otras dos cosas firmadas con la misma clave. Un token de sesión lleva
+ * `token_use: "session"` y ninguno de los dos; un ID token no lleva ninguno y su
+ * audiencia es el cliente. Exigir los dos aquí es lo que el documento de la
+ * plataforma quiere decir con «no te fíes de `token_use`» — la presencia de los
+ * claims sin los que un access token no puede vivir es una prueba más fuerte que
+ * la ausencia de una etiqueta.
  *
- * The audience is deliberately not pinned. One token is meant to reach every
- * product it holds scopes for, exactly as it reaches `/userinfo`; what stops it
- * being useful anywhere is the scope check, not an audience string.
+ * La audiencia no se fija, a propósito. Un token está pensado para llegar a cada
+ * producto para el que tiene scopes, exactamente igual que llega a `/userinfo`;
+ * lo que impide que sirva en cualquier sitio es la comprobación del scope, no una
+ * cadena de audiencia.
  */
 export async function verifyAccessToken(env: SsoEnv, token: string): Promise<AccessTokenClaims | null> {
 	const claims = await verifyEnvelope(env, token);
@@ -236,24 +246,24 @@ export async function verifyAccessToken(env: SsoEnv, token: string): Promise<Acc
 
 	if (typeof claims.client_id !== "string" || claims.client_id.length === 0) return null;
 	if (typeof claims.scope !== "string") return null;
-	// A session token would already have failed the two above; this refuses one
-	// that ever gains them without anybody revisiting this file.
+	// Un token de sesión ya habría fallado en las dos de arriba; esto rechaza uno
+	// que algún día las gane sin que nadie vuelva a mirar este archivo.
 	if (claims.token_use !== undefined) return null;
 
 	return claims as unknown as AccessTokenClaims;
 }
 
-/** Space-delimited, order-insensitive, duplicates collapsed — RFC 6749 §3.3. */
+/** Separados por espacios, sin importar el orden, con los duplicados colapsados — RFC 6749 §3.3. */
 export function parseScopes(scope: string): string[] {
 	return [...new Set(scope.split(/\s+/).filter(Boolean))];
 }
 
 /**
- * The bearer token on a request, or null.
+ * El bearer token de una petición, o null.
  *
- * Only the `Authorization` header. A token in a query string ends up in access
- * logs, browser history and `Referer`, and offering the option is how it gets
- * used.
+ * Sólo la cabecera `Authorization`. Un token en una query string acaba en los
+ * logs de acceso, en el historial del navegador y en `Referer`, y ofrecer la
+ * opción es la manera de que alguien la use.
  */
 export function bearerToken(request: Request): string | null {
 	const header = request.headers.get("Authorization");
@@ -262,11 +272,12 @@ export function bearerToken(request: Request): string | null {
 	return token.length > 0 ? token : null;
 }
 
-// ─── Inbound webhook verification ─────────────────────────────────────────────
+// ─── Verificación del webhook entrante ────────────────────────────────────────
 
 /**
- * Verifies a mirror-sync webhook from ondesk. The timestamp is inside the signed
- * body, so rejecting old ones bounds how long a captured request stays useful.
+ * Verifica un webhook de sincronización del espejo que llega de ondesk. La marca
+ * de tiempo va dentro del cuerpo firmado, así que rechazar los antiguos acota
+ * cuánto tiempo le sirve a alguien una petición capturada.
  */
 export async function verifyPlatformWebhook(
 	env: SsoEnv,

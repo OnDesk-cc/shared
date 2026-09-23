@@ -1,16 +1,16 @@
 /**
- * Cookie reading, and nothing else.
+ * Lectura de cookies, y nada más.
  *
- * The session cookie is minted by ondesk on `Domain=.ondesk.cc` and a product
- * only ever reads it — there is deliberately no serializer here, because a
- * product that can write `access_token` is a product that can drift out of
- * step with the platform session.
+ * La cookie de sesión la emite ondesk sobre `Domain=.ondesk.cc` y un producto
+ * sólo la lee — aquí no hay serializador a propósito, porque un producto que
+ * puede escribir `access_token` es un producto que puede desacompasarse de la
+ * sesión de la plataforma.
  */
 
 export const ACCESS_TOKEN_COOKIE = "access_token";
 
 /**
- * Parse a Cookie header string into a key-value map.
+ * Parsea la cadena de una cabecera Cookie a un mapa clave-valor.
  */
 export function parseCookies(
   cookieHeader: string | null
@@ -25,13 +25,15 @@ export function parseCookies(
 }
 
 /**
- * Every value the browser sent under one name, in header order.
+ * Todos los valores que el navegador envió bajo un mismo nombre, en el orden de
+ * la cabecera.
  *
- * A name can legitimately appear twice during the shared-cookie migration: a
- * stale host-only cookie from the per-product-session era and the
- * Domain=.ondesk.cc one share a name but not a store key, and the browser
- * sends both. `parseCookies` keeps whichever comes last; session verification
- * needs to try each until one verifies.
+ * Un nombre puede aparecer legítimamente dos veces durante la migración a la
+ * cookie compartida: una cookie host-only rancia de la época de la sesión por
+ * producto y la de Domain=.ondesk.cc comparten nombre pero no clave de almacén,
+ * y el navegador envía las dos. `parseCookies` se queda con la que venga la
+ * última; la verificación de sesión tiene que probar cada una hasta que alguna
+ * verifique.
  */
 export function parseCookieValues(
   cookieHeader: string | null,

@@ -1,50 +1,57 @@
 import { Circle, Clock, MinusCircle, EyeOff, type LucideIcon } from "lucide-react";
 
 /**
- * The presence vocabulary.
+ * El vocabulario de presencia.
  *
- * Presence is the one platform fact this product does NOT mirror. Names,
- * avatars, memberships, seats and permissions are copied into nexus-db and kept
- * in step by webhook and reconcile; where somebody is right now changes every
- * minute by construction, so a copy of it would be wrong most of the time. The
- * browser asks ondesk directly instead — see ./presence-api.ts.
+ * La presencia es el único dato de plataforma que este producto NO espeja.
+ * Nombres, avatares, membresías, asientos y permisos se copian en nexus-db y se
+ * mantienen al día por webhook y reconciliación; dónde está alguien ahora mismo
+ * cambia cada minuto por definición, así que una copia estaría mal casi siempre.
+ * En su lugar, el navegador le pregunta directamente a ondesk — ver
+ * ./presence-api.ts.
  *
- * This file mirrors `ondesk/functions/_lib/types/presence.ts`, and an identical
- * copy lives in each of the four products: the same deliberate duplication as
- * `email.ts`, `crypto.ts` and `notify.ts`. Nothing is shared between these
- * repositories and a status vocabulary is not the thing to start with — it is
- * four labels and one colour each, and the five bundles ship independently.
- * When one moves, grep for `PresenceStatus` in all five.
+ * Este archivo refleja `ondesk/functions/_lib/types/presence.ts`, y una copia
+ * idéntica vive en cada uno de los cuatro productos: la misma duplicación
+ * deliberada que `email.ts`, `crypto.ts` y `notify.ts`. No se comparte nada entre
+ * estos repositorios, y un vocabulario de estados no es lo primero por lo que
+ * empezar — son cuatro etiquetas y un color cada una, y los cinco bundles se
+ * despliegan por separado. Cuando uno cambie, busca `PresenceStatus` en los
+ * cinco.
+ * ▸ Hoy: este archivo es `@ondesk/shared/presence/status` y lo importan los seis
+ * productos y ondesk; `presence-api.ts` no está aquí sino en el
+ * `src/features/presence/` de cada app, y las copias de `status.ts` que siguen
+ * en esa carpeta ya no las importa nadie.
  */
 
-/** What a person may choose. */
+/** Lo que una persona puede elegir. */
 export type PresenceStatus = "online" | "away" | "busy" | "invisible";
 
-/** What everyone else sees. `invisible` never appears here — that is the point. */
+/** Lo que ven todos los demás. `invisible` nunca aparece aquí — de eso se trata. */
 export type EffectiveStatus = "online" | "away" | "busy" | "offline";
 
 /**
- * What a person is DOING, as opposed to what they chose. Reported by a Halo room
- * while its socket is up; the server shows it as `busy` with this attached as
- * the reason, and drops it on its own when the room stops reporting. The choice
- * underneath is never touched, which is why "back to normal after the meeting"
- * needs no code at all.
+ * Lo que una persona está HACIENDO, frente a lo que eligió. Lo informa una sala
+ * de Halo mientras su socket sigue arriba; el servidor lo muestra como `busy` con
+ * esto adjunto como motivo, y lo quita solo cuando la sala deja de informar. La
+ * elección de debajo nunca se toca, y por eso «volver a la normalidad después de
+ * la reunión» no necesita ni una línea de código.
  */
 export type PresenceActivity = "meeting";
 
 /**
- * What somebody's working hours say about this minute.
+ * Lo que dice el horario laboral de alguien sobre este minuto.
  *
- * Not a status and not an activity: a status is chosen, an activity is asserted
- * by a client, and this is derived from a week stored against the membership —
- * see ondesk's `workspace_members.shift_*` and `_lib/shifts.ts`. It never
- * overrides the status, and nothing here has to be asked for separately: the
- * roster resolves it per request and puts it on the wire.
+ * No es un estado ni una actividad: un estado se elige, una actividad la afirma
+ * un cliente, y esto se deriva de una semana guardada contra la membresía — ver
+ * `workspace_members.shift_*` y `_lib/shifts.ts` en ondesk. Nunca pasa por encima
+ * del estado, y nada de esto hay que pedirlo aparte: el roster lo resuelve en
+ * cada petición y lo pone en el cable.
  *
- * `changes_at` is when the answer stops being true — the end of the window they
- * are in, or the start of the next one — which is what lets a client say "back
- * tomorrow at 09:00" without a second round trip. It is an instant, so it is
- * rendered in the READER's zone: their question is when they can expect a reply.
+ * `changes_at` es cuándo la respuesta deja de ser cierta — el final de la franja
+ * en la que están, o el inicio de la siguiente — y es lo que deja a un cliente
+ * decir «back tomorrow at 09:00» sin una segunda ida y vuelta. Es un instante, así
+ * que se pinta en la zona horaria de QUIEN LEE: su pregunta es cuándo puede
+ * esperar una respuesta.
  */
 export interface ShiftState {
 	on: boolean;
@@ -54,36 +61,36 @@ export interface ShiftState {
 export interface PublicPresence {
 	user_id: string;
 	status: EffectiveStatus;
-	/** Null when nobody has ever seen them, and null when they chose not to be seen. */
+	/** Null cuando nadie los ha visto nunca, y null cuando eligieron no ser vistos. */
 	last_seen_at: number | null;
-	/** Only ever set alongside `status: "busy"` — the reason for it. */
+	/** Sólo se rellena junto a `status: "busy"` — es su motivo. */
 	activity: PresenceActivity | null;
 	/**
-	 * Their working hours, resolved. Null when they have set none, which is most
-	 * people; **optional** because the field arrived in ondesk before this package
-	 * did, and a product still on an older build must keep compiling against a
-	 * roster that carries it.
+	 * Su horario laboral, ya resuelto. Null cuando no han puesto ninguno, que es
+	 * lo que pasa con casi todo el mundo; **opcional** porque el campo llegó a
+	 * ondesk antes que a este paquete, y un producto que siga en una build antigua
+	 * tiene que seguir compilando contra un roster que lo trae.
 	 */
 	shift?: ShiftState | null;
 }
 
 export interface OwnPresence {
 	user_id: string;
-	/** The choice — what the switcher ticks. */
+	/** La elección — lo que marca el selector. */
 	status: PresenceStatus;
-	/** What that choice currently makes you to everyone else. */
+	/** Lo que esa elección te hace ser ahora mismo para todos los demás. */
 	effective: EffectiveStatus;
 	last_seen_at: number;
-	/** What is overriding the choice right now, if anything. */
+	/** Lo que está pasando por encima de la elección ahora mismo, si hay algo. */
 	activity: PresenceActivity | null;
 }
 
 interface StatusMeta {
 	label: string;
-	/** One line, in the menu, saying what picking this does to other people. */
+	/** Una línea, en el menú, que dice qué les hace a los demás elegir esto. */
 	description: string;
 	icon: LucideIcon;
-	/** Tailwind background for the dot. */
+	/** Fondo de Tailwind para el punto. */
 	dot: string;
 }
 
@@ -120,18 +127,19 @@ export const STATUS_META: Record<PresenceStatus | "offline", StatusMeta> = {
 	},
 };
 
-/** The four the switcher offers, in the order it offers them. */
+/** Los cuatro que ofrece el selector, en el orden en que los ofrece. */
 export const CHOOSABLE_STATUSES: PresenceStatus[] = ["online", "away", "busy", "invisible"];
 
-/** The words for what somebody is doing. Not choosable; the dot stays `busy`'s. */
+/** Las palabras para lo que alguien está haciendo. No se puede elegir; el punto sigue siendo el de `busy`. */
 export const ACTIVITY_META: Record<PresenceActivity, { label: string }> = {
 	meeting: { label: "In meeting" },
 };
 
 /**
- * The state as one label: "Busy · In meeting" for somebody in a room, the plain
- * status label for everybody else. Use this wherever a status label is shown to
- * other people, so a meeting reads as a meeting and not as an unexplained Busy.
+ * El estado como una sola etiqueta: «Busy · In meeting» para alguien que está en
+ * una sala, la etiqueta de estado sin más para todos los demás. Úsalo dondequiera
+ * que se muestre una etiqueta de estado a otras personas, para que una reunión se
+ * lea como una reunión y no como un «Busy» sin explicar.
  */
 export function presenceLabel(presence: Pick<PublicPresence, "status" | "activity">): string {
 	const base = STATUS_META[presence.status].label;
@@ -139,12 +147,12 @@ export function presenceLabel(presence: Pick<PublicPresence, "status" | "activit
 }
 
 /**
- * "5m ago" / "3h ago" / "2d ago", then a date.
+ * «5m ago» / «3h ago» / «2d ago», y después una fecha.
  *
- * Never says "online" and never guesses: a null timestamp returns null and the
- * caller decides what to render instead. Null means one of two things that are
- * meant to be indistinguishable — never seen, or chose not to be seen — so
- * inventing a label here would be inventing an answer to which.
+ * Nunca dice «online» y nunca adivina: una marca de tiempo null devuelve null y
+ * quien llama decide qué pintar en su lugar. Null significa una de dos cosas que
+ * deben ser indistinguibles — nunca visto, o eligió no ser visto — así que
+ * inventar una etiqueta aquí sería inventar la respuesta a cuál de las dos.
  */
 export function lastSeenLabel(lastSeenAt: number | null | undefined): string | null {
 	if (lastSeenAt == null || lastSeenAt <= 0) return null;
@@ -155,13 +163,13 @@ export function lastSeenLabel(lastSeenAt: number | null | undefined): string | n
 	return new Date(lastSeenAt * 1000).toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
-/** The same fact with the words in front: "Last seen 5m ago". */
+/** El mismo dato con las palabras delante: «Last seen 5m ago». */
 export function lastSeenSentence(lastSeenAt: number | null | undefined): string | null {
 	const label = lastSeenLabel(lastSeenAt);
 	return label === null ? null : `Last seen ${label}`;
 }
 
-/** The sidebar-sized form: "5m", "3h", "2d", then a date. No words to truncate. */
+/** La forma a la medida de la barra lateral: «5m», «3h», «2d», y después una fecha. Sin palabras que truncar. */
 export function lastSeenShort(lastSeenAt: number | null | undefined): string | null {
 	if (lastSeenAt == null || lastSeenAt <= 0) return null;
 	const seconds = Math.max(0, Math.floor(Date.now() / 1000) - lastSeenAt);
@@ -171,7 +179,7 @@ export function lastSeenShort(lastSeenAt: number | null | undefined): string | n
 	return new Date(lastSeenAt * 1000).toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
-/** "", "tomorrow " or "on Monday " — how far off an instant is, in whole local days. */
+/** `""`, `"tomorrow "` u `"on Monday "` — lo lejos que queda un instante, en días locales enteros. */
 function dayPrefix(unixSeconds: number): string {
 	const then = new Date(unixSeconds * 1000);
 	const now = new Date();
@@ -187,13 +195,13 @@ function dayPrefix(unixSeconds: number): string {
 }
 
 /**
- * The shift as a sentence: "Off shift · back tomorrow at 09:00", "On shift until
- * 17:00", or null when there are no hours to say anything about.
+ * El turno como una frase: «Off shift · back tomorrow at 09:00», «On shift until
+ * 17:00», o null cuando no hay horario del que decir nada.
  *
- * In the reader's clock, deliberately. The rules behind it are a statement about
- * the other person's day and are shown in their zone wherever they are shown at
- * all; this is a statement about when the reader can expect them, and converting
- * it is the whole point of `changes_at` being an instant.
+ * En el reloj de quien lee, a propósito. Las reglas que hay detrás son una
+ * afirmación sobre el día de la otra persona y se muestran en su zona horaria,
+ * allí donde se muestren; esto es una afirmación sobre cuándo puede esperarla
+ * quien lee, y convertirla es justo la razón de que `changes_at` sea un instante.
  */
 export function shiftSentence(shift: ShiftState | null | undefined): string | null {
 	if (!shift) return null;
@@ -203,30 +211,31 @@ export function shiftSentence(shift: ShiftState | null | undefined): string | nu
 		: `Off shift · back ${dayPrefix(shift.changes_at)}at ${clockOf(shift.changes_at)}`;
 }
 
-/** "09:00" in the reader's zone, from an instant. */
+/** «09:00» en la zona horaria de quien lee, a partir de un instante. */
 function clockOf(unixSeconds: number): string {
 	return new Date(unixSeconds * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
 /**
- * How somebody reads in one line: the state when they are there, the last-seen
- * when they are not, and nothing at all when neither is known.
+ * Cómo se lee alguien en una línea: el estado cuando está, la última conexión
+ * cuando no, y nada en absoluto cuando no se sabe ninguna de las dos cosas.
  *
- * Once they have working hours, the shift explains an absence and annotates a
- * presence, and it never contradicts the dot:
+ * En cuanto tiene horario laboral, el turno explica una ausencia y anota una
+ * presencia, y nunca contradice al punto:
  *
- *  - away from their desk and off shift → the shift, because "back tomorrow at
- *    09:00" is a plan and "Last seen 14h ago" is a fact the reader then has to
- *    interpret;
- *  - away from their desk during their hours → the last-seen, unchanged. They are
- *    due in and they are not here, and "On shift until 17:00" beside a grey dot
- *    would be the interface arguing with itself;
- *  - at their desk but off shift → both, because somebody online at 22:00 is
- *    genuinely reachable and genuinely on their own time;
- *  - at their desk and on shift → the plain status. Everything is as expected and
- *    saying so is noise.
+ *  - fuera de su puesto y fuera de turno → el turno, porque «back tomorrow at
+ *    09:00» es un plan y «Last seen 14h ago» es un dato que quien lee luego tiene
+ *    que interpretar;
+ *  - fuera de su puesto durante su horario → la última conexión, sin cambios. Le
+ *    toca estar y no está, y «On shift until 17:00» al lado de un punto gris
+ *    sería la interfaz discutiendo consigo misma;
+ *  - en su puesto pero fuera de turno → las dos cosas, porque alguien conectado a
+ *    las 22:00 está de verdad localizable y está de verdad en su tiempo libre;
+ *  - en su puesto y en turno → el estado sin más. Todo es lo esperado y decirlo
+ *    es ruido.
  *
- * Somebody with no hours set reads exactly as they did before shifts existed.
+ * Alguien sin horario puesto se lee exactamente igual que antes de que
+ * existieran los turnos.
  */
 export function presenceLine(presence: PublicPresence | undefined): string | null {
 	if (!presence) return null;

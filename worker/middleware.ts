@@ -4,22 +4,25 @@ import { parseCookieValues, ACCESS_TOKEN_COOKIE } from "./cookies";
 import { jsonError } from "./response";
 
 /**
- * The auth/tenancy middleware every satellite product wraps its routes in.
+ * El middleware de autenticación y de workspace con el que cada producto satélite
+ * envuelve sus rutas.
  *
- * One implementation, instantiated per product: each app's
- * `functions/_lib/middleware.ts` calls `createMiddleware` with its own Env, its
- * own permission catalogue and its product name, and re-exports the four
- * wrappers — so a route file never knows this package exists, and a fix to the
- * auth path lands in every product at once.
+ * Una sola implementación, instanciada por producto: el
+ * `functions/_lib/middleware.ts` de cada app llama a `createMiddleware` con su
+ * propio Env, su propio catálogo de permisos y su nombre de producto, y
+ * reexporta los cuatro envoltorios — así un archivo de ruta nunca sabe que este
+ * paquete existe, y un arreglo en el camino de autenticación llega a todos los
+ * productos a la vez.
  *
- * The session is the shared `.ondesk.cc` cookie minted by ondesk and verified
- * against its published JWKS (see worker/sso.ts) — a product issues no session
- * of its own. Membership, entitlement and the platform role come from the
- * mirrored `workspace_members` / `workspace_entitlements` tables every product
- * maintains via the platform webhook and the reconcile job.
+ * La sesión es la cookie compartida de `.ondesk.cc` que emite ondesk y que se
+ * verifica contra su JWKS publicado (ver worker/sso.ts) — un producto no emite
+ * ninguna sesión propia. La membresía, el derecho y el rol de plataforma salen de
+ * las tablas espejadas `workspace_members` / `workspace_entitlements` que cada
+ * producto mantiene mediante el webhook de la plataforma y el job de
+ * reconciliación.
  */
 
-/** What the middleware needs from a product's bindings, structurally. */
+/** Lo que el middleware necesita de los bindings de un producto, estructuralmente. */
 export interface MiddlewareEnv extends SsoEnv {
 	DB: D1Database;
 }
@@ -29,13 +32,13 @@ export interface AuthContext<E extends MiddlewareEnv, P extends string = string>
 	env: E;
 	params: Record<P, string>;
 	payload: SessionClaims;
-	/** Keeps the Worker alive for side effects (audit writes, emails) after the response is sent. */
+	/** Mantiene vivo el Worker para efectos secundarios (escrituras de auditoría, emails) después de enviar la respuesta. */
 	waitUntil: (promise: Promise<unknown>) => void;
 }
 
 export interface WorkspaceContext<E extends MiddlewareEnv, P extends string = string> extends AuthContext<E, P> {
 	workspaceId: string;
-	/** The caller's platform role in this workspace: owner | admin | member. */
+	/** El rol de plataforma de quien llama en este workspace: owner | admin | member. */
 	workspaceRole: string;
 }
 
@@ -44,30 +47,31 @@ type WorkspaceHandler<E extends MiddlewareEnv, P extends string> = (ctx: Workspa
 
 export interface Middleware<E extends MiddlewareEnv, Perm extends string> {
 	/**
-	 * Verifies the shared platform session cookie and hands the payload to the
-	 * handler. Every candidate value is tried because a stale host-only cookie
-	 * from the per-product-session era can shadow the shared one for a while.
+	 * Verifica la cookie de sesión compartida de la plataforma y le pasa el
+	 * payload al handler. Se prueba cada valor candidato porque una cookie
+	 * host-only rancia de la época de la sesión por producto puede tapar durante un
+	 * tiempo a la compartida.
 	 */
 	withAuth<P extends string = string>(handler: AuthHandler<E, P>): PagesFunction<E, P>;
 	/**
-	 * Auth, then that the caller is a member of the `workspace_id` in the query
-	 * string *and* that the workspace still holds a live entitlement for this
-	 * product. One query answers all three; a lapsed tenant gets 402 and keeps
-	 * its data.
+	 * La autenticación, y después que quien llama es miembro del `workspace_id` de
+	 * la query string *y* que el workspace sigue teniendo un derecho vivo para
+	 * este producto. Una sola consulta responde a las tres cosas; un workspace
+	 * caducado recibe un 402 y conserva sus datos.
 	 */
 	withWorkspace<P extends string = string>(handler: WorkspaceHandler<E, P>): PagesFunction<E, P>;
 	/**
-	 * Membership and entitlement, plus one permission from the caller's product
-	 * role — `workspace_members.permissions`, resolved by ondesk from the seat's
-	 * role and mirrored here. A member with no resolved permissions falls back
-	 * to the preset for their tenancy role, so wrapping a route in this never
-	 * locks an owner out of their own tenant.
+	 * Membresía y derecho, más un permiso del rol de producto de quien llama —
+	 * `workspace_members.permissions`, que ondesk resuelve a partir del rol del
+	 * asiento y que se espeja aquí. Un miembro sin permisos resueltos cae al preset
+	 * de su rol en el workspace, así que envolver una ruta con esto nunca deja a un
+	 * dueño fuera de su propio workspace.
 	 */
 	withPermission<P extends string = string>(permission: Perm, handler: WorkspaceHandler<E, P>): PagesFunction<E, P>;
 	/**
-	 * The same, but only for methods that change something: reads pass on
-	 * membership alone, so gating a mixed GET/POST route never takes the list
-	 * away from someone who could only ever read it.
+	 * Lo mismo, pero sólo para los métodos que cambian algo: las lecturas pasan
+	 * sólo con la membresía, así que poner este guard a una ruta mixta GET/POST
+	 * nunca le quita la lista a alguien que sólo podía leerla.
 	 */
 	withWritePermission<P extends string = string>(
 		permission: Perm,
@@ -76,9 +80,9 @@ export interface Middleware<E extends MiddlewareEnv, Perm extends string> {
 }
 
 export function createMiddleware<E extends MiddlewareEnv, Perm extends string>(product: {
-	/** Product name as the 402 says it, e.g. "Vault". */
+	/** El nombre del producto tal como lo dice el 402, p. ej. «Vault». */
 	productName: string;
-	/** The product's permission resolver — `hasPermission` from its `_lib/db/roles.ts`. */
+	/** El resolvedor de permisos del producto — `hasPermission` de su `_lib/db/roles.ts`. */
 	hasPermission: (db: D1Database, workspaceId: string, userId: string, permission: Perm) => Promise<boolean>;
 }): Middleware<E, Perm> {
 	const { productName, hasPermission } = product;
@@ -130,9 +134,9 @@ export function createMiddleware<E extends MiddlewareEnv, Perm extends string>(p
 	): PagesFunction<E, P> {
 		return withWorkspace<P>(async (ctx) => {
 			if (!(await hasPermission(ctx.env.DB, ctx.workspaceId, ctx.payload.sub, permission))) {
-				// Named rather than a bare 403: the client can tell the difference
-				// between "not your workspace" and "your role doesn't include this",
-				// and only the second is worth explaining to the person.
+				// Con nombre y no un 403 pelado: el cliente puede distinguir entre «no
+				// es tu workspace» y «tu rol no incluye esto», y sólo lo segundo merece
+				// explicárselo a la persona.
 				return jsonError(`Your role doesn't include ${permission}`, 403);
 			}
 			return handler(ctx);

@@ -3,7 +3,7 @@
 > El estado de despliegue **no se deduce del repositorio**. Lo marcado
 > **«confirmar»** viene de las notas de trabajo.
 
-_Última revisión: 2026-09-19._
+_Última revisión: 2026-09-22._
 
 ## Abierto
 

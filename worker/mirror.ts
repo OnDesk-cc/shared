@@ -1,20 +1,22 @@
 import type { D1Database } from "@cloudflare/workers-types";
 
 /**
- * The mirror of OnDesk state — the writes every product performs identically.
+ * El espejo del estado de OnDesk — las escrituras que cada producto hace de forma
+ * idéntica.
  *
- * `users`, `workspaces` and `workspace_members` are not owned by a product —
- * they are a local cache of the control plane, kept so foreign keys resolve and
- * queries can JOIN without calling ondesk. The only writers are the platform
- * webhook and the reconcile job; anything else that writes these tables will
- * drift, and the drift stays invisible until a JOIN starts returning the wrong
- * rows.
+ * `users`, `workspaces` y `workspace_members` no son de ningún producto — son una
+ * caché local del control plane, que se guarda para que las claves foráneas
+ * resuelvan y las consultas puedan hacer JOIN sin llamar a ondesk. Los únicos que
+ * escriben son el webhook de la plataforma y el job de reconciliación; cualquier
+ * otra cosa que escriba en estas tablas se desviará, y la desviación sigue siendo
+ * invisible hasta que un JOIN empieza a devolver las filas equivocadas.
  *
- * What is NOT here is what differs per product: `removeMirroredMember` (each
- * product cascades its own membership-scoped rows — grants, channel members,
- * project members), team mirroring (not every product has teams), and the
- * `ensureDefault*` provisioning writes. Those stay in each app's
- * `_lib/db/mirror.ts`, which re-exports this module for the rest.
+ * Lo que NO está aquí es lo que difiere por producto: `removeMirroredMember`
+ * (cada producto borra en cascada sus propias filas ligadas a la membresía —
+ * concesiones, miembros de canal, miembros de proyecto), el espejo de equipos
+ * (no todos los productos tienen equipos), y las escrituras de aprovisionamiento
+ * `ensureDefault*`. Eso se queda en el `_lib/db/mirror.ts` de cada app, que
+ * reexporta este módulo para el resto.
  */
 
 export interface MirroredUser {
@@ -76,31 +78,35 @@ export async function upsertMirroredWorkspace(
 }
 
 /**
- * Everything ondesk can tell us about one membership beyond the tenancy role.
+ * Todo lo que ondesk nos puede contar de una membresía más allá del rol en el
+ * workspace.
  *
- * **Every field is undefined-means-leave-alone, and that is load-bearing.** A
- * webhook fires on the one thing that changed, and an older control plane sends
- * fields this build has never heard of — or omits ones it has. Writing `?? null`
- * for an absent field would let a `member_updated` carrying only a role change
- * blank a job title, or let a `permissions_updated` reset a join date.
+ * **En todos los campos, undefined significa «no tocar», y de eso depende
+ * todo.** Un webhook salta por la única cosa que cambió, y un control plane más
+ * antiguo envía campos de los que esta build nunca ha oído hablar — u omite otros
+ * que sí conoce. Escribir `?? null` para un campo ausente dejaría que un
+ * `member_updated` que sólo lleva un cambio de rol dejara en blanco un cargo, o
+ * que un `permissions_updated` reiniciara una fecha de alta.
  *
- * `job_title: null` is therefore different from `job_title` absent: the first is
- * "an admin cleared it", the second is "this delivery says nothing about it".
+ * `job_title: null` es, por tanto, distinto de que `job_title` no venga: lo
+ * primero es «un admin lo borró», lo segundo es «esta entrega no dice nada de
+ * él».
  */
 export interface MirroredMemberPatch {
 	/**
-	 * What ondesk resolved from the role on this member's product seat — the
-	 * answer, not the role row it came from. An empty array is a member with no
-	 * grants, which is a legitimate thing to store, so there is no "clear it" case.
+	 * Lo que ondesk resolvió a partir del rol del asiento de producto de este
+	 * miembro — la respuesta, no la fila de rol de la que salió. Un array vacío es
+	 * un miembro sin concesiones, que es algo legítimo de guardar, así que no hay
+	 * caso de «borrarlo».
 	 */
 	permissions?: string[];
-	/** What they do in this workspace. Set in the OnDesk console, never here. */
+	/** A qué se dedica en este workspace. Se pone en la consola de OnDesk, nunca aquí. */
 	job_title?: string | null;
 	/**
-	 * When they joined the WORKSPACE, per ondesk. The column's own default is the
-	 * moment the mirror first inserted the row — the day they were given a seat,
-	 * which is usually not the day they joined — so ondesk's value overwrites it
-	 * whenever one arrives.
+	 * Cuándo entró en el WORKSPACE, según ondesk. El valor por defecto de la
+	 * propia columna es el momento en que el espejo insertó la fila por primera
+	 * vez — el día en que se le dio un asiento, que no suele ser el día en que
+	 * entró — así que el valor de ondesk lo sobrescribe siempre que llega uno.
 	 */
 	joined_at?: number;
 }
@@ -112,10 +118,10 @@ export async function upsertMirroredMember(
 	role: string,
 	patch: MirroredMemberPatch = {},
 ): Promise<void> {
-	// Built column-wise rather than as one fixed statement: three optional fields
-	// would otherwise be a branch per combination, and the branch that gets
-	// forgotten is the one that silently writes a NULL over somebody's title. The
-	// names below are literals from this file and never come from the payload.
+	// Se construye columna a columna y no como una sentencia fija: si no, tres
+	// campos opcionales serían una rama por combinación, y la rama que se olvida
+	// es la que en silencio escribe un NULL encima del cargo de alguien. Los
+	// nombres de abajo son literales de este archivo y nunca vienen del payload.
 	const columns = ["id", "workspace_id", "user_id", "role"];
 	const values: unknown[] = [crypto.randomUUID(), workspaceId, userId, role];
 	const updates = ["role = excluded.role"];
@@ -141,10 +147,10 @@ export async function upsertMirroredMember(
 }
 
 /**
- * A role edit at ondesk changes what several people may do at once, so it
- * arrives as one event carrying every seat holder rather than one per member.
- * Anyone absent from the list is not touched: they hold no seat on this product
- * and have nothing to update.
+ * Editar un rol en ondesk cambia lo que pueden hacer varias personas a la vez,
+ * así que llega como un solo evento con todos los que tienen asiento en vez de
+ * uno por miembro. A quien no esté en la lista no se le toca: no tiene asiento en
+ * este producto y no hay nada que actualizar.
  */
 export async function applyMirroredPermissions(
 	db: D1Database,

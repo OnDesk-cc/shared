@@ -1,53 +1,56 @@
 import { useEffect, useRef, useState } from "react";
 
 /**
- * One ringtone per browser, however many OnDesk tabs are open.
+ * Un solo tono de llamada por navegador, por muchas pestañas de OnDesk que haya
+ * abiertas.
  *
- * Every product's shell hears the same ring — that is the point of the shared
- * socket — so somebody with Nexus, Halo, Orbit and the console open heard the
- * tone four times over. The cards should show everywhere; the SOUND should come
- * from one place: the tab the person is actually in, or any one tab when they
- * are in none of them.
+ * El shell de cada producto oye el mismo timbre — para eso está el socket
+ * compartido — así que alguien con Nexus, Halo, Orbit y la consola abiertos oía
+ * el tono cuatro veces. Las tarjetas deben mostrarse en todas partes; el SONIDO
+ * debe salir de un solo sitio: la pestaña en la que la persona está de verdad, o
+ * una pestaña cualquiera cuando no está en ninguna.
  *
- * ─── A cookie, because the tabs are on different origins ─────────────────────
+ * ─── Una cookie, porque las pestañas están en orígenes distintos ─────────────
  *
- * `BroadcastChannel` and `localStorage` are per origin, and `nexus.ondesk.cc`
- * and `halo.ondesk.cc` are two. A cookie on `.ondesk.cc` is the one thing every
- * product's page can read and write, and it is exactly big enough for this: the
- * id of the tab that is ringing, its claim to the job, and a short life so a
- * closed tab's claim expires on its own. Nothing here goes to a server — the
- * cookie is `Path=/`, so it does ride every request, and it is a few dozen
- * bytes; the `od_` prefix keeps it clearly ours in a debugger.
+ * `BroadcastChannel` y `localStorage` son por origen, y `nexus.ondesk.cc` y
+ * `halo.ondesk.cc` son dos. Una cookie en `.ondesk.cc` es lo único que la página
+ * de cada producto puede leer y escribir, y tiene justo el tamaño necesario para
+ * esto: el id de la pestaña que está sonando, su reclamación de la tarea, y una
+ * vida corta para que la reclamación de una pestaña cerrada caduque sola. Nada de
+ * esto es para un servidor — la cookie es `Path=/`, así que sí viaja en cada
+ * petición, y ocupa unas pocas decenas de bytes; el prefijo `od_` deja claro en
+ * un depurador que es nuestra.
  *
- * ─── The election ────────────────────────────────────────────────────────────
+ * ─── La elección ─────────────────────────────────────────────────────────────
  *
- * Every tab that has a ring on screen ticks a few times a second. Each computes
- * its own claim — focused tab 3, visible tab 2, hidden tab 1, hidden and
- * refused by autoplay 0 — reads the cookie, and takes the lease when there is
- * no holder or when its claim beats the holder's; the holder refreshes the
- * cookie on every tick. A tab that lost goes silent on its next tick. So the
- * sound follows the person: click into another product mid-ring and the tone
- * moves there. Focus and visibility changes re-run the tick at once rather
- * than waiting for the next one.
+ * Cada pestaña que tiene un timbre en pantalla hace un tic varias veces por
+ * segundo. Cada una calcula su propia reclamación — pestaña con foco 3, pestaña
+ * visible 2, pestaña oculta 1, oculta y rechazada por el autoplay 0 —, lee la
+ * cookie, y toma el lease cuando no hay titular o cuando su reclamación supera la
+ * del titular; el titular refresca la cookie en cada tic. Una pestaña que perdió
+ * se calla en su siguiente tic. Así el sonido sigue a la persona: entra en otro
+ * producto a mitad del timbre y el tono se muda allí. Los cambios de foco y de
+ * visibilidad vuelven a lanzar el tic en el acto en vez de esperar al siguiente.
  *
- * Two hidden tabs seeing no holder at the same instant would both claim; the
- * short random delay before a low-priority claim makes that rare, and the next
- * tick settles it in any case — last writer wins, the other reads a foreign id
- * and stops. A tab the browser refuses to let play (see ring-tone.tsx) says so
- * with the lowest claim, so a tab that CAN sound takes over from one that only
- * shows the "Turn on sound" button — unless the refused tab is the one the
- * person is looking at, where that button is the right thing to show.
+ * Dos pestañas ocultas que vean a la vez que no hay titular reclamarían las dos;
+ * el breve retardo aleatorio antes de una reclamación de baja prioridad hace que
+ * eso sea raro, y el siguiente tic lo resuelve en cualquier caso — gana el último
+ * que escribe, la otra lee un id ajeno y para. Una pestaña a la que el navegador
+ * no deja reproducir (ver ring-tone.tsx) lo dice con la reclamación más baja, así
+ * que una pestaña que SÍ puede sonar toma el relevo de una que sólo muestra el
+ * botón «Turn on sound» — salvo que la pestaña rechazada sea la que la persona
+ * está mirando, donde ese botón es justo lo que hay que mostrar.
  */
 
 const COOKIE = "od_ringer";
-/** How often every ringing tab re-reads the lease. */
+/** Cada cuánto vuelve a leer el lease cada pestaña que está sonando. */
 const TICK_MS = 400;
-/** How long a claim lives without being refreshed. Whole seconds: cookies. */
+/** Cuánto vive una reclamación sin refrescarse. En segundos enteros: son cookies. */
 const TTL_SECONDS = 3;
-/** Upper bound on the random delay before a hidden tab claims. */
+/** Tope del retardo aleatorio antes de que una pestaña oculta reclame. */
 const CLAIM_JITTER_MS = 250;
 
-/** This tab, for the life of the page. */
+/** Esta pestaña, durante toda la vida de la página. */
 const TAB_ID = (() => {
 	try {
 		return crypto.randomUUID();
@@ -61,7 +64,7 @@ interface Holder {
 	priority: number;
 }
 
-/** `.ondesk.cc` for every product host; unset (host-only) on localhost. */
+/** `.ondesk.cc` para cada host de producto; sin fijar (sólo el host) en localhost. */
 function cookieDomain(): string | null {
 	const host = window.location.hostname;
 	return host === "ondesk.cc" || host.endsWith(".ondesk.cc") ? ".ondesk.cc" : null;
@@ -83,7 +86,7 @@ function writeHolder(priority: number, ttlSeconds: number = TTL_SECONDS): void {
 		`${domain ? `; Domain=${domain}` : ""}${secure}`;
 }
 
-/** Drops the lease, but only if it is ours — never another tab's. */
+/** Suelta el lease, pero sólo si es nuestro — nunca el de otra pestaña. */
 function releaseIfMine(): void {
 	if (readHolder()?.id === TAB_ID) writeHolder(0, 0);
 }
@@ -96,16 +99,17 @@ function claimOf(blocked: boolean): number {
 }
 
 /**
- * Whether THIS tab should sound the incoming ring right now.
+ * Si ESTA pestaña debe hacer sonar el timbre entrante ahora mismo.
  *
- * `ringing` is "a ring is on screen here"; `blocked` is the autoplay refusal
- * ring-tone.tsx already tracks. Returns false the moment the ring ends or
- * another tab takes the lease.
+ * `ringing` es «hay un timbre en pantalla aquí»; `blocked` es el rechazo del
+ * autoplay que ring-tone.tsx ya sigue. Devuelve false en cuanto termina el timbre
+ * u otra pestaña toma el lease.
  *
- * `held` is reset on every change of `ringing`, during render — React's own
- * pattern for state that follows a prop — so the effect body writes no state
- * (the lint rule this repo keeps) and a stale "held" from the previous ring can
- * never leak a burst of sound into the next one before its first tick has run.
+ * `held` se reinicia en cada cambio de `ringing`, durante el render — el patrón
+ * del propio React para un estado que sigue a una prop — así que el cuerpo del
+ * efecto no escribe estado (la regla de lint que mantiene este repo) y un «held»
+ * rancio del timbre anterior nunca puede colar una ráfaga de sonido en el
+ * siguiente antes de que haya corrido su primer tic.
  */
 export function useRingerLease(ringing: boolean, blocked: boolean): boolean {
 	const [held, setHeld] = useState(false);
@@ -114,7 +118,7 @@ export function useRingerLease(ringing: boolean, blocked: boolean): boolean {
 		setWasRinging(ringing);
 		setHeld(false);
 	}
-	// Read inside the tick without re-arming the interval on every change.
+	// Se lee dentro del tic sin volver a armar el intervalo en cada cambio.
 	const blockedRef = useRef(blocked);
 	useEffect(() => {
 		blockedRef.current = blocked;
@@ -130,7 +134,7 @@ export function useRingerLease(ringing: boolean, blocked: boolean): boolean {
 			const holder = readHolder();
 
 			if (holder !== null && holder.id !== TAB_ID && mine <= holder.priority) {
-				// Somebody else has it and has at least as good a reason. Quiet.
+				// Otra pestaña lo tiene, con un motivo al menos igual de bueno. Silencio.
 				if (claimTimer !== undefined) {
 					window.clearTimeout(claimTimer);
 					claimTimer = undefined;
@@ -140,9 +144,10 @@ export function useRingerLease(ringing: boolean, blocked: boolean): boolean {
 			}
 
 			if (holder === null && mine < 2) {
-				// Nobody holds it and we are not the tab the person is looking at:
-				// wait a moment before claiming, so several hidden tabs do not all
-				// grab it in the same tick. A focused or visible tab claims at once.
+				// Nadie lo tiene y no somos la pestaña que la persona está mirando:
+				// esperar un momento antes de reclamar, para que varias pestañas
+				// ocultas no lo cojan todas en el mismo tic. Una pestaña con foco o
+				// visible reclama en el acto.
 				if (claimTimer === undefined) {
 					claimTimer = window.setTimeout(() => {
 						claimTimer = undefined;
@@ -155,20 +160,21 @@ export function useRingerLease(ringing: boolean, blocked: boolean): boolean {
 				return;
 			}
 
-			// Ours — freshly taken, or refreshed for another few seconds.
+			// Nuestro — recién tomado, o refrescado por unos segundos más.
 			writeHolder(mine);
 			setHeld(true);
 		};
 
-		// The first decision is a moment away rather than in the effect body — a
-		// timer, like every later one, so the body itself writes no state.
+		// La primera decisión llega un instante después y no en el cuerpo del
+		// efecto — un temporizador, como todas las siguientes, para que el propio
+		// cuerpo no escriba estado.
 		const first = window.setTimeout(tick, 0);
 		const interval = window.setInterval(tick, TICK_MS);
-		// The person moved: re-decide now, not in up to 400 ms.
+		// La persona se ha movido: decidir otra vez ahora, no dentro de hasta 400 ms.
 		window.addEventListener("focus", tick);
 		window.addEventListener("blur", tick);
 		document.addEventListener("visibilitychange", tick);
-		// A tab going away hands the sound to the others straight away.
+		// Una pestaña que se va les pasa el sonido a las demás en el acto.
 		window.addEventListener("pagehide", releaseIfMine);
 
 		return () => {

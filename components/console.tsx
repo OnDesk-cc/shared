@@ -1,22 +1,24 @@
 /**
- * Console primitives — hard corners, hairline grids, mono telemetry labels,
- * lime scan-lines. The shared dashboard language of Halo, Nexus, Orbit, Pulse
- * and Vault; the marketing counterpart it used to point at lives in ondesk now.
+ * Primitivas de consola — esquinas duras, rejillas de línea fina, rótulos de
+ * telemetría en monoespaciada, líneas de escaneo lima. El lenguaje de panel
+ * compartido de Halo, Nexus, Orbit, Pulse y Vault; la contraparte de marketing a
+ * la que antes apuntaba vive ahora en ondesk.
+ * ▸ Hoy: Atlas también lo usa.
  *
- * Use these instead of ad-hoc Card headers so every dashboard page reads
- * as the same instrument panel.
+ * Úsalas en lugar de cabeceras de Card improvisadas para que cada página de
+ * panel se lea como el mismo cuadro de instrumentos.
  */
 import type { ReactNode, ElementType } from "react";
 
-/** Mono telemetry micro-label, e.g. `02 — TICKETS`. */
+/** Micro-rótulo de telemetría en monoespaciada, p. ej. `02 — TICKETS`. */
 export function ConsoleTag({ children, className = "" }: { children: ReactNode; className?: string }) {
 	return <span className={`console-label ${className}`}>{children}</span>;
 }
 
 /**
- * Standard dashboard page header: mono eyebrow with blinking cursor,
- * heavy tracked-tight title, optional description and actions, closed
- * by a hairline rule.
+ * Cabecera estándar de página de panel: antetítulo en monoespaciada con cursor
+ * parpadeante, título grueso con el interletrado apretado, descripción y
+ * acciones opcionales, y cerrada por una línea fina.
  */
 export function PageHeader({
 	tag,
@@ -24,7 +26,7 @@ export function PageHeader({
 	description,
 	actions,
 }: {
-	/** Mono eyebrow, e.g. "TICKETS" or "02 — ANALYTICS" */
+	/** Antetítulo en monoespaciada, p. ej. «TICKETS» o «02 — ANALYTICS» */
 	tag: string;
 	title: ReactNode;
 	description?: string;
@@ -51,14 +53,15 @@ export function PageHeader({
 }
 
 /**
- * Hairline stat grid — tiles separated by 1px border lines, editorial style.
- * Wrap StatTile children. Columns via className, e.g. "sm:grid-cols-2 lg:grid-cols-4".
+ * Rejilla de cifras de línea fina — celdas separadas por bordes de 1px, estilo
+ * editorial. Envuelve hijos StatTile. Las columnas van por className, p. ej.
+ * `sm:grid-cols-2 lg:grid-cols-4`.
  */
 export function StatGrid({ children, className = "" }: { children: ReactNode; className?: string }) {
 	return <div className={`grid gap-px border border-border bg-border ${className}`}>{children}</div>;
 }
 
-/** One cell of a StatGrid: mono label, big tabular number, optional delta/hint. */
+/** Una celda de un StatGrid: rótulo en monoespaciada, número tabular grande, variación o pista opcional. */
 export function StatTile({
 	label,
 	value,
@@ -93,7 +96,7 @@ export function StatTile({
 	);
 }
 
-/** Hairline panel header row: mono label left, optional meta right. */
+/** Fila de cabecera de panel de línea fina: rótulo en monoespaciada a la izquierda, metadatos opcionales a la derecha. */
 export function PanelHeader({ label, right, className = "" }: { label: string; right?: ReactNode; className?: string }) {
 	return (
 		<div className={`flex items-center justify-between border-b border-border px-4 py-2.5 ${className}`}>
@@ -104,12 +107,12 @@ export function PanelHeader({ label, right, className = "" }: { label: string; r
 }
 
 /**
- * Squared empty state with mono caption.
+ * Estado vacío cuadrado con leyenda en monoespaciada.
  *
- * The icon is optional. An empty state inside a panel that already carries a
- * labelled header is one glyph explaining what the header just said, and a column
- * of those down a page reads as decoration rather than as meaning. Pass one where
- * the empty state IS the page.
+ * El icono es opcional. Un estado vacío dentro de un panel que ya lleva una
+ * cabecera con rótulo es un glifo explicando lo que la cabecera acaba de decir, y
+ * una columna de ellos a lo largo de una página se lee como decoración y no como
+ * significado. Pasa uno cuando el estado vacío ES la página.
  */
 export function EmptyState({
 	icon: Icon,

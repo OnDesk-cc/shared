@@ -1,25 +1,27 @@
 /**
- * Transactional email for a product's notifications.
+ * Email transaccional para las notificaciones de un producto.
  *
- * A product sends nothing else. Password resets, invitations and two-factor
- * codes are ondesk's — the products authenticate nobody, so they have no
- * account mail to send. Adding one in a product would mean a second origin able
- * to speak in the platform's name about someone's account.
+ * Un producto no envía nada más. Los restablecimientos de contraseña, las
+ * invitaciones y los códigos de doble factor son de ondesk — los productos no
+ * autentican a nadie, así que no tienen correo de cuenta que enviar. Añadir uno
+ * en un producto significaría un segundo origen capaz de hablar en nombre de la
+ * plataforma sobre la cuenta de alguien.
  *
- * One implementation, branded per product: each app's `functions/_lib/email.ts`
- * calls `createEmailer` with its wordmark and product name and re-exports the
- * pair, so notify.ts never knows this package exists.
+ * Una sola implementación, con la marca de cada producto: el
+ * `functions/_lib/email.ts` de cada app llama a `createEmailer` con su logotipo
+ * de texto y su nombre de producto y reexporta el par, así que notify.ts nunca
+ * sabe que este paquete existe.
  */
 
 interface EmailOptions {
 	to: string;
 	subject: string;
 	html: string;
-	/** Plain-text alternative. Derived from `html` when omitted. */
+	/** Alternativa en texto plano. Se deriva de `html` cuando se omite. */
 	text?: string;
 }
 
-/** What sending needs from a product's bindings, structurally. */
+/** Lo que el envío necesita de los bindings de un producto, estructuralmente. */
 export interface EmailEnv {
 	CF_ACCOUNT_ID?: string;
 	EMAIL_API_TOKEN?: string;
@@ -37,7 +39,7 @@ export function emailConfigured(env: EmailEnv): boolean {
 	return Boolean(env.CF_ACCOUNT_ID && env.EMAIL_API_TOKEN && env.EMAIL_FROM);
 }
 
-/** Plain-text fallback so messages aren't HTML-only (helps spam scoring). */
+/** Alternativa en texto plano para que los mensajes no sean sólo HTML (ayuda con la puntuación antispam). */
 export function htmlToText(html: string): string {
 	return html
 		.replace(/<(style|script|head)\b[\s\S]*?<\/\1>/gi, "")
@@ -58,9 +60,10 @@ export function htmlToText(html: string): string {
 }
 
 /**
- * Strips HTML and clamps content down to a short preview. No default length on
- * purpose: the products settled on different ones before this moved here, and
- * each app's thin `_lib/email.ts` wrapper keeps its own.
+ * Quita el HTML y recorta el contenido a una vista previa corta. Sin longitud por
+ * defecto a propósito: los productos se quedaron con longitudes distintas antes
+ * de que esto se moviera aquí, y el envoltorio fino `_lib/email.ts` de cada app
+ * conserva la suya.
  */
 export function excerpt(html: string, maxLength: number): string {
 	const text = htmlToText(html);
@@ -68,7 +71,7 @@ export function excerpt(html: string, maxLength: number): string {
 	return `${text.slice(0, maxLength).trimEnd()}…`;
 }
 
-/** Escapes anything a person typed before it reaches the HTML. */
+/** Escapa cualquier cosa que haya escrito una persona antes de que llegue al HTML. */
 export function escapeHtml(value: string): string {
 	return value
 		.replace(/&/g, "&amp;")
@@ -79,45 +82,45 @@ export function escapeHtml(value: string): string {
 }
 
 export interface NotificationEmailInput {
-	/** Recipient's display name. */
+	/** El nombre visible del destinatario. */
 	recipientName: string;
-	/** Headline, e.g. "ACME-42 was assigned to you". */
+	/** Titular, p. ej. «ACME-42 was assigned to you». */
 	heading: string;
-	/** One-line explanation of what happened. */
+	/** Explicación de una línea de lo que ha pasado. */
 	body: string;
-	/** Absolute link into the product. */
+	/** Enlace absoluto al producto. */
 	url: string;
 	ctaLabel?: string;
-	/** Key/value rows rendered above the CTA. */
+	/** Filas clave/valor que se pintan encima del CTA. */
 	details?: { label: string; value: string }[];
 	/**
-	 * Quoted content rendered under the body — the comment or message that
-	 * triggered the email. Products whose content must not travel by mail
-	 * (Vault: a credential is opened by the reveal route, the one path that
-	 * records who looked) simply never pass it.
+	 * Contenido citado que se pinta bajo el cuerpo — el comentario o mensaje que
+	 * disparó el email. Los productos cuyo contenido no debe viajar por correo
+	 * (Vault: una credencial se abre por la ruta de revelado, el único camino que
+	 * registra quién miró) simplemente no lo pasan nunca.
 	 */
 	preview?: string;
-	/** Rendered as a red callout. Used for expiry and revocation. */
+	/** Se pinta como un aviso en rojo. Se usa para caducidad y revocación. */
 	warning?: string;
-	/** Link to the preferences screen, shown in the footer. */
+	/** Enlace a la pantalla de preferencias, que se muestra en el pie. */
 	preferencesUrl?: string;
 }
 
 export interface Emailer {
 	/**
-	 * Sends through the Cloudflare Email Sending REST API. Pages Functions
-	 * cannot use the `send_email` Workers binding, so this calls the
-	 * account-scoped endpoint with an API token instead.
+	 * Envía a través de la API REST de Cloudflare Email Sending. Las Pages
+	 * Functions no pueden usar el binding `send_email` de Workers, así que esto
+	 * llama en su lugar al endpoint de ámbito de cuenta con un token de API.
 	 */
 	sendEmail(env: EmailEnv, opts: EmailOptions): Promise<void>;
-	/** The one notification template every product mail is rendered with. */
+	/** La única plantilla de notificación con la que se pinta cada correo de producto. */
 	notificationEmail(input: NotificationEmailInput): string;
 }
 
 export function createEmailer(brand: {
-	/** The card's wordmark and default From name, e.g. "OnDesk Vault". */
+	/** El logotipo de texto de la tarjeta y el nombre From por defecto, p. ej. «OnDesk Vault». */
 	brandName: string;
-	/** How the CTA and footer say it, e.g. "Vault" → "Open in Vault". */
+	/** Cómo lo dicen el CTA y el pie, p. ej. «Vault» → «Open in Vault». */
 	productName: string;
 }): Emailer {
 	const { brandName, productName } = brand;

@@ -2,39 +2,42 @@ import type { PagesFunction, D1Database } from "@cloudflare/workers-types";
 import { verifyAccessToken, parseScopes, bearerToken, type AccessTokenClaims, type SsoEnv } from "./sso";
 
 /**
- * The Developer Platform's side of a product: routes a third-party application
- * calls with a bearer token, on behalf of a person.
+ * El lado de la Developer Platform en un producto: rutas a las que llama una
+ * aplicación de terceros con un bearer token, en nombre de una persona.
  *
- * This is the companion to `worker/middleware.ts`, and the difference between
- * them is the whole point. That one authenticates a *person* sitting in front of
- * a product, by the `.ondesk.cc` session cookie. This one authenticates an
- * *application acting for* a person, by an OIDC access token — and an
- * application is never trusted with what the person could do, only with what the
- * person allowed it to relay.
+ * Es la pareja de `worker/middleware.ts`, y la diferencia entre los dos es justo
+ * lo que importa. Aquel autentica a una *persona* sentada delante de un
+ * producto, por la cookie de sesión de `.ondesk.cc`. Este autentica a una
+ * *aplicación que actúa por* una persona, por un access token de OIDC — y a una
+ * aplicación nunca se le confía lo que la persona podría hacer, sólo lo que la
+ * persona le permitió transmitir.
  *
- * ── The rule, and the step that is fatal to skip ─────────────────────────────
+ * ── La regla, y el paso que es fatal saltarse ────────────────────────────────
  *
- * Access is the intersection of three independent facts:
+ * El acceso es la intersección de tres hechos independientes:
  *
- *   1. what the workspace granted the application   → oauth_clients.scopes
- *   2. what the person consented to                 → oauth_consents.scope
- *   3. what the person may actually do here         → THIS PRODUCT
+ *   1. lo que el workspace concedió a la aplicación   → oauth_clients.scopes
+ *   2. lo que la persona consintió                    → oauth_consents.scope
+ *   3. lo que la persona puede hacer de verdad aquí   → ESTE PRODUCTO
  *
- * ondesk enforces 1 and 2 before it ever signs a token. Nobody but the service
- * holding the data can enforce 3, which is why it cannot be bolted on later and
- * why it is the one implementations forget. A token saying `pulse:tickets.view`
- * means "this app may read the tickets its user could have read anyway" — never
- * "this app may read tickets".
+ * ondesk aplica 1 y 2 antes de firmar ningún token. Nadie más que el servicio que
+ * guarda los datos puede aplicar el 3, y por eso no se puede añadir después con
+ * un parche y por eso es el que las implementaciones olvidan. Un token que dice
+ * `pulse:tickets.view` significa «esta app puede leer los tickets que su usuario
+ * podría haber leído de todas formas» — nunca «esta app puede leer tickets».
  *
- * `withScope` does 3 for you in the one case where it is a role permission.
- * Where a product's visibility comes from a resource-level access model instead
- * — a Vault collection grant, a Nexus channel membership, a Halo participant
- * list, an Atlas space — no permission names it, `permission` is omitted, and
- * **the handler is then responsible for resolving what this user can see**.
- * There is no way to write that generically, so there is a comment on every such
- * route saying what it resolves and where.
+ * `withScope` hace el 3 por ti en el único caso en que es un permiso de rol.
+ * Cuando la visibilidad de un producto sale en cambio de un modelo de acceso por
+ * recurso — una concesión de colección de Vault, la membresía de un canal de
+ * Nexus, la lista de participantes de Halo, un espacio de Atlas — ningún permiso
+ * la nombra, `permission` se omite, y **el handler pasa a ser responsable de
+ * resolver qué puede ver este usuario**. No hay forma de escribir eso de manera
+ * genérica, así que en cada una de esas rutas hay un comentario que dice qué
+ * resuelve y dónde.
  *
- * See ondesk/docs/developer-platform.md.
+ * Ver ondesk/docs/developer-platform.md.
+ * ▸ Hoy: ese archivo ya no existe; el documento es
+ * ondesk/docs/plataforma-desarrolladores.md.
  */
 
 export interface ApiEnv extends SsoEnv {
@@ -45,40 +48,42 @@ export interface ApiContext<E extends ApiEnv, P extends string = string> {
 	request: Request;
 	env: E;
 	params: Record<P, string>;
-	/** Keeps the Worker alive for side effects (audit writes) after the response is sent. */
+	/** Mantiene vivo el Worker para efectos secundarios (escrituras de auditoría) después de enviar la respuesta. */
 	waitUntil: (promise: Promise<unknown>) => void;
-	/** The verified token, for the rare handler that needs the raw claims. */
+	/** El token verificado, para el raro handler que necesite los claims en bruto. */
 	token: AccessTokenClaims;
 	/**
-	 * The OnDesk user this request acts for.
+	 * El usuario de OnDesk en cuyo nombre actúa esta petición.
 	 *
-	 * The only identity in the request. `client_id` says which application is
-	 * asking; it is never a principal, and nothing may be visible to it that is
-	 * not visible to this user.
+	 * La única identidad de la petición. `client_id` dice qué aplicación pregunta;
+	 * nunca es un principal, y nada puede serle visible que no le sea visible a
+	 * este usuario.
 	 */
 	userId: string;
-	/** The application presenting the token, for audit lines. */
+	/** La aplicación que presenta el token, para las líneas de auditoría. */
 	clientId: string;
-	/** The workspace from `?workspace_id=`, with membership and entitlement proven. */
+	/** El workspace de `?workspace_id=`, con la membresía y el derecho ya comprobados. */
 	workspaceId: string;
-	/** The caller's platform role there: owner | admin | member. */
+	/** El rol de plataforma de quien llama en ese workspace: owner | admin | member. */
 	workspaceRole: string;
-	/** Every scope on the token, parsed properly — never substring-matched. */
+	/** Todos los scopes del token, bien parseados — nunca comparados por subcadena. */
 	scopes: string[];
 }
 
 export interface ScopedRoute<Perm extends string> {
 	/**
-	 * The bare permission key this endpoint needs, prefixed with the product's
-	 * app id to make the scope: `"tickets.view"` → `pulse:tickets.view`.
+	 * La clave de permiso pelada que necesita este endpoint, a la que se antepone
+	 * el app id del producto para formar el scope: `"tickets.view"` →
+	 * `pulse:tickets.view`.
 	 */
 	scope: string;
 	/**
-	 * The role permission the caller must ALSO hold, when the scope names one.
+	 * El permiso de rol que quien llama TAMBIÉN tiene que tener, cuando el scope
+	 * nombra uno.
 	 *
-	 * Omit only where the product decides visibility per resource rather than per
-	 * role, and then resolve it in the handler. Omitting it because a route
-	 * "feels open" is how an application ends up reading what its user could not.
+	 * Omítelo sólo donde el producto decide la visibilidad por recurso y no por
+	 * rol, y entonces resuélvela en el handler. Omitirlo porque una ruta «parece
+	 * abierta» es como una aplicación acaba leyendo lo que su usuario no podía.
 	 */
 	permission?: Perm;
 }
@@ -86,24 +91,25 @@ export interface ScopedRoute<Perm extends string> {
 export type ApiMethod = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
 
 export interface ApiMiddleware<E extends ApiEnv, Perm extends string> {
-	/** Every method on this route needs the same scope. */
+	/** Todos los métodos de esta ruta necesitan el mismo scope. */
 	withScope<P extends string = string>(
 		route: ScopedRoute<Perm>,
 		handler: (ctx: ApiContext<E, P>) => Promise<Response>,
 	): PagesFunction<E, P>;
 	/**
-	 * A scope per method, for the common case where one URL both lists and
-	 * creates.
+	 * Un scope por método, para el caso habitual en que una misma URL lista y
+	 * crea.
 	 *
-	 * This exists because the obvious alternative is a trap: give the file the
-	 * read scope, then check the write permission inside the POST branch, and an
-	 * application granted only `tickets.view` can create a ticket the moment its
-	 * user happens to hold `tickets.create`. That is facts 1 and 2 of the model
-	 * undone by an HTTP method. Resolving the scope from the method BEFORE any
-	 * check runs is the only shape where that cannot be written by accident.
+	 * Existe porque la alternativa obvia es una trampa: dale al archivo el scope
+	 * de lectura, comprueba luego el permiso de escritura dentro de la rama del
+	 * POST, y una aplicación a la que sólo se concedió `tickets.view` puede crear
+	 * un ticket en cuanto su usuario resulte tener `tickets.create`. Eso son los
+	 * hechos 1 y 2 del modelo deshechos por un método HTTP. Resolver el scope a
+	 * partir del método ANTES de que corra ninguna comprobación es la única forma
+	 * en la que eso no se puede escribir por accidente.
 	 *
-	 * A method with no entry is 405 with the `Allow` header, before the token is
-	 * even looked at.
+	 * Un método sin entrada es un 405 con la cabecera `Allow`, antes siquiera de
+	 * mirar el token.
 	 */
 	withScopes<P extends string = string>(
 		routes: Partial<Record<ApiMethod, ScopedRoute<Perm>>>,
@@ -117,19 +123,20 @@ const ALLOWED_METHODS = "GET, POST, PATCH, PUT, DELETE, OPTIONS";
 const ALLOWED_HEADERS = "Authorization, Content-Type";
 
 /**
- * What a browser is told about this API.
+ * Lo que se le dice a un navegador sobre esta API.
  *
- * **There is deliberately no `Access-Control-Allow-Credentials`.** That header is
- * what makes a reflected origin dangerous: with it, any page could make the
- * browser attach a victim's `.ondesk.cc` cookie and read the answer. Without it
- * the browser sends no cookie, so the only way to reach anything here is to hold
- * a token — and a token is something the person granted to a named application,
- * not something a page can acquire by being visited.
+ * **No hay `Access-Control-Allow-Credentials`, a propósito.** Esa cabecera es lo
+ * que hace peligroso un origen reflejado: con ella, cualquier página podría hacer
+ * que el navegador adjuntara la cookie de `.ondesk.cc` de una víctima y leer la
+ * respuesta. Sin ella el navegador no envía ninguna cookie, así que la única
+ * forma de llegar a algo de aquí es tener un token — y un token es algo que la
+ * persona concedió a una aplicación con nombre, no algo que una página pueda
+ * conseguir porque alguien la visite.
  *
- * The origin allowlist below is therefore defence in depth rather than the
- * boundary. It is worth having anyway: it means a token leaked out of one
- * application cannot be spent from somebody else's page, and it costs one string
- * comparison against a claim already in the token.
+ * La lista de orígenes permitidos de abajo es, por tanto, defensa en profundidad
+ * y no la frontera. Merece la pena tenerla igualmente: significa que un token
+ * filtrado de una aplicación no se puede gastar desde la página de otro, y cuesta
+ * una comparación de cadenas contra un claim que ya está en el token.
  */
 function corsHeaders(origin: string | null, allowed: boolean): Record<string, string> {
 	if (!origin || !allowed) return { Vary: "Origin" };
@@ -141,14 +148,14 @@ function corsHeaders(origin: string | null, allowed: boolean): Record<string, st
 }
 
 /**
- * The preflight, which arrives without a token.
+ * El preflight, que llega sin token.
  *
- * `OPTIONS` carries `Origin` and nothing else — no `Authorization` header, so
- * there is no `client_id` to look an allowlist up by. It therefore answers for
- * any origin, and the request that follows is where the allowlist bites: a page
- * from an unregistered origin is allowed to *send* the call and cannot read a
- * word of the reply. Nothing is disclosed by that, because the preflight's own
- * body is empty.
+ * `OPTIONS` lleva `Origin` y nada más — ninguna cabecera `Authorization`, así que
+ * no hay `client_id` con el que buscar una lista de permitidos. Por eso responde
+ * para cualquier origen, y es la petición que viene después donde muerde la
+ * lista: a una página de un origen no registrado se le deja *enviar* la llamada y
+ * no puede leer ni una palabra de la respuesta. Con eso no se revela nada, porque
+ * el cuerpo del propio preflight está vacío.
  */
 function preflight(request: Request): Response {
 	const origin = request.headers.get("Origin");
@@ -168,14 +175,15 @@ function withHeaders(response: Response, extra: Record<string, string>): Respons
 	return merged;
 }
 
-// ─── Errors ───────────────────────────────────────────────────────────────────
+// ─── Errores ──────────────────────────────────────────────────────────────────
 
 /**
- * RFC 6750 §3 errors, which an OAuth client library already knows how to read.
+ * Errores de la RFC 6750 §3, que una librería de cliente OAuth ya sabe leer.
  *
- * `invalid_token` on 401 is what tells a client to refresh and retry;
- * `insufficient_scope` on 403 names the scope that was missing, so a developer
- * learns what to add to their authorization request rather than guessing.
+ * `invalid_token` en un 401 es lo que le dice a un cliente que refresque y
+ * reintente; `insufficient_scope` en un 403 nombra el scope que faltaba, para que
+ * un desarrollador sepa qué añadir a su petición de autorización en vez de
+ * adivinarlo.
  */
 function bearerError(
 	status: number,
@@ -203,15 +211,15 @@ function apiError(status: number, code: string, description: string): Response {
 	});
 }
 
-// ─── The envelope every product answers in ────────────────────────────────────
+// ─── El sobre con el que responde cada producto ───────────────────────────────
 
 /**
- * One shape across six products, because a developer integrating two of them
- * should not have to learn two pagination schemes.
+ * Una sola forma en los seis productos, porque un desarrollador que integre dos
+ * de ellos no debería tener que aprender dos esquemas de paginación.
  *
- * `data` always, so a collection and a single resource are told apart by what is
- * in it rather than by the caller guessing. The page block is absent on a single
- * resource rather than filled with ones.
+ * `data` siempre, para que una colección y un recurso suelto se distingan por lo
+ * que hay dentro y no porque quien llama lo adivine. En un recurso suelto el
+ * bloque de página no aparece, en vez de venir relleno de unos.
  */
 export interface PageParams {
 	page: number;
@@ -219,7 +227,7 @@ export interface PageParams {
 	offset: number;
 }
 
-/** `?page=` and `?page_size=`, clamped. Anything unparseable falls back rather than erroring. */
+/** `?page=` y `?page_size=`, acotados. Lo que no se pueda parsear cae al valor por defecto en vez de dar error. */
 export function pageParams(url: URL, options: { pageSize?: number; maxPageSize?: number } = {}): PageParams {
 	const fallback = options.pageSize ?? 25;
 	const max = options.maxPageSize ?? 100;
@@ -249,13 +257,14 @@ export function apiList<T>(items: T[], page: PageParams, total: number): Respons
 }
 
 /**
- * The cursor variant, for a log rather than a table.
+ * La variante con cursor, para un registro y no para una tabla.
  *
- * Offset paging is wrong for anything that gains rows at the top while somebody
- * is reading it — a chat transcript, an event stream — because page 2 has moved
- * by the time it is asked for and a message gets shown twice or skipped. Those
- * collections page on their own sequence instead, and say so by answering
- * `next_cursor` where the others answer `page`.
+ * Paginar por offset está mal para cualquier cosa que gane filas por arriba
+ * mientras alguien la está leyendo — la transcripción de un chat, un flujo de
+ * eventos — porque la página 2 se ha movido para cuando se pide y un mensaje se
+ * muestra dos veces o se salta. Esas colecciones paginan en cambio sobre su
+ * propia secuencia, y lo dicen respondiendo `next_cursor` donde las demás
+ * responden `page`.
  */
 export function apiCursorList<T>(
 	items: T[],
@@ -280,7 +289,7 @@ export function apiOne<T>(item: T, status = 200): Response {
 	});
 }
 
-/** 404 for a resource the caller may not see, as well as one that is not there — see the note on membership. */
+/** 404 para un recurso que quien llama no puede ver, igual que para uno que no existe — ver la nota sobre la membresía. */
 export function apiNotFound(what: string): Response {
 	return apiError(404, "not_found", `No such ${what}, or it is not visible to this user.`);
 }
@@ -293,19 +302,20 @@ export function apiForbidden(description: string): Response {
 	return apiError(403, "forbidden", description);
 }
 
-// There is deliberately no method-router helper here. `withScopes` already
-// answers 405 with the `Allow` header, from the same map that decides the scope,
-// and a second way to route methods is a second place for the two to disagree —
-// which in this file means a method served under the wrong scope.
+// Aquí no hay, a propósito, ningún helper de enrutado por método. `withScopes` ya
+// responde 405 con la cabecera `Allow`, a partir del mismo mapa que decide el
+// scope, y una segunda forma de enrutar métodos es un segundo sitio en el que los
+// dos pueden no estar de acuerdo — lo que en este archivo significa un método
+// servido bajo el scope equivocado.
 
-// ─── The middleware ───────────────────────────────────────────────────────────
+// ─── El middleware ────────────────────────────────────────────────────────────
 
 export function createApiMiddleware<E extends ApiEnv, Perm extends string>(product: {
-	/** The product's id in `apps`, and the prefix on every one of its scopes. */
+	/** El id del producto en `apps`, y el prefijo de cada uno de sus scopes. */
 	appId: string;
-	/** Product name as the 402 says it, e.g. "Vault". */
+	/** El nombre del producto tal como lo dice el 402, p. ej. «Vault». */
 	productName: string;
-	/** The product's own resolver — `hasPermission` from its `_lib/db/roles.ts`. */
+	/** El resolvedor propio del producto — `hasPermission` de su `_lib/db/roles.ts`. */
 	hasPermission: (db: D1Database, workspaceId: string, userId: string, permission: Perm) => Promise<boolean>;
 }): ApiMiddleware<E, Perm> {
 	const { appId, productName, hasPermission } = product;
@@ -319,14 +329,14 @@ export function createApiMiddleware<E extends ApiEnv, Perm extends string>(produ
 			if (request.method === "OPTIONS") return preflight(request);
 
 			const origin = request.headers.get("Origin");
-			// Failures below carry an error string and no data, so they reflect the
-			// origin unconditionally — otherwise a browser client sees an opaque
-			// network error instead of the reason it was refused.
+			// Los fallos de abajo llevan una cadena de error y ningún dato, así que
+			// reflejan el origen sin condiciones — si no, un cliente de navegador ve un
+			// error de red opaco en vez del motivo por el que se le rechazó.
 			const fail = (response: Response) => withHeaders(response, corsHeaders(origin, true));
 
-			// Resolved first, so a method this route does not serve is refused before
-			// a token is read — and so that the scope about to be demanded is the one
-			// belonging to what is actually being done.
+			// Se resuelve primero, para que un método que esta ruta no sirve se rechace
+			// antes de leer ningún token — y para que el scope que se va a exigir sea
+			// el que corresponde a lo que de verdad se está haciendo.
 			const route = resolve(request.method);
 			if (!route) {
 				return fail(
@@ -350,18 +360,18 @@ export function createApiMiddleware<E extends ApiEnv, Perm extends string>(produ
 				return fail(bearerError(401, "invalid_token", "The access token is expired or not valid."));
 			}
 
-			// A token is about a person, not a tenant. Without this an application
-			// holding one workspace's consent would read another's data, because the
-			// person it acts for may well belong to both.
+			// Un token habla de una persona, no de un workspace. Sin esto, una
+			// aplicación con el consentimiento de un workspace leería los datos de
+			// otro, porque la persona por la que actúa bien puede pertenecer a los dos.
 			const url = new URL(request.url);
 			const workspaceId = url.searchParams.get("workspace_id");
 			if (!workspaceId) {
 				return fail(apiError(400, "invalid_request", "workspace_id is required."));
 			}
 
-			// One query answers membership and entitlement, exactly as the session
-			// middleware asks them of a signed-in person. A lapsed tenant gets 402
-			// and keeps its data.
+			// Una sola consulta responde a la membresía y al derecho, exactamente como
+			// el middleware de sesión se lo pregunta a una persona que ha entrado. Un
+			// workspace caducado recibe un 402 y conserva sus datos.
 			const row = await env.DB.prepare(
 				`SELECT wm.role, we.status
 				   FROM workspace_members wm
@@ -372,9 +382,9 @@ export function createApiMiddleware<E extends ApiEnv, Perm extends string>(produ
 				.bind(workspaceId, token.sub)
 				.first<{ role: string; status: string | null }>();
 
-			// Not a member is 404, not 403: confirming that a workspace id exists to
-			// somebody who cannot see it is an enumeration oracle, and the token's
-			// own user is the one being answered about.
+			// No ser miembro es 404, no 403: confirmarle que un id de workspace existe
+			// a alguien que no puede verlo es un oráculo de enumeración, y aquí se
+			// responde sobre el propio usuario del token.
 			if (!row) {
 				return fail(apiError(404, "not_found", "No such workspace, or this user is not a member of it."));
 			}
@@ -393,10 +403,11 @@ export function createApiMiddleware<E extends ApiEnv, Perm extends string>(produ
 				);
 			}
 
-			// Fact 3. The token said what the application may relay; this asks what
-			// the person may do, now, in this workspace — the same question the
-			// product's own UI asks about a signed-in member, and it must be asked
-			// again however emphatically the token already answered it.
+			// El hecho 3. El token dijo lo que la aplicación puede transmitir; esto
+			// pregunta lo que la persona puede hacer, ahora, en este workspace — la
+			// misma pregunta que la propia interfaz del producto hace sobre un miembro
+			// que ha entrado, y hay que volver a hacerla por muy tajante que haya sido
+			// ya la respuesta del token.
 			if (route.permission && !(await hasPermission(env.DB, workspaceId, token.sub, route.permission))) {
 				return fail(
 					apiError(403, "forbidden", `This user's role in the workspace does not include ${route.permission}.`),
@@ -416,8 +427,9 @@ export function createApiMiddleware<E extends ApiEnv, Perm extends string>(produ
 				scopes,
 			});
 
-			// Only here does the allowlist apply: this response carries data, and the
-			// origins are the ones the application registered as redirect targets.
+			// Sólo aquí se aplica la lista de permitidos: esta respuesta lleva datos, y
+			// los orígenes son los que la aplicación registró como destinos de
+			// redirección.
 			const allowed = Boolean(origin && (token.origins ?? []).includes(origin));
 			return withHeaders(response, { ...corsHeaders(origin, allowed), "Cache-Control": "no-store" });
 		};

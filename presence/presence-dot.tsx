@@ -1,3 +1,10 @@
+/**
+ * `PresenceDot`: el punto de color que dice el estado de alguien, con el mismo
+ * significado en las siete apps que lo pintan.
+ *
+ * Va aquí y no en cada producto para que un color signifique lo mismo en todas
+ * partes; el vocabulario de estados vive al lado, en `status.ts`.
+ */
 import { cn } from "../lib/utils";
 import { STATUS_META, type EffectiveStatus, type PresenceStatus } from "./status";
 
@@ -10,17 +17,17 @@ const sizeStyles = {
 interface PresenceDotProps {
 	status: EffectiveStatus | PresenceStatus;
 	size?: keyof typeof sizeStyles;
-	/** Draws the ring that separates it from whatever it is pinned to. */
+	/** Dibuja el aro que lo separa de aquello sobre lo que va clavado. */
 	ring?: boolean;
 	className?: string;
 }
 
 /**
- * One dot, one meaning, everywhere on the platform.
+ * Un punto, un significado, en toda la plataforma.
  *
- * `title` rather than a tooltip primitive so it works in the places these end up
- * — inside a menu item, on an avatar in a dense list — without each of them
- * having to mount a provider.
+ * `title` en lugar de una primitiva de tooltip para que funcione en los sitios
+ * donde estos acaban — dentro de un elemento de menú, sobre un avatar en una
+ * lista densa — sin que cada uno tenga que montar un provider.
  */
 export function PresenceDot({ status, size = "sm", ring = false, className }: PresenceDotProps) {
 	const meta = STATUS_META[status];

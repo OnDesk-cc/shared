@@ -75,19 +75,19 @@ Módulos de las carpetas publicadas (46), con la primera línea de su comentario
 
 | Archivo | Qué hace |
 | --- | --- |
-| [`calls/ring-tone.tsx`](../calls/ring-tone.tsx) | The two ringtones. |
-| [`calls/ringer-lease.ts`](../calls/ringer-lease.ts) | One ringtone per browser, however many OnDesk tabs are open. |
+| [`calls/ring-tone.tsx`](../calls/ring-tone.tsx) | Los dos tonos de llamada. |
+| [`calls/ringer-lease.ts`](../calls/ringer-lease.ts) | Un solo tono de llamada por navegador, por muchas pestañas de OnDesk que haya abiertas. |
 | [`components/confirm-delete-modal.tsx`](../components/confirm-delete-modal.tsx) | «¿Seguro?» antes de un borrado, igual en los seis productos. |
-| [`components/console.tsx`](../components/console.tsx) | Console primitives — hard corners, hairline grids, mono telemetry labels, lime scan-lines. |
+| [`components/console.tsx`](../components/console.tsx) | Primitivas de consola — esquinas duras, rejillas de línea fina, rótulos de telemetría en monoespaciada, líneas de escaneo lima. |
 | [`components/form-modal.tsx`](../components/form-modal.tsx) | El envoltorio de cualquier formulario en diálogo: título, descripción y hueco. |
-| [`components/theme-provider.tsx`](../components/theme-provider.tsx) | The scaffold bound `d` to a theme toggle globally. |
+| [`components/theme-provider.tsx`](../components/theme-provider.tsx) | El scaffold asociaba `d` a un atajo global para cambiar el tema. |
 | [`hooks/use-mobile.ts`](../hooks/use-mobile.ts) | ¿Estamos en una pantalla estrecha? El corte es 768 px (`md` de Tailwind). |
 | [`lib/crud-api.ts`](../lib/crud-api.ts) | El cliente CRUD que se repetía en cada feature, escrito una vez. |
 | [`lib/crud-hooks.ts`](../lib/crud-hooks.ts) | Los hooks de React Query que van encima de `crud-api.ts`. |
-| [`lib/initials.ts`](../lib/initials.ts) | Two letters standing in for somebody who has no avatar yet. |
+| [`lib/initials.ts`](../lib/initials.ts) | Dos letras en lugar de alguien que todavía no tiene avatar. |
 | [`lib/utils.ts`](../lib/utils.ts) | `cn` — juntar clases de Tailwind sin que se peleen entre ellas. |
-| [`presence/presence-dot.tsx`](../presence/presence-dot.tsx) | Draws the ring that separates it from whatever it is pinned to. |
-| [`presence/status.ts`](../presence/status.ts) | The presence vocabulary. |
+| [`presence/presence-dot.tsx`](../presence/presence-dot.tsx) | `PresenceDot`: el punto de color que dice el estado de alguien, con el mismo significado en las siete apps que lo pintan. |
+| [`presence/status.ts`](../presence/status.ts) | El vocabulario de presencia. |
 | [`ui/alert-dialog.tsx`](../ui/alert-dialog.tsx) | — |
 | [`ui/avatar.tsx`](../ui/avatar.tsx) | — |
 | [`ui/badge.tsx`](../ui/badge.tsx) | — |
@@ -105,22 +105,22 @@ Módulos de las carpetas publicadas (46), con la primera línea de su comentario
 | [`ui/select.tsx`](../ui/select.tsx) | — |
 | [`ui/separator.tsx`](../ui/separator.tsx) | — |
 | [`ui/sheet.tsx`](../ui/sheet.tsx) | — |
-| [`ui/sidebar.tsx`](../ui/sidebar.tsx) | This is the internal state of the sidebar. |
+| [`ui/sidebar.tsx`](../ui/sidebar.tsx) | Este es el estado interno de la barra lateral. |
 | [`ui/skeleton.tsx`](../ui/skeleton.tsx) | — |
-| [`ui/sonner.tsx`](../ui/sonner.tsx) | Every OnDesk app's theme lives in this package's own provider rather than next-themes — one less dependency, and the provider is what writes the `dark` class the tokens… |
+| [`ui/sonner.tsx`](../ui/sonner.tsx) | El tema de cada app de OnDesk vive en el provider propio de este paquete y no en next-themes. |
 | [`ui/switch.tsx`](../ui/switch.tsx) | — |
 | [`ui/table.tsx`](../ui/table.tsx) | — |
 | [`ui/tabs.tsx`](../ui/tabs.tsx) | — |
 | [`ui/textarea.tsx`](../ui/textarea.tsx) | — |
 | [`ui/tooltip.tsx`](../ui/tooltip.tsx) | — |
-| [`worker/api.ts`](../worker/api.ts) | The Developer Platform's side of a product: routes a third-party application calls with a bearer token, on behalf of a person. |
-| [`worker/cookies.ts`](../worker/cookies.ts) | Cookie reading, and nothing else. |
-| [`worker/email.ts`](../worker/email.ts) | Transactional email for a product's notifications. |
-| [`worker/jwt.ts`](../worker/jwt.ts) | HS256 signing and audienced verification, on Web Crypto. |
-| [`worker/middleware.ts`](../worker/middleware.ts) | The auth/tenancy middleware every satellite product wraps its routes in. |
-| [`worker/mirror.ts`](../worker/mirror.ts) | The mirror of OnDesk state — the writes every product performs identically. |
+| [`worker/api.ts`](../worker/api.ts) | El lado de la Developer Platform en un producto: rutas a las que llama una aplicación de terceros con un bearer token, en nombre de una persona. |
+| [`worker/cookies.ts`](../worker/cookies.ts) | Lectura de cookies, y nada más. |
+| [`worker/email.ts`](../worker/email.ts) | Email transaccional para las notificaciones de un producto. |
+| [`worker/jwt.ts`](../worker/jwt.ts) | Firma HS256 y verificación con audiencia, sobre Web Crypto. |
+| [`worker/middleware.ts`](../worker/middleware.ts) | El middleware de autenticación y de workspace con el que cada producto satélite envuelve sus rutas. |
+| [`worker/mirror.ts`](../worker/mirror.ts) | El espejo del estado de OnDesk — las escrituras que cada producto hace de forma idéntica. |
 | [`worker/response.ts`](../worker/response.ts) | Las tres respuestas JSON que devuelve cualquier handler de Pages Functions. |
-| [`worker/sso.ts`](../worker/sso.ts) | Platform token verification for the OnDesk control plane. |
+| [`worker/sso.ts`](../worker/sso.ts) | Verificación de los tokens de plataforma del control plane de OnDesk. |
 
 <!-- END generated:modules -->
 

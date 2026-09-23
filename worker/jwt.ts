@@ -1,16 +1,16 @@
 /**
- * HS256 signing and audienced verification, on Web Crypto.
+ * Firma HS256 y verificación con audiencia, sobre Web Crypto.
  *
- * This is NOT session verification — the platform session is RS256, minted by
- * ondesk and checked in `worker/sso.ts`. What lives here is the short-lived
- * tokens a product signs for itself with its own secret: Halo's room tickets
- * and guest door passes, Nexus's stream tickets. They all carry an `aud` claim,
- * and the audience is what keeps two tokens signed with the same key from being
- * interchangeable.
+ * Esto NO es verificación de sesión — la sesión de la plataforma es RS256, la
+ * emite ondesk y se comprueba en `worker/sso.ts`. Lo que vive aquí son los
+ * tokens de vida corta que un producto firma para sí mismo con su propio
+ * secreto: los tickets de sala y los pases de puerta de invitado de Halo, los
+ * tickets de stream de Nexus. Todos llevan un claim `aud`, y la audiencia es lo
+ * que impide que dos tokens firmados con la misma clave sean intercambiables.
  *
- * The verifying side of a ticket often lives in a companion Worker
- * (halo-realtime, nexus-realtime) with its own copy — when a claim shape moves,
- * grep the audience string across the pair.
+ * La parte que verifica un ticket suele vivir en un Worker compañero
+ * (halo-realtime, nexus-realtime) con su propia copia — cuando cambie la forma
+ * de un claim, busca la cadena de audiencia en los dos.
  */
 
 // ─── base64url ────────────────────────────────────────────────────────────────
@@ -36,12 +36,12 @@ async function importHmacKey(secret: string): Promise<CryptoKey> {
 	]);
 }
 
-// ─── JWT (HS256 using Web Crypto HMAC-SHA256) ─────────────────────────────────
+// ─── JWT (HS256 con HMAC-SHA256 de Web Crypto) ────────────────────────────────
 
 /**
- * Generic in the payload because different products sign different things with
- * it. What keeps the tokens from being interchangeable is the `aud` claim each
- * one carries and `verifyAudiencedJwt` pins.
+ * Genérico en el payload porque distintos productos firman cosas distintas con
+ * él. Lo que impide que los tokens sean intercambiables es el claim `aud` que
+ * lleva cada uno y que `verifyAudiencedJwt` fija.
  */
 export async function signJwt<T extends Record<string, unknown>>(
 	payload: T,
@@ -65,12 +65,12 @@ export async function signJwt<T extends Record<string, unknown>>(
 }
 
 /**
- * Verifies a token that MUST carry one specific audience.
+ * Verifica un token que TIENE que llevar una audiencia concreta.
  *
- * A guest's door pass (`aud: "guest"`) is signed with the same key as a room
- * ticket, and the audience is the only thing that stops one being read as the
- * other. Pinned `alg`, signature, expiry, and the audience — null on any
- * failure and no word about which: a verifier that explains is an oracle.
+ * El pase de puerta de un invitado (`aud: "guest"`) se firma con la misma clave
+ * que un ticket de sala, y la audiencia es lo único que impide leer uno como el
+ * otro. `alg` fijado, firma, caducidad y la audiencia — null ante cualquier
+ * fallo y ni una palabra sobre cuál: un verificador que se explica es un oráculo.
  */
 export async function verifyAudiencedJwt<T extends { aud: string; exp: number }>(
 	token: string,

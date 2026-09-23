@@ -7,9 +7,9 @@ import {
 } from "lucide-react"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 
-// Every OnDesk app's theme lives in this package's own provider rather than
-// next-themes — one less dependency, and the provider is what writes the
-// `dark` class the tokens key off.
+// El tema de cada app de OnDesk vive en el provider propio de este paquete y no
+// en next-themes. Es una dependencia menos, y el provider es el que escribe la
+// clase `dark` de la que dependen los tokens.
 import { useTheme } from "../components/theme-provider"
 
 const Toaster = ({ ...props }: ToasterProps) => {

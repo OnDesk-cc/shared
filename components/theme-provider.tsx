@@ -120,10 +120,11 @@ export function ThemeProvider({
     }
   }, [theme, applyTheme])
 
-  // The scaffold bound `d` to a theme toggle globally. Dropped: an unmodified
-  // letter key that changes the UI is a surprise anywhere, and these apps have
-  // fields people paste secrets into. Appearance is set from each app's own
-  // profile or account screen.
+  // El scaffold asociaba `d` a un atajo global para cambiar el tema. Quitado:
+  // una tecla de letra sin modificador que cambia la interfaz es una sorpresa en
+  // cualquier sitio, y estas apps tienen campos en los que la gente pega
+  // secretos. La apariencia se elige desde la pantalla de perfil o de cuenta de
+  // cada app.
 
   React.useEffect(() => {
     const handleStorageChange = (event: StorageEvent) => {

@@ -1,12 +1,16 @@
 /**
- * Two letters standing in for somebody who has no avatar yet.
+ * Dos letras en lugar de alguien que todavía no tiene avatar.
  *
- * Falls through name → email → "?", and splits on dots and the @ as well as on
- * spaces, because plenty of accounts are `ana.perez@…` with a name field nobody
- * filled in — and "AN" from an email beats "?" from an empty name.
+ * Va cayendo de nombre → email → "?", y parte por los puntos y la @ además de por
+ * los espacios, porque muchas cuentas son `ana.perez@…` con un campo de nombre
+ * que nadie rellenó — y «AN» sacado de un email es mejor que «?» sacado de un
+ * nombre vacío.
  *
- * A copy of OnDesk's `initialsOf`, deliberately: nothing is shared between these
- * repositories.
+ * Una copia del `initialsOf` de OnDesk, a propósito: no se comparte nada entre
+ * estos repositorios.
+ * ▸ Hoy: este archivo es `@ondesk/shared/lib/initials` y lo importan los seis
+ * productos; la copia aparte que queda es la de ondesk, en
+ * `ondesk/src/features/console/initials.ts`.
  */
 export function initialsOf(name: string | undefined | null, email?: string | undefined | null): string {
 	const source = (name ?? "").trim() || email || "?";
