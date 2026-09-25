@@ -26,7 +26,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 const STALE_TIME = 1000 * 60 * 5;
 
-// ─── Workspace-scoped query hooks ─────────────────────────────────────────────
+// ─── Hooks de consulta por workspace ──────────────────────────────────────────
 
 export function createWorkspaceScopedQueryHooks<T>(
 	resourceName: string,
@@ -59,7 +59,7 @@ export function createWorkspaceScopedQueryHooks<T>(
 	return { queryKeys, useAll, useById };
 }
 
-// ─── User-scoped query hooks ──────────────────────────────────────────────────
+// ─── Hooks de consulta por usuario ────────────────────────────────────────────
 
 export function createUserScopedQueryHooks<T>(
 	resourceName: string,
@@ -92,7 +92,7 @@ export function createUserScopedQueryHooks<T>(
 	return { queryKeys, useAll, useById };
 }
 
-// ─── Workspace-scoped mutation hooks ──────────────────────────────────────────
+// ─── Hooks de mutación por workspace ──────────────────────────────────────────
 
 export function createWorkspaceScopedMutationHooks<T, CreateInput, UpdateInput>(
 	queryKeys: {
@@ -139,7 +139,7 @@ export function createWorkspaceScopedMutationHooks<T, CreateInput, UpdateInput>(
 	return { useCreate, useUpdate, useDelete };
 }
 
-// ─── User-scoped mutation hooks ────────────────────────────────────────────────
+// ─── Hooks de mutación por usuario ─────────────────────────────────────────────
 
 export function createUserScopedMutationHooks<T, CreateInput, UpdateInput>(
 	queryKeys: {

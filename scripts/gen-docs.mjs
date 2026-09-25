@@ -197,8 +197,14 @@ function leadingDocComment(src) {
  * Salta la línea de ruta con la que abren los handlers (`GET /api/presence?…`)
  * y los títulos de sección `── Así ──`, que son rótulos y no explican nada por
  * sí solos.
+ *
+ * También salta las líneas de metadatos de transporte que suelen ir pegadas a la
+ * ruta — `Body: { token }`, `Cuerpo: …`, `Authorization: Bearer <CRON_SECRET>`,
+ * `Query: …`, `Headers: …` —, que sin esto acababan como resumen del endpoint en
+ * `api.md`. Añadido el 2026-09-23, al pasar los comentarios al español.
  */
 const ROUTE_LINE = /^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS|ALL)\s+\//;
+const TRANSPORT_LINE = /^(Body|Cuerpo|Authorization|Query|Headers?|Cabeceras?):\s/i;
 
 function firstProse(doc) {
 	if (!doc) return "";
@@ -213,7 +219,7 @@ function firstProse(doc) {
 		.map((p) =>
 			p
 				.split("\n")
-				.filter((l) => !ROUTE_LINE.test(l.trim()))
+				.filter((l) => !ROUTE_LINE.test(l.trim()) && !TRANSPORT_LINE.test(l.trim()))
 				.join("\n")
 				.trim(),
 		)
