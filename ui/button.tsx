@@ -8,7 +8,7 @@
  *   default      billete macizo (la acción primaria)
  *   outline      billete de contorno (la secundaria)
  *   secondary    billete de contorno sobre la única tinta clara
- *   ghost        billete sin trazo hasta pasar el ratón
+ *   ghost        billete de contorno (el mundo no tiene botones sin forma)
  *   destructive  billete con el trazo en rojo de error: lo irreversible
  *   link         un enlace subrayado, sin forma de billete
  *
@@ -32,7 +32,9 @@ const buttonVariants = cva(
         destructive: "ticket--danger",
         outline: "",
         secondary: "bg-(--paper-2)",
-        ghost: "ticket--ghost",
+        // Un glifo solo va en un billete cuadrado con su trazo, en todas las
+        // apps igual: el mundo no tiene botones sin forma.
+        ghost: "",
         link: "ticket--link",
       },
       size: {
