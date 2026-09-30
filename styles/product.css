@@ -13,9 +13,10 @@
  *   · las primitivas de `@ondesk/shared/ui` que no se pueden vestir sólo con
  *     clases porque Radix pinta su propio DOM (el panel de un menú, el
  *     interruptor, la casilla, la barra de progreso);
- *   · un suelo para el tamaño de letra y alias para las utilidades del mundo
- *     viejo (`console-label`, `font-mono`) que siguen en pantallas todavía no
- *     recompuestas, para que hereden el mundo en vez de romperlo.
+ *   · un suelo para el tamaño de letra y el alias de `console-label` para las
+ *     pantallas todavía no recompuestas, para que hereden el mundo en vez de
+ *     romperlo (`font-mono` se remapea al corte condensado en el `@theme` del
+ *     `index.css` de cada app, no aquí).
  *
  * Todo lo de aquí va sin `@layer`, como `site.css`: gana a cualquier utilidad
  * de Tailwind que una pantalla vieja ponga encima, que es justo lo que se quiere
