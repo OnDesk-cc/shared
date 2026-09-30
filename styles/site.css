@@ -1,0 +1,1317 @@
+/*
+ * El mundo visual del sitio público: el mapa de red.
+ *
+ * Seis apps son seis líneas de color sobre papel blanco; cada persona es un
+ * intercambiador y un solo billete recorre todas las líneas. Todo lo que aquí se
+ * declara vive bajo `.site`, así que la consola y las pantallas de auth (que
+ * siguen el tema del sistema y los tokens de shadcn) no lo heredan, y el sitio
+ * no hereda el modo oscuro de la consola: un mapa se lee a la luz del día.
+ *
+ * Reglas del sistema: un solo trazo (`--stroke`) para anillos, marcas, bordes
+ * de placa y billete; las líneas del mapa a `--line`; una sola familia
+ * tipográfica (Fira Sans, la de la estirpe Meta/Transit de la BVG) con su corte
+ * condensado para tablas y horarios; jerarquía por peso, caja y filetes, nunca
+ * por una segunda familia ni por monoespaciada. Un solo reloj (`--clock`) del
+ * que derivan todas las duraciones del sitio.
+ */
+
+/* El reloj vive también en la raíz para que `useClockMs` pueda leerlo antes de
+   que se monte el primer `.site`; el valor real es el de `.site`. */
+:root {
+	--clock: 12s;
+}
+
+.site {
+	/* papel y tinta */
+	--paper: #ffffff;
+	--paper-2: #f3f3f1;
+	--ink: #111111;
+	--ink-2: #4d4d4d;
+	--rule: #cfcfcf;
+	--rule-2: #e6e6e6;
+
+	/* las seis líneas */
+	--l-pulse: #e2231a;
+	--l-vault: #00843d;
+	--l-orbit: #0019a8;
+	--l-nexus: #ef7b10;
+	--l-halo: #b3007a;
+	--l-atlas: #0098a6;
+
+	/* trazos */
+	--stroke: 3px;
+	--line: 10px;
+
+	/* el reloj del horario: toda animación del sitio es un múltiplo de esto */
+	--clock: 12s;
+
+	--font-site: "Fira Sans", "Segoe UI", system-ui, sans-serif;
+	--font-cond: "Fira Sans Condensed", "Fira Sans", "Arial Narrow", system-ui, sans-serif;
+
+	/* Los tokens de shadcn que alguna utilidad suelta pueda seguir leyendo se
+	   remapean al papel: así ni un `bg-background` perdido pinta la consola. */
+	--background: var(--paper);
+	--foreground: var(--ink);
+	--card: var(--paper);
+	--card-foreground: var(--ink);
+	--popover: var(--paper);
+	--popover-foreground: var(--ink);
+	--primary: var(--ink);
+	--primary-foreground: var(--paper);
+	--secondary: var(--paper-2);
+	--secondary-foreground: var(--ink);
+	--muted: var(--paper-2);
+	--muted-foreground: var(--ink-2);
+	--accent: var(--ink);
+	--accent-foreground: var(--paper);
+	--border: var(--rule);
+	--input: var(--rule);
+	--ring: var(--ink);
+	--destructive: #b3261e;
+
+	color-scheme: light;
+	background: var(--paper);
+	color: var(--ink);
+	font-family: var(--font-site);
+	font-size: 17px;
+	line-height: 1.55;
+	font-feature-settings: "tnum" 1, "kern" 1;
+	-webkit-font-smoothing: antialiased;
+	text-rendering: optimizeLegibility;
+}
+
+/* ── superficies del navegador: también llevan el diseño ─────────────────── */
+.site ::selection {
+	background: var(--ink);
+	color: var(--paper);
+}
+.site {
+	caret-color: var(--ink);
+	scrollbar-color: var(--ink) var(--paper-2);
+}
+.site :focus-visible {
+	outline: var(--stroke) solid var(--ink);
+	outline-offset: 3px;
+}
+.site a {
+	text-underline-offset: 0.18em;
+	text-decoration-thickness: 2px;
+}
+.site input[type="range"] {
+	accent-color: var(--ink);
+}
+
+/* ── tipografía ──────────────────────────────────────────────────────────── */
+.site .t-display {
+	font-weight: 800;
+	letter-spacing: -0.025em;
+	line-height: 0.98;
+	text-wrap: balance;
+}
+.site .t-h2 {
+	font-weight: 800;
+	letter-spacing: -0.02em;
+	line-height: 1.04;
+	text-wrap: balance;
+}
+.site .t-h3 {
+	font-weight: 700;
+	letter-spacing: -0.012em;
+	line-height: 1.15;
+	text-wrap: balance;
+}
+/* rótulo condensado: el de una placa de andén, no el de una terminal */
+.site .t-tab {
+	font-family: var(--font-cond);
+	font-weight: 700;
+	font-size: 0.8125rem;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	line-height: 1.2;
+}
+.site .t-cond {
+	font-family: var(--font-cond);
+	font-weight: 500;
+	letter-spacing: 0.01em;
+}
+.site .t-num {
+	font-variant-numeric: tabular-nums;
+}
+.site .t-body {
+	color: var(--ink-2);
+	max-width: 68ch;
+}
+
+/* ── placas ──────────────────────────────────────────────────────────────── */
+/* la placa de nombre de estación: tinta con texto papel, esquinas vivas */
+.site .plate {
+	display: inline;
+	background: var(--ink);
+	color: var(--paper);
+	padding: 0.04em 0.4em 0.14em;
+	box-decoration-break: clone;
+	-webkit-box-decoration-break: clone;
+}
+/* Un titular en placas: cada línea envuelta lleva su propia placa que abraza
+   el texto, y el interlineado deja sitio al relleno para que dos placas
+   consecutivas se toquen sin pisarse. */
+.site .plate-lines {
+	line-height: 1.42;
+}
+.site .plate ::selection {
+	background: var(--paper);
+	color: var(--ink);
+}
+
+/* ── billetes y botones ──────────────────────────────────────────────────── */
+.site .ticket {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.6rem;
+	min-height: 3.25rem;
+	padding: 0.7rem 1.4rem;
+	border: var(--stroke) solid var(--ink);
+	background: var(--paper);
+	color: var(--ink);
+	font-weight: 700;
+	font-size: 1rem;
+	letter-spacing: -0.005em;
+	line-height: 1;
+	text-decoration: none;
+	transition: background-color calc(var(--clock) / 60) ease-out, color calc(var(--clock) / 60) ease-out,
+		transform calc(var(--clock) / 60) ease-out;
+	cursor: pointer;
+}
+.site .ticket:hover {
+	background: var(--paper-2);
+}
+.site .ticket:active {
+	transform: translateY(1px);
+}
+.site .ticket--solid {
+	background: var(--ink);
+	color: var(--paper);
+}
+.site .ticket--solid:hover {
+	background: #000000;
+}
+/* el talón perforado del billete: el lado izquierdo se corta con puntos */
+.site .ticket--stub {
+	position: relative;
+	padding-left: 1.75rem;
+}
+.site .ticket--stub::before {
+	content: "";
+	position: absolute;
+	left: 0.85rem;
+	top: 0.45rem;
+	bottom: 0.45rem;
+	border-left: 2px dashed currentColor;
+	opacity: 0.55;
+}
+.site .ticket--inverse {
+	border-color: var(--paper);
+	background: transparent;
+	color: var(--paper);
+}
+.site .ticket--inverse:hover {
+	background: var(--paper);
+	color: var(--ink);
+}
+.site .ticket--inverse-solid {
+	border-color: var(--paper);
+	background: var(--paper);
+	color: var(--ink);
+}
+.site .ticket--inverse-solid:hover {
+	background: var(--paper-2);
+}
+.site .ticket--sm {
+	min-height: 2.5rem;
+	padding: 0.45rem 1rem;
+	font-size: 0.9375rem;
+}
+/* Estados impresos: pulsado invierte a tinta, deshabilitado va tachado. */
+.site .ticket:active:not(:disabled) {
+	background: var(--ink);
+	color: var(--paper);
+}
+.site .ticket:disabled,
+.site .ticket[aria-disabled="true"] {
+	cursor: not-allowed;
+	opacity: 0.45;
+}
+
+/* un billete pequeño con talón conserva el sitio de la perforación */
+.site .ticket--stub.ticket--sm {
+	padding-left: 1.5rem;
+}
+.site .ticket--stub.ticket--sm::before {
+	left: 0.7rem;
+	top: 0.4rem;
+	bottom: 0.4rem;
+}
+/* un billete cuadrado para un glifo solo: el paso de la cuenta de personas */
+.site .ticket--square {
+	width: 2.75rem;
+	min-height: 2.75rem;
+	padding: 0;
+}
+.site .ticket:active:not(:disabled) {
+	background: var(--ink);
+	color: var(--paper);
+}
+.site .ticket[aria-pressed="true"] {
+	background: var(--ink);
+	color: var(--paper);
+}
+.site .ticket:disabled,
+.site .ticket[aria-disabled="true"] {
+	cursor: not-allowed;
+	opacity: 0.45;
+}
+
+/* ── la puerta: el campo de código del segundo factor ────────────────────── */
+/* Seis celdas dibujadas con el mismo trazo del mundo, bajo un solo input
+   transparente con las cifras espaciadas para caer una en cada celda. */
+.site .gate-cells {
+	--cell: 3rem;
+	--gap: 0.5rem;
+	position: relative;
+	display: grid;
+	grid-template-columns: repeat(6, var(--cell));
+	gap: var(--gap);
+	width: calc(6 * var(--cell) + 5 * var(--gap));
+}
+.site .gate-cells > span {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	height: 3.5rem;
+	border: var(--stroke) solid var(--ink);
+	background: var(--paper);
+	font-family: var(--font-site);
+	font-weight: 700;
+	font-size: 1.75rem;
+	font-variant-numeric: tabular-nums;
+	color: var(--ink);
+}
+/* el input real: transparente sobre las celdas, con su cursor en la celda que toca */
+.site .gate-cells > input {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	background: transparent;
+	border: 0;
+	outline: none;
+	font-family: var(--font-site);
+	font-weight: 700;
+	font-size: 1.75rem;
+	font-variant-numeric: tabular-nums;
+	color: transparent;
+	caret-color: transparent;
+	letter-spacing: calc(var(--cell) + var(--gap) - 1ch);
+	padding-left: calc((var(--cell) - 1ch) / 2);
+}
+.site .gate-cells:focus-within > span.is-next {
+	background: var(--paper-2);
+	box-shadow: inset 0 -4px 0 var(--ink);
+}
+
+/* ── la barrera ──────────────────────────────────────────────────────────── */
+.site .barrier-bar {
+	transition: transform calc(var(--clock) / 12) cubic-bezier(0.16, 1, 0.3, 1);
+}
+.site .barrier--open .barrier-bar {
+	transform: translateX(84px);
+}
+.site .barrier-dot {
+	transition: transform calc(var(--clock) / 8) cubic-bezier(0.7, 0, 0.3, 1), opacity calc(var(--clock) / 24);
+}
+.site .barrier--open .barrier-dot {
+	transform: translateY(340px);
+}
+.site .barrier--shut .barrier-dot {
+	opacity: 0;
+}
+
+/* ── filetes y paradas ───────────────────────────────────────────────────── */
+.site .rule {
+	border-top: var(--stroke) solid var(--ink);
+}
+.site .rule-thin {
+	border-top: 1px solid var(--rule);
+}
+
+/* El eje: la línea de OnDesk recorre toda la página por el margen izquierdo, y
+   cada parada de sección es un tick que la cruza. Sólo en pantallas anchas,
+   donde el margen existe; los tableros de tinta (terminal, pie) la cubren. */
+.site .axis {
+	position: relative;
+}
+@media (min-width: 64rem) {
+	.site .axis::before {
+		content: "";
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		left: max(1.25rem, calc(50% - 44rem + 1.25rem));
+		width: var(--stroke);
+		background: var(--ink);
+		pointer-events: none;
+	}
+	.site .axis > * {
+		position: relative;
+	}
+	/* la marca de parada nace en el eje */
+	.site .axis .stop-mark {
+		margin-left: -1.75rem;
+	}
+	.site .axis .stop-mark::before {
+		width: 2.5rem;
+	}
+}
+
+/* la marca de parada: un tramo de línea con su tick perpendicular */
+.site .stop-mark {
+	display: inline-flex;
+	align-items: center;
+	gap: 0;
+	flex: none;
+}
+.site .stop-mark::before {
+	content: "";
+	width: 2.25rem;
+	height: var(--line);
+	background: var(--stop-color, var(--ink));
+}
+.site .stop-mark::after {
+	content: "";
+	width: var(--stroke);
+	height: 1.6rem;
+	background: var(--stop-color, var(--ink));
+}
+
+/* anillo de intercambiador en HTML; como botón es un interruptor */
+.site .ring {
+	display: inline-block;
+	width: 1.1rem;
+	height: 1.1rem;
+	border-radius: 999px;
+	border: var(--stroke) solid var(--ink);
+	background: var(--paper);
+	flex: none;
+	padding: 0;
+	transition: background-color calc(var(--clock) / 40) ease-out;
+}
+.site .ring--filled {
+	background: var(--ink);
+}
+.site button.ring {
+	cursor: pointer;
+}
+.site .ring--dot {
+	position: relative;
+}
+.site .ring--dot::after {
+	content: "";
+	position: absolute;
+	inset: 0.15rem;
+	border-radius: 999px;
+	background: var(--ink);
+}
+
+/* pastilla de línea: el cuadrado de color de una clave de mapa */
+.site .swatch {
+	display: inline-block;
+	width: 1.6rem;
+	height: var(--line);
+	background: var(--swatch, var(--ink));
+	flex: none;
+}
+
+/* ── tablas de tarifas y horarios ────────────────────────────────────────── */
+.site .fare {
+	width: 100%;
+	border-collapse: collapse;
+	font-family: var(--font-cond);
+	font-size: 1rem;
+	font-variant-numeric: tabular-nums;
+}
+.site .fare th {
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	font-size: 0.8125rem;
+	text-align: left;
+	padding: 0.55rem 0.75rem;
+	border-bottom: var(--stroke) solid var(--ink);
+	white-space: nowrap;
+}
+.site .fare td {
+	padding: 0.6rem 0.75rem;
+	border-bottom: 1px solid var(--rule);
+	vertical-align: top;
+}
+/* En una pantalla estrecha las cabeceras parten en vez de empujar la columna
+   de la factura fuera del marco: la tabla se recompone por columnas enteras. */
+@media (max-width: 47.9rem) {
+	.site .fare th {
+		white-space: normal;
+		padding-inline: 0.5rem;
+		font-size: 0.75rem;
+	}
+	.site .fare td {
+		padding-inline: 0.5rem;
+	}
+	.site .fare th:first-child,
+	.site .fare td:first-child {
+		padding-left: 0;
+	}
+	.site .fare th:last-child,
+	.site .fare td:last-child {
+		padding-right: 0;
+	}
+}
+.site .fare tr:last-child td {
+	border-bottom: var(--stroke) solid var(--ink);
+}
+.site .fare .num {
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+}
+
+/* una fila apagada: la línea que este viajero no recorre */
+.site .fare tr.is-off td {
+	transition: opacity calc(var(--clock) / 24) cubic-bezier(0.16, 1, 0.3, 1);
+}
+.site .fare tr.is-off td:not(:first-child) {
+	color: var(--ink-2);
+}
+.site .fare tr.is-off .swatch {
+	opacity: 0.4;
+}
+/* una tabla dentro de una caja con el trazo del mundo: la caja ya cierra */
+.site .fare--boxed tr:last-child td {
+	border-bottom: 0;
+}
+.site .fare--boxed th:first-child,
+.site .fare--boxed td:first-child {
+	padding-left: 1rem;
+}
+.site .fare--boxed th:last-child,
+.site .fare--boxed td:last-child {
+	padding-right: 1rem;
+}
+/* un horario de tres columnas en un teléfono: cada fila se apila en bloque */
+@media (max-width: 47.9rem) {
+	.site .fare--stack thead {
+		display: none;
+	}
+	.site .fare--stack tbody,
+	.site .fare--stack tr {
+		display: block;
+	}
+	.site .fare--stack tr {
+		padding: 0.7rem 1rem;
+		border-bottom: 1px solid var(--rule);
+	}
+	.site .fare--stack tr:last-child {
+		border-bottom: 0;
+	}
+	/* también la primera y la última celda: dentro de una caja (`fare--boxed`)
+	   llevan 1rem propio, y apiladas lo sumarían al de la fila y el nombre del
+	   parámetro saldría sangrado respecto de su valor */
+	.site .fare--stack td,
+	.site .fare--stack td:first-child,
+	.site .fare--stack td:last-child {
+		display: block;
+		border: 0;
+		padding: 0;
+	}
+	.site .fare--stack td:nth-child(2) {
+		font-weight: 500;
+		overflow-wrap: anywhere;
+	}
+}
+/* la fila de total cierra con el trazo grueso y va en negrita */
+.site .fare tr.total td {
+	border-top: var(--stroke) solid var(--ink);
+	border-bottom: 0;
+	font-weight: 700;
+	font-family: var(--font-site);
+	padding-top: 0.8rem;
+}
+/* en una tabla de datos la fila de total abre con su rótulo: el trazo grueso
+   corre también sobre la cabecera de fila, no sólo sobre el valor */
+.site .fare tr.total th {
+	border-top: var(--stroke) solid var(--ink);
+	padding-top: 0.8rem;
+}
+/* los cuatro datos: cabeceras de fila, sin la regla gruesa bajo cada una */
+.site .fare--facts th {
+	border-bottom: 1px solid var(--rule);
+	color: var(--ink-2);
+	width: 40%;
+	vertical-align: top;
+	padding-left: 0;
+}
+.site .fare--facts td {
+	font-family: var(--font-site);
+	font-weight: 700;
+	padding-right: 0;
+}
+.site .fare--facts tr:first-child th,
+.site .fare--facts tr:first-child td {
+	border-top: var(--stroke) solid var(--ink);
+}
+.site .fare--facts tr:last-child th,
+.site .fare--facts tr:last-child td {
+	border-bottom: var(--stroke) solid var(--ink);
+}
+
+/* la espina: en un teléfono, la línea vertical del mapa baja por la tabla */
+.site .spine {
+	position: relative;
+}
+.site .spine::before {
+	content: "";
+	position: absolute;
+	z-index: 0;
+	top: 0;
+	bottom: 0;
+	left: calc(0.55rem - var(--line) / 2);
+	width: var(--line);
+	background: var(--ink);
+	pointer-events: none;
+}
+/* los anillos van SOBRE la espina, como sobre la línea del mapa */
+.site .spine .ring {
+	position: relative;
+	z-index: 1;
+}
+@media (min-width: 48rem) {
+	.site .spine::before {
+		display: none;
+	}
+}
+
+/* ── tableros oscuros (pie, terminal) ────────────────────────────────────── */
+.site .board {
+	background: var(--ink);
+	color: var(--paper);
+}
+.site .board ::selection {
+	background: var(--paper);
+	color: var(--ink);
+}
+.site .board .t-body {
+	color: rgba(255, 255, 255, 0.72);
+}
+.site .board :focus-visible {
+	outline-color: var(--paper);
+}
+
+/* ── campos ──────────────────────────────────────────────────────────────── */
+.site .field {
+	width: 100%;
+	border: var(--stroke) solid var(--ink);
+	background: var(--paper);
+	color: var(--ink);
+	padding: 0.7rem 0.9rem;
+	font: inherit;
+	line-height: 1.3;
+	outline: none;
+	transition: background-color calc(var(--clock) / 60) ease-out;
+}
+.site .field::placeholder {
+	color: var(--ink-2);
+	opacity: 0.8;
+}
+.site .field:focus {
+	background: var(--paper-2);
+}
+.site select.field {
+	appearance: none;
+	background-image: linear-gradient(45deg, transparent 50%, var(--ink) 50%),
+		linear-gradient(135deg, var(--ink) 50%, transparent 50%);
+	background-position: calc(100% - 1.25rem) 50%, calc(100% - 0.85rem) 50%;
+	background-size: 0.4rem 0.4rem, 0.4rem 0.4rem;
+	background-repeat: no-repeat;
+	padding-right: 2.5rem;
+}
+
+/* ── el mapa ─────────────────────────────────────────────────────────────── */
+.site .map-line {
+	fill: none;
+	stroke-width: var(--line);
+	stroke-linejoin: round;
+	stroke-linecap: round;
+	transition: opacity calc(var(--clock) / 24) cubic-bezier(0.16, 1, 0.3, 1);
+}
+.site .map--focus .map-line:not(.is-lit) {
+	opacity: 0.18;
+}
+.site .map-ring {
+	fill: var(--paper);
+	stroke: var(--ink);
+	stroke-width: var(--stroke);
+	transition: opacity calc(var(--clock) / 24) cubic-bezier(0.16, 1, 0.3, 1);
+}
+.site .map-link {
+	fill: none;
+	stroke: var(--ink);
+	stroke-width: calc(var(--stroke) * 3.2);
+	stroke-linecap: round;
+}
+.site .map-link-inner {
+	fill: none;
+	stroke: var(--paper);
+	stroke-width: calc(var(--stroke) * 1.4);
+	stroke-linecap: round;
+}
+.site .map--focus .map-rider:not(.is-lit) {
+	opacity: 0.35;
+}
+.site .map-rider {
+	transition: opacity calc(var(--clock) / 24) cubic-bezier(0.16, 1, 0.3, 1);
+	cursor: pointer;
+}
+.site .map-rider text {
+	font-family: var(--font-site);
+	font-weight: 700;
+	font-size: 15px;
+	fill: var(--ink);
+	pointer-events: none;
+}
+.site .map-rider .role {
+	font-family: var(--font-cond);
+	font-weight: 500;
+	font-size: 13px;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	fill: var(--ink-2);
+}
+.site .map-rider:focus-visible {
+	outline: none;
+}
+.site .map-rider:focus-visible .map-ring {
+	stroke-width: calc(var(--stroke) * 2);
+}
+.site .map-label {
+	font-family: var(--font-cond);
+	font-weight: 700;
+	font-size: 14px;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+	fill: var(--paper);
+}
+/* sobre las líneas claras (naranja, turquesa) el rótulo va en tinta, como en cualquier mapa */
+.site .map-label--ink {
+	fill: var(--ink);
+	color: var(--ink) !important;
+}
+.site .map-terminus {
+	stroke: var(--ink);
+	stroke-width: var(--stroke);
+	stroke-linecap: butt;
+}
+
+/* el punto de servicio recorre una línea sobre el reloj del horario */
+.site .service-dot {
+	fill: var(--paper);
+	stroke: var(--ink);
+	stroke-width: var(--stroke);
+	offset-rotate: 0deg;
+	animation: service-run var(--clock) linear infinite;
+}
+@keyframes service-run {
+	from {
+		offset-distance: 0%;
+	}
+	to {
+		offset-distance: 100%;
+	}
+}
+
+/* la ruta de un viajero se ilumina y se apaga sobre el reloj: movimiento como memoria */
+.site .map-line.is-lit {
+	opacity: 1;
+}
+
+/* ══ la consola ═══════════════════════════════════════════════════════════
+   Las piezas que sólo usan los paneles (el de partners y el de developers):
+   sellos de estado, la tira «calling at», la tabla que se recompone en un
+   teléfono, el diálogo de papel, el menú de acciones y el cierre de un campo.
+   El mismo mundo que las páginas públicas; en un panel se trabaja, así que
+   la escala es más apretada y nada se mueve si no es para decir un estado. */
+
+/* el sello: un estado impreso en una caja con el trazo del mundo */
+.site .stamp {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+	border: var(--stroke) solid var(--ink);
+	padding: 0.1rem 0.45rem;
+	font-family: var(--font-cond);
+	font-weight: 700;
+	font-size: 0.75rem;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	line-height: 1.3;
+	white-space: nowrap;
+	background: var(--paper);
+	color: var(--ink);
+}
+.site .stamp--solid {
+	background: var(--ink);
+	color: var(--paper);
+}
+.site .stamp--alert {
+	border-color: var(--destructive);
+	color: var(--destructive);
+}
+
+/* La placa como título de panel: la misma tinta que `.plate`, pero en bloque,
+   para que pueda ser un botón (el selector de workspace) sin partirse. */
+.site .plate-block {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	max-width: 100%;
+	background: var(--ink);
+	color: var(--paper);
+	padding: 0.12em 0.4em 0.18em;
+	transition: background-color calc(var(--clock) / 60) ease-out;
+}
+.site button.plate-block {
+	cursor: pointer;
+}
+.site button.plate-block:hover {
+	background: #000000;
+}
+
+/* Una línea de paradas: anillo y rótulo por parada, un tramo de línea entre
+   ellas. La lleva la tira «calling at» y la llevan los pasos del registro. */
+.site .line-stops {
+	display: flex;
+	align-items: center;
+	overflow-x: auto;
+	scrollbar-width: none;
+}
+.site .line-stops::-webkit-scrollbar {
+	display: none;
+}
+.site .line-stops a,
+.site .line-stops button {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.7rem 0;
+	font-weight: 700;
+	font-size: 0.9rem;
+	white-space: nowrap;
+	color: var(--ink-2);
+	text-decoration: none;
+	cursor: pointer;
+	transition: color calc(var(--clock) / 60) ease-out;
+}
+.site .line-stops a:hover,
+.site .line-stops button:hover:not(:disabled),
+.site .line-stops [aria-current] {
+	color: var(--ink);
+}
+.site .line-stops button:disabled {
+	cursor: not-allowed;
+	opacity: 0.45;
+}
+.site .line-stops .ring {
+	width: 0.9rem;
+	height: 0.9rem;
+}
+.site .line-stops [aria-current] .ring,
+.site .line-stops .is-done .ring {
+	background: var(--ink);
+}
+/* la parada actual: la barra de 3px de la franja de rutas, a lo largo de su
+   borde de abajo, para que no se distinga de las ya servidas sólo por el tono */
+.site .line-stops [aria-current]::after {
+	content: "";
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	height: var(--stroke);
+	background: var(--ink);
+}
+/* el tramo de línea entre dos paradas */
+.site .line-stops .seg {
+	flex: none;
+	width: 1.75rem;
+	height: var(--stroke);
+	margin: 0 0.6rem;
+	background: var(--ink);
+}
+
+/* la tira «calling at»: la línea de paradas del pliego, pegada bajo la
+   cabecera. Es la única pieza del panel que se mueve sola. */
+.site .calling-at {
+	position: sticky;
+	top: 5.5rem;
+	z-index: 40;
+	background: var(--paper);
+	border-top: var(--stroke) solid var(--ink);
+	border-bottom: 1px solid var(--rule);
+}
+/* Sin eje (por debajo de 1024px) la línea de paradas sale hasta el borde de
+   la pantalla: una tira más larga que el teléfono se corta en el canto, como
+   una línea que sigue, y no a medio rótulo en el margen. Encaja parada a
+   parada al deslizarla. */
+@media (max-width: 63.9rem) {
+	.site .calling-at .line-stops {
+		margin-inline: -2rem;
+		padding-inline: 2rem;
+		scroll-padding-inline: 2rem;
+		scroll-snap-type: x proximity;
+	}
+	.site .calling-at .line-stops > li {
+		scroll-snap-align: start;
+	}
+}
+@media (max-width: 39.9rem) {
+	.site .calling-at .line-stops {
+		margin-inline: -1rem;
+		padding-inline: 1rem;
+		scroll-padding-inline: 1rem;
+	}
+}
+
+/* Una tabla partida en grupos (los permisos por producto): un `<tbody>` por
+   grupo que abre con su propia fila de cabecera, para que todos los grupos
+   compartan columnas y los valores arranquen en el mismo borde. */
+.site .fare tr.row-group th {
+	padding-top: 1.5rem;
+}
+.site .fare tbody:first-of-type tr.row-group th {
+	padding-top: 0.55rem;
+}
+
+/* Una tabla de tarifas que en un teléfono se recompone por filas: cada fila
+   es un bloque, cada celda una pareja rótulo/valor, y el anillo de estado
+   queda a la izquierda de todo el bloque. El rótulo sale de `data-label`. */
+@media (max-width: 47.9rem) {
+	.site .fare--reflow thead {
+		display: none;
+	}
+	.site .fare--reflow,
+	.site .fare--reflow tbody {
+		display: block;
+	}
+	.site .fare--reflow tr {
+		display: grid;
+		grid-template-columns: 1.75rem minmax(0, 1fr);
+		column-gap: 0.5rem;
+		padding: 0.75rem 0;
+		border-bottom: 1px solid var(--rule);
+	}
+	.site .fare--reflow.fare--noring tr {
+		grid-template-columns: 0 minmax(0, 1fr);
+		column-gap: 0;
+	}
+	.site .fare--reflow tbody tr:last-child {
+		border-bottom: var(--stroke) solid var(--ink);
+	}
+	/* flow-root y el rótulo flotando en el relleno izquierdo, no una rejilla:
+	   una celda con varios nodos (un texto y un sello, un nombre y su dominio)
+	   sigue siendo un solo valor en vez de repartirse entre las dos columnas */
+	.site .fare--reflow td {
+		grid-column: 2;
+		display: flow-root;
+		padding: 0.125rem 0;
+		border: 0;
+		text-align: left;
+	}
+	.site .fare--reflow td[data-label] {
+		padding-left: 8.25rem;
+	}
+	/* sólo el borde: si esta regla llevara también la rejilla, su especificidad
+	   ganaría a `cell-ring` y `cell-title` y la última fila saldría deshecha */
+	.site .fare--reflow tr:last-child td {
+		border-bottom: 0;
+	}
+	/* una cifra se alinea con su rótulo, no con el borde derecho */
+	.site .fare--reflow td.num {
+		text-align: left;
+	}
+	.site .fare--reflow td.cell-ring {
+		grid-column: 1;
+		grid-row: 1 / span 12;
+		display: block;
+		padding-top: 0.2rem;
+	}
+	/* la celda que nombra la fila va sin rótulo, aunque lo lleve para la tabla */
+	.site .fare--reflow td.cell-title {
+		padding-left: 0;
+		padding-bottom: 0.3rem;
+	}
+	.site .fare--reflow td.cell-title::before {
+		display: none;
+	}
+	.site .fare--reflow td.cell-actions {
+		display: flex;
+		gap: 0.5rem;
+		padding-top: 0.5rem;
+	}
+	/* un sello en una celda que se recompone es un sello, no una franja: sin
+	   esto la rejilla lo estira a todo el ancho de la columna del valor */
+	.site .fare--reflow td > .stamp {
+		justify-self: start;
+	}
+	.site .fare--reflow td:empty {
+		display: none;
+	}
+	/* la cabecera de un grupo: una línea entera, no una pareja rótulo/valor */
+	.site .fare--reflow tr.row-group {
+		display: block;
+		padding: 0;
+		border-bottom: 0;
+	}
+	.site .fare--reflow tr.row-group th {
+		display: block;
+		padding-left: 0;
+		padding-right: 0;
+	}
+	/* un valor largo (un client ID, una URL): el rótulo encima y el valor con
+	   todo el ancho de la fila, para que no se parta en una columna estrecha */
+	.site .fare--reflow td[data-label]::before {
+		content: attr(data-label);
+		float: left;
+		width: 7.5rem;
+		margin-left: -8.25rem;
+		font-family: var(--font-cond);
+		font-weight: 700;
+		font-size: 0.75rem;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--ink-2);
+		padding-top: 0.1rem;
+	}
+	.site .fare--reflow td.cell-wide {
+		padding-left: 0;
+	}
+	.site .fare--reflow td.cell-wide::before {
+		float: none;
+		display: block;
+		width: auto;
+		margin: 0 0 0.15rem;
+	}
+	.site .fare--reflow tr.total {
+		border-top: var(--stroke) solid var(--ink);
+		border-bottom: 0;
+	}
+	.site .fare--reflow tr.total td {
+		border-top: 0;
+	}
+}
+/* una fila anulada: el importe tachado, el resto en tinta secundaria */
+.site .fare tr.is-void td {
+	color: var(--ink-2);
+}
+.site .fare tr.is-void .amount {
+	text-decoration: line-through;
+	text-decoration-thickness: 2px;
+}
+/* una fila que es un enlace: la tinta clara al pasar, sin levantar nada */
+.site .fare tr.is-link {
+	position: relative;
+	transition: background-color calc(var(--clock) / 60) ease-out;
+}
+.site .fare tr.is-link:hover {
+	background: var(--paper-2);
+}
+
+/* un campo para identificadores (códigos, URIs, scopes): en el corte condensado */
+.site .field.field--cond {
+	font-family: var(--font-cond);
+	font-weight: 500;
+	letter-spacing: 0.01em;
+}
+/* campos de varias líneas y el campo con prefijo impreso */
+/* sin alto mínimo: lo mide su `rows`, así uno de dos filas es de dos filas */
+.site textarea.field {
+	resize: vertical;
+}
+.site .field-prefix {
+	display: flex;
+	align-items: stretch;
+}
+.site .field-prefix > span {
+	display: flex;
+	align-items: center;
+	padding: 0 0.75rem;
+	border: var(--stroke) solid var(--ink);
+	border-right: 0;
+	background: var(--paper-2);
+	font-family: var(--font-cond);
+	font-weight: 500;
+	color: var(--ink-2);
+	white-space: nowrap;
+}
+.site .field:disabled,
+.site .field[readonly] {
+	background: var(--paper-2);
+	color: var(--ink-2);
+	cursor: not-allowed;
+}
+
+/* el billete de un acto irreversible: el trazo en rojo de error, nada más */
+.site .ticket--danger {
+	border-color: var(--destructive);
+	color: var(--destructive);
+}
+.site .ticket--danger:hover {
+	background: var(--destructive);
+	color: var(--paper);
+}
+.site .ticket--danger:active:not(:disabled) {
+	background: var(--destructive);
+	color: var(--paper);
+}
+/* un billete macizo apagado porque aún no hay nada que hacer vuelve al trazo:
+   la tinta gris al 45 % se lee como una franja, no como un botón que todavía no
+   se puede pulsar. El billete con talón de la puerta y el pendiente (aria-busy)
+   conservan su tinta: «Signing in…» sigue siendo el mismo billete. */
+.site .ticket--solid:not(.ticket--stub):not([aria-busy="true"]):disabled,
+.site .ticket--solid:not(.ticket--stub):not([aria-busy="true"])[aria-disabled="true"] {
+	background: transparent;
+	color: var(--ink);
+}
+/* un billete cuadrado pequeño para un glifo junto a un valor (copiar, ⋯) */
+.site .ticket--glyph {
+	width: 2.25rem;
+	min-height: 2.25rem;
+	padding: 0;
+}
+
+/* el diálogo de papel: el `<dialog>` nativo con el trazo del mundo */
+.site dialog.sheet-dialog {
+	/* el reinicio de Tailwind quita el `margin: auto` con el que el navegador
+	   centra un diálogo modal; se devuelve aquí */
+	margin: auto;
+	width: min(40rem, calc(100vw - 2rem));
+	max-height: calc(100vh - 3rem);
+	padding: 0;
+	border: var(--stroke) solid var(--ink);
+	background: var(--paper);
+	color: var(--ink);
+	overflow: hidden;
+}
+.site dialog.sheet-dialog[open] {
+	display: flex;
+	flex-direction: column;
+	animation: arrive calc(var(--clock) / 24) cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.site dialog.sheet-dialog::backdrop {
+	background: rgba(17, 17, 17, 0.7);
+}
+
+/* el menú de acciones y el selector de workspace: un panel de papel */
+.site .menu-panel {
+	position: absolute;
+	z-index: 45;
+	min-width: 15rem;
+	background: var(--paper);
+	border: var(--stroke) solid var(--ink);
+	animation: arrive calc(var(--clock) / 24) cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.site .menu-panel [role="menuitem"] {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	width: 100%;
+	padding: 0.6rem 1rem;
+	text-align: left;
+	font-weight: 700;
+	font-size: 0.95rem;
+	color: var(--ink);
+	text-decoration: none;
+	cursor: pointer;
+	transition: background-color calc(var(--clock) / 60) ease-out;
+}
+.site .menu-panel [role="menuitem"]:hover,
+.site .menu-panel [role="menuitem"]:focus-visible {
+	background: var(--paper-2);
+	outline: none;
+}
+.site .menu-panel [role="menuitem"][aria-disabled="true"] {
+	opacity: 0.45;
+	cursor: not-allowed;
+}
+.site .menu-panel [role="menuitem"].is-danger {
+	color: var(--destructive);
+}
+
+/* el hueco de carga: la forma de lo que viene, en la única tinta clara */
+.site .skeleton {
+	background: var(--paper-2);
+}
+
+/* las notificaciones van fuera del árbol de la página pero dentro de `.site`:
+   un billete de papel con el trazo del mundo, sin sombra y sin radio */
+.site [data-sonner-toast] {
+	border: var(--stroke) solid var(--ink) !important;
+	border-radius: 0 !important;
+	box-shadow: none !important;
+	background: var(--paper) !important;
+	color: var(--ink) !important;
+	font-family: var(--font-site) !important;
+	font-weight: 700;
+}
+
+/* ══ sólo la consola de ondesk ═════════════════════════════════════════════
+   Lo que tiene la consola de ondesk y no los paneles de partners y developers:
+   el riel de páginas del workspace y de la cuenta, el intercambiador de
+   accesos y la presencia como anillo. */
+
+/* El riel de páginas: el segundo nivel de la franja de rutas. Los mismos
+   destinos en negrita con la barra de 3px bajo el actual, sobre un filete
+   fino que corre todo el ancho de la columna. */
+.site .page-rail {
+	display: flex;
+	gap: 1.75rem;
+	overflow-x: auto;
+	scrollbar-width: none;
+	border-bottom: 1px solid var(--rule);
+}
+.site .page-rail::-webkit-scrollbar {
+	display: none;
+}
+.site .page-rail a {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	flex: none;
+	height: 2.75rem;
+	font-weight: 700;
+	font-size: 0.95rem;
+	color: var(--ink-2);
+	text-decoration: none;
+	white-space: nowrap;
+	transition: color calc(var(--clock) / 60) ease-out;
+}
+.site .page-rail a:hover,
+.site .page-rail a[aria-current] {
+	color: var(--ink);
+}
+.site .page-rail a[aria-current]::after {
+	content: "";
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: -1px;
+	height: var(--stroke);
+	background: var(--ink);
+}
+
+/* El intercambiador de accesos: las seis líneas, en su orden de siempre, cada
+   una un tramo de su color con un anillo encima; sellado donde la persona
+   tiene la app. Una app que el workspace no tiene va al 40%, sin anillo. */
+.site .access {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.2rem;
+	vertical-align: middle;
+}
+.site .access-cell {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.6rem;
+	height: 1.25rem;
+}
+.site .access-cell::before {
+	content: "";
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 50%;
+	height: var(--line);
+	transform: translateY(-50%);
+	background: var(--swatch, var(--ink));
+}
+.site .access-cell.is-off::before {
+	opacity: 0.4;
+}
+.site .access-cell .ring {
+	position: relative;
+	width: 1rem;
+	height: 1rem;
+}
+
+/* la presencia: un anillo y su palabra; nunca sólo un color */
+.site .presence-ring.is-offline {
+	opacity: 0.45;
+}
+
+/* ── entradas: una sola familia de movimiento, desde un estado ya visible ── */
+.site .arrive {
+	animation: arrive calc(var(--clock) / 12) cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.site .arrive-2 {
+	animation-delay: calc(var(--clock) / 120);
+}
+.site .arrive-3 {
+	animation-delay: calc(var(--clock) / 60);
+}
+@keyframes arrive {
+	from {
+		opacity: 0.001;
+		transform: translateY(10px);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.site .service-dot,
+	.site .arrive {
+		animation: none;
+	}
+	.site .map-line,
+	.site .map-ring,
+	.site .map-rider,
+	.site .barrier-bar,
+	.site .barrier-dot,
+	.site .ring,
+	.site .fare tr.is-off td {
+		transition: none;
+	}
+	.site dialog.sheet-dialog[open],
+	.site .menu-panel {
+		animation: none;
+	}
+}
+
+/* ── ancho de página ─────────────────────────────────────────────────────── */
+.site .wrap {
+	width: 100%;
+	max-width: 88rem;
+	margin-inline: auto;
+	padding-inline: 1rem;
+}
+@media (min-width: 40rem) {
+	.site .wrap {
+		padding-inline: 2rem;
+	}
+}
+@media (min-width: 64rem) {
+	.site .wrap {
+		padding-inline: 3rem;
+	}
+}

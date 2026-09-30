@@ -1,3 +1,8 @@
+/**
+ * Las notificaciones: un billete de papel con el trazo del mundo, sin sombra ni
+ * radio (el estilo va en `styles/site.css`, `[data-sonner-toast]`). Sólo claro:
+ * el mundo no tiene tema oscuro, así que aquí no hay tema que leer.
+ */
 import {
   CircleCheckIcon,
   InfoIcon,
@@ -7,17 +12,10 @@ import {
 } from "lucide-react"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 
-// El tema de cada app de OnDesk vive en el provider propio de este paquete y no
-// en next-themes. Es una dependencia menos, y el provider es el que escribe la
-// clase `dark` de la que dependen los tokens.
-import { useTheme } from "../components/theme-provider"
-
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme()
-
   return (
     <Sonner
-      theme={theme as ToasterProps["theme"]}
+      theme="light"
       className="toaster group"
       icons={{
         success: <CircleCheckIcon className="size-4" />,
@@ -28,10 +26,10 @@ const Toaster = ({ ...props }: ToasterProps) => {
       }}
       style={
         {
-          "--normal-bg": "var(--popover)",
-          "--normal-text": "var(--popover-foreground)",
-          "--normal-border": "var(--border)",
-          "--border-radius": "var(--radius)",
+          "--normal-bg": "var(--paper)",
+          "--normal-text": "var(--ink)",
+          "--normal-border": "var(--ink)",
+          "--border-radius": "0",
         } as React.CSSProperties
       }
       {...props}

@@ -1,3 +1,4 @@
+/** Una vía con el trazo del mundo que se rellena de tinta hasta donde llega el valor. */
 import * as React from "react"
 import { Progress as ProgressPrimitive } from "radix-ui"
 
@@ -11,15 +12,12 @@ function Progress({
   return (
     <ProgressPrimitive.Root
       data-slot="progress"
-      className={cn(
-        "bg-primary/20 relative h-2 w-full overflow-hidden rounded-full",
-        className
-      )}
+      className={cn("progress-track", className)}
       {...props}
     >
       <ProgressPrimitive.Indicator
         data-slot="progress-indicator"
-        className="bg-primary h-full w-full flex-1 transition-all"
+        className="progress-fill"
         style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
       />
     </ProgressPrimitive.Root>

@@ -1,3 +1,9 @@
+/**
+ * El diálogo de papel sobre Radix: el trazo de 3px sobre papel, la única
+ * penumbra del mundo detrás (tinta al 70 %), una cabecera cerrada por el filete
+ * grueso, el aspa como billete cuadrado y un pie sobre filete fino. Entra con
+ * `arrive` y no tiene radio ni sombra.
+ */
 import * as React from "react"
 import { XIcon } from "lucide-react"
 import { Dialog as DialogPrimitive } from "radix-ui"
@@ -36,10 +42,7 @@ function DialogOverlay({
   return (
     <DialogPrimitive.Overlay
       data-slot="dialog-overlay"
-      className={cn(
-        "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/50",
-        className
-      )}
+      className={cn("scrim", className)}
       {...props}
     />
   )
@@ -59,7 +62,7 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-lg duration-200 outline-none sm:max-w-lg",
+          "sheet-paper fixed top-[50%] left-[50%] z-50 flex max-h-[calc(100vh-3rem)] w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] flex-col gap-4 overflow-y-auto p-5 outline-none sm:max-w-lg",
           className
         )}
         {...props}
@@ -68,10 +71,10 @@ function DialogContent({
         {showCloseButton && (
           <DialogPrimitive.Close
             data-slot="dialog-close"
-            className="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
+            className="ticket ticket--glyph absolute top-3 right-3"
+            aria-label="Close"
           >
-            <XIcon />
-            <span className="sr-only">Close</span>
+            <XIcon className="size-4" aria-hidden="true" />
           </DialogPrimitive.Close>
         )}
       </DialogPrimitive.Content>
@@ -79,11 +82,15 @@ function DialogContent({
   )
 }
 
+/** La cabecera: título y descripción, cerrados por el filete grueso; deja sitio al aspa. */
 function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="dialog-header"
-      className={cn("flex flex-col gap-2 text-center sm:text-left", className)}
+      className={cn(
+        "-mx-5 -mt-5 flex flex-col gap-1 border-b-[length:var(--stroke)] border-(--ink) px-5 py-4 pr-14 text-left",
+        className
+      )}
       {...props}
     />
   )
@@ -101,7 +108,7 @@ function DialogFooter({
     <div
       data-slot="dialog-footer"
       className={cn(
-        "flex flex-col-reverse gap-2 sm:flex-row sm:justify-end",
+        "rule-thin -mx-5 -mb-5 flex flex-col-reverse gap-2 px-5 py-4 sm:flex-row sm:justify-end",
         className
       )}
       {...props}
@@ -123,7 +130,7 @@ function DialogTitle({
   return (
     <DialogPrimitive.Title
       data-slot="dialog-title"
-      className={cn("text-lg leading-none font-semibold", className)}
+      className={cn("t-h3 text-[1.25rem]", className)}
       {...props}
     />
   )
@@ -136,7 +143,7 @@ function DialogDescription({
   return (
     <DialogPrimitive.Description
       data-slot="dialog-description"
-      className={cn("text-muted-foreground text-sm", className)}
+      className={cn("text-[0.95rem] leading-snug text-(--ink-2)", className)}
       {...props}
     />
   )

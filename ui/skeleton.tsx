@@ -1,10 +1,14 @@
+/** El hueco de carga: la forma de lo que viene, en la única tinta clara, quieto. */
+import * as React from "react"
+
 import { cn } from "../lib/utils"
 
 function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="skeleton"
-      className={cn("bg-accent animate-pulse rounded-md", className)}
+      aria-hidden="true"
+      className={cn("skeleton", className)}
       {...props}
     />
   )

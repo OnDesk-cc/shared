@@ -1,0 +1,590 @@
+/*
+ * El mundo del mapa de red dentro de los seis productos.
+ *
+ * `site.css` (al lado, copia literal de `ondesk/src/site.css`) es el mundo
+ * entero: papel y tinta, el trazo de 3px, las seis líneas, los billetes, los
+ * campos, los sellos, las tablas de tarifas, el diálogo de papel. Este archivo
+ * es lo que un producto añade encima y que el sitio y las consolas no tienen:
+ *
+ *   · `.site` va en `<html>`, no en un `<div>`, para que los portales de Radix
+ *     (diálogos, menús, tooltips, toasts) caigan dentro del mundo;
+ *   · la banda con una sola línea encendida — dentro de una app se viaja en una
+ *     línea —, y el color de esa línea en las marcas de parada;
+ *   · las primitivas de `@ondesk/shared/ui` que no se pueden vestir sólo con
+ *     clases porque Radix pinta su propio DOM (el panel de un menú, el
+ *     interruptor, la casilla, la barra de progreso);
+ *   · un suelo para el tamaño de letra y alias para las utilidades del mundo
+ *     viejo (`console-label`, `font-mono`) que siguen en pantallas todavía no
+ *     recompuestas, para que hereden el mundo en vez de romperlo.
+ *
+ * Todo lo de aquí va sin `@layer`, como `site.css`: gana a cualquier utilidad
+ * de Tailwind que una pantalla vieja ponga encima, que es justo lo que se quiere
+ * mientras esas pantallas no se recomponen a mano.
+ */
+
+/* ── el mundo en <html> ──────────────────────────────────────────────────── */
+/* La base del rem sigue siendo la del navegador (las utilidades de Tailwind
+   están medidas contra 16px); el cuerpo lleva el tamaño de lectura del mundo. */
+html.site {
+	font-size: 100%;
+	/* los tokens que shadcn lee y que `site.css` no remapea: en el mundo un
+	   estado es una palabra en un sello, no un color, así que todos son tinta */
+	--warning: var(--ink);
+	--warning-foreground: var(--paper);
+	--success: var(--ink);
+	--success-foreground: var(--paper);
+	--info: var(--ink-2);
+	--chart-1: var(--ink);
+	--chart-2: var(--stop-color, var(--ink-2));
+	--chart-3: var(--ink-2);
+	--chart-4: var(--rule);
+	--chart-5: #8a8a8a;
+	--sidebar: var(--paper);
+	--sidebar-foreground: var(--ink);
+	--sidebar-primary: var(--ink);
+	--sidebar-primary-foreground: var(--paper);
+	--sidebar-accent: var(--paper-2);
+	--sidebar-accent-foreground: var(--ink);
+	--sidebar-border: var(--rule);
+	--sidebar-ring: var(--ink);
+	--radius: 0;
+}
+html.site body {
+	min-height: 100vh;
+	margin: 0;
+	background: var(--paper);
+	color: var(--ink);
+	font-family: var(--font-site);
+	font-size: 17px;
+	line-height: 1.55;
+}
+/* El anillo del mundo es un borde de 3px; la utilidad `ring` de Tailwind, que
+   comparte nombre, no debe añadirle una sombra de 1px encima. */
+.site .ring {
+	box-shadow: none;
+}
+
+/* ── la banda con una línea encendida ────────────────────────────────────── */
+.site .band-row {
+	transition: opacity calc(var(--clock) / 24) cubic-bezier(0.16, 1, 0.3, 1);
+}
+.site .band--focus .band-row:not(.is-lit) {
+	opacity: 0.18;
+}
+
+/* ── la franja de ruta del producto ──────────────────────────────────────── */
+/* Pegada arriba con la banda y el riel: tres niveles de una sola cabecera. */
+.site .strip {
+	position: sticky;
+	top: 0;
+	z-index: 50;
+	background: var(--paper);
+}
+/* el riel del producto va bajo la banda, sobre un filete fino, y la barra de la
+   parada actual toma el color de la línea que se viaja */
+.site .strip .page-rail {
+	border-bottom: 1px solid var(--rule);
+}
+.site .page-rail a[aria-current]::after,
+.site .page-rail button[aria-selected="true"]::after {
+	background: var(--stop-color, var(--ink));
+}
+/* el mismo riel sirve de pestañas (shadcn Tabs): los disparadores son botones */
+.site .page-rail > button {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	flex: none;
+	height: 2.75rem;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	font-weight: 700;
+	font-size: 0.95rem;
+	color: var(--ink-2);
+	white-space: nowrap;
+	cursor: pointer;
+	transition: color calc(var(--clock) / 60) ease-out;
+}
+.site .page-rail > button:hover,
+.site .page-rail > button[aria-selected="true"] {
+	color: var(--ink);
+}
+.site .page-rail > button[aria-selected="true"]::after {
+	content: "";
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: -1px;
+	height: var(--stroke);
+}
+.site .page-rail > button:disabled {
+	opacity: 0.45;
+	cursor: not-allowed;
+}
+
+/* ── billetes: los cortes que piden los productos ────────────────────────── */
+/* un billete más bajo para las barras de herramientas densas */
+.site .ticket--xs {
+	min-height: 2.25rem;
+	padding: 0.35rem 0.8rem;
+	font-size: 0.875rem;
+	gap: 0.45rem;
+}
+/* un billete sin trazo: la acción secundaria dentro de una fila o una cabecera */
+.site .ticket--ghost {
+	border-color: transparent;
+}
+.site .ticket--ghost:hover {
+	border-color: var(--ink);
+	background: var(--paper);
+}
+/* el glifo en sus tres tamaños */
+.site .ticket--glyph.ticket--xs {
+	width: 2rem;
+	min-height: 2rem;
+	padding: 0;
+}
+.site .ticket--glyph.ticket--lg {
+	width: 2.75rem;
+	min-height: 2.75rem;
+	padding: 0;
+}
+/* un billete con talón macizo en una barra: el mismo talón, más bajo */
+.site .ticket--stub.ticket--xs {
+	padding-left: 1.35rem;
+}
+.site .ticket--stub.ticket--xs::before {
+	left: 0.6rem;
+	top: 0.35rem;
+	bottom: 0.35rem;
+}
+/* un enlace que parece enlace: el único botón sin forma de billete */
+.site .ticket--link {
+	min-height: 0;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: var(--ink);
+	text-decoration: underline;
+	text-decoration-thickness: 2px;
+	text-underline-offset: 0.18em;
+}
+.site .ticket--link:hover {
+	background: transparent;
+	text-decoration-thickness: 4px;
+}
+.site .ticket--link:active:not(:disabled) {
+	background: transparent;
+	color: var(--ink);
+}
+
+/* ── el panel de papel de Radix (menú, select, popover, hover card) ──────── */
+/* Como `.menu-panel` de site.css, pero sin `position: absolute`: Radix coloca
+   el panel él mismo con un envoltorio fijo. */
+.site .menu-paper {
+	min-width: 12rem;
+	background: var(--paper);
+	color: var(--ink);
+	border: var(--stroke) solid var(--ink);
+	border-radius: 0;
+	box-shadow: none;
+	padding: 0;
+	animation: arrive calc(var(--clock) / 24) cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.site .menu-paper [role="menuitem"],
+.site .menu-paper [role="menuitemcheckbox"],
+.site .menu-paper [role="menuitemradio"],
+.site .menu-paper [role="option"],
+.site .menu-paper [cmdk-item] {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	width: 100%;
+	padding: 0.6rem 1rem;
+	border-radius: 0;
+	text-align: left;
+	font-weight: 700;
+	font-size: 0.95rem;
+	line-height: 1.3;
+	color: var(--ink);
+	text-decoration: none;
+	cursor: pointer;
+	outline: none;
+	transition: background-color calc(var(--clock) / 60) ease-out;
+}
+.site .menu-paper [role="menuitem"]:hover,
+.site .menu-paper [role="menuitem"]:focus-visible,
+.site .menu-paper [role="menuitem"][data-highlighted],
+.site .menu-paper [role="menuitemcheckbox"][data-highlighted],
+.site .menu-paper [role="menuitemradio"][data-highlighted],
+.site .menu-paper [role="option"][data-highlighted],
+.site .menu-paper [cmdk-item][data-selected="true"] {
+	background: var(--paper-2);
+	color: var(--ink);
+}
+.site .menu-paper [role="menuitem"][data-disabled],
+.site .menu-paper [role="menuitem"][aria-disabled="true"],
+.site .menu-paper [role="option"][data-disabled],
+.site .menu-paper [cmdk-item][data-disabled="true"] {
+	opacity: 0.45;
+	cursor: not-allowed;
+}
+.site .menu-paper [role="menuitem"][data-variant="destructive"],
+.site .menu-paper [role="menuitem"].is-danger {
+	color: var(--destructive);
+}
+.site .menu-paper [role="menuitem"] svg,
+.site .menu-paper [role="menuitemcheckbox"] svg,
+.site .menu-paper [role="menuitemradio"] svg,
+.site .menu-paper [role="option"] svg {
+	color: inherit;
+}
+/* la cabecera de un grupo dentro del panel: el rótulo de andén */
+.site .menu-paper [data-slot$="-label"],
+.site .menu-paper [cmdk-group-heading] {
+	font-family: var(--font-cond);
+	font-weight: 700;
+	font-size: 0.8125rem;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	line-height: 1.2;
+	color: var(--ink-2);
+	padding: 0.75rem 1rem 0.25rem;
+}
+.site .menu-paper [data-slot$="-separator"],
+.site .menu-paper [cmdk-separator] {
+	height: 0;
+	margin: 0.25rem 0;
+	border-top: 1px solid var(--rule);
+	background: transparent;
+}
+/* el panel de un popover lleva contenido, no filas: papel con relleno */
+.site .menu-paper.menu-paper--content {
+	padding: 1rem;
+}
+
+/* ── el tooltip: tinta sobre papel, en el corte condensado ───────────────── */
+.site .tip-paper {
+	background: var(--ink);
+	color: var(--paper);
+	border-radius: 0;
+	padding: 0.35rem 0.6rem;
+	font-family: var(--font-cond);
+	font-weight: 500;
+	font-size: 0.85rem;
+	letter-spacing: 0.01em;
+	line-height: 1.3;
+	box-shadow: none;
+	animation: arrive calc(var(--clock) / 40) cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ── controles que Radix pinta por su cuenta ─────────────────────────────── */
+/* la casilla: el cuadrado que se llena de tinta */
+.site .check-box {
+	width: 1.25rem;
+	height: 1.25rem;
+	border: var(--stroke) solid var(--ink);
+	border-radius: 0;
+	background: var(--paper);
+	color: var(--paper);
+	box-shadow: none;
+	transition: background-color calc(var(--clock) / 60) ease-out;
+}
+.site .check-box[data-state="checked"],
+.site .check-box[data-state="indeterminate"] {
+	background: var(--ink);
+}
+.site .check-box:disabled {
+	opacity: 0.45;
+	cursor: not-allowed;
+}
+/* el interruptor: una vía de dos posiciones; el mando es un cuadrado de tinta
+   que cruza la vía y la vía se entinta cuando está encendido */
+.site .switch-track {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	width: 2.5rem;
+	height: 1.35rem;
+	padding: 0;
+	border: var(--stroke) solid var(--ink);
+	border-radius: 0;
+	background: var(--paper);
+	box-shadow: none;
+	cursor: pointer;
+	transition: background-color calc(var(--clock) / 60) ease-out;
+}
+.site .switch-track[data-size="sm"] {
+	width: 2rem;
+	height: 1.1rem;
+}
+.site .switch-track[data-state="checked"] {
+	background: var(--ink);
+}
+.site .switch-track:disabled {
+	opacity: 0.45;
+	cursor: not-allowed;
+}
+.site .switch-thumb {
+	display: block;
+	width: 0.85rem;
+	height: 0.85rem;
+	margin: 0 0.15rem;
+	border-radius: 0;
+	background: var(--ink);
+	transform: translateX(0);
+	transition: transform calc(var(--clock) / 60) ease-out, background-color calc(var(--clock) / 60) ease-out;
+}
+.site .switch-track[data-size="sm"] .switch-thumb {
+	width: 0.6rem;
+	height: 0.6rem;
+	margin: 0 0.12rem;
+}
+.site .switch-track[data-state="checked"] .switch-thumb {
+	background: var(--paper);
+	transform: translateX(1.15rem);
+}
+.site .switch-track[data-size="sm"][data-state="checked"] .switch-thumb {
+	transform: translateX(0.92rem);
+}
+/* la barra de progreso: una vía con el trazo del mundo que se rellena de tinta */
+.site .progress-track {
+	position: relative;
+	width: 100%;
+	height: 0.85rem;
+	overflow: hidden;
+	border: var(--stroke) solid var(--ink);
+	border-radius: 0;
+	background: var(--paper);
+}
+.site .progress-fill {
+	height: 100%;
+	width: 100%;
+	background: var(--ink);
+	transition: transform calc(var(--clock) / 24) cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ── el diálogo y la hoja lateral de Radix ───────────────────────────────── */
+.site .scrim {
+	position: fixed;
+	inset: 0;
+	z-index: 50;
+	background: rgba(17, 17, 17, 0.7);
+	animation: scrim-in calc(var(--clock) / 24) ease-out both;
+}
+@keyframes scrim-in {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+.site .sheet-paper {
+	background: var(--paper);
+	color: var(--ink);
+	border: var(--stroke) solid var(--ink);
+	border-radius: 0;
+	box-shadow: none;
+	animation: arrive calc(var(--clock) / 24) cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+/* la hoja lateral entra desde su borde y sólo lleva trazo en el borde que da a la página */
+.site .sheet-paper--side {
+	animation: slide-in calc(var(--clock) / 24) cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.site .sheet-paper--right {
+	border-right: 0;
+	--slide-from: translateX(1.5rem);
+}
+.site .sheet-paper--left {
+	border-left: 0;
+	--slide-from: translateX(-1.5rem);
+}
+.site .sheet-paper--top {
+	border-top: 0;
+	--slide-from: translateY(-1.5rem);
+}
+.site .sheet-paper--bottom {
+	border-bottom: 0;
+	--slide-from: translateY(1.5rem);
+}
+@keyframes slide-in {
+	from {
+		opacity: 0.001;
+		transform: var(--slide-from, none);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+/* ── el hueco de carga: quieto ───────────────────────────────────────────── */
+.site .skeleton {
+	animation: none;
+	border-radius: 0;
+}
+
+/* ── el monograma como avatar ────────────────────────────────────────────── */
+/* Radix pinta la imagen y el hueco de iniciales dentro de la raíz; el trazo va
+   en la raíz para que los dos lo lleven. */
+.site .monogram {
+	border: var(--stroke) solid var(--ink);
+	border-radius: 0;
+	background: var(--paper);
+	color: var(--ink);
+	overflow: hidden;
+}
+.site .monogram [data-slot="avatar-fallback"] {
+	background: var(--paper);
+	color: var(--ink);
+	font-family: var(--font-cond);
+	font-weight: 700;
+	border-radius: 0;
+}
+
+/* ── la rejilla de cifras: una tabla de zonas ────────────────────────────── */
+/* las celdas se separan por el trazo del mundo: el fondo de tinta se ve por las
+   juntas de 3px, como la tabla de niveles de la página de precios */
+.site .zone {
+	display: grid;
+	gap: var(--stroke);
+	background: var(--ink);
+	border: var(--stroke) solid var(--ink);
+}
+.site .zone > * {
+	background: var(--paper);
+	min-width: 0;
+}
+
+/* ── el mundo viejo, heredado: que no rompa ──────────────────────────────── */
+/* El micro-rótulo de telemetría era monoespaciada de 10px; ahora es el rótulo
+   de andén. Sigue en muchas pantallas que aún no se han recompuesto. */
+.site .console-label {
+	font-family: var(--font-cond);
+	font-weight: 700;
+	font-size: 0.8125rem;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	line-height: 1.2;
+	color: var(--ink-2);
+}
+/* Nada más pequeño que un sello: los 9, 10 y 11 px de las etiquetas de
+   telemetría suben al suelo del mundo. */
+.site .text-\[9px\],
+.site .text-\[10px\],
+.site .text-\[11px\] {
+	font-size: 0.75rem;
+}
+/* los adornos del mundo viejo no pintan nada */
+.site .blink-cursor,
+.site .scan-line,
+.site .dot-live::after {
+	display: none;
+	animation: none;
+}
+.site .gradient-text {
+	background: none;
+	-webkit-text-fill-color: inherit;
+	color: inherit;
+}
+/* las esquinas y las sombras del mundo viejo se retiran de golpe */
+.site .rounded-full:not(.ring):not(.presence-ring):not(.animate-spin):not([role="radio"]) {
+	border-radius: 0;
+}
+.site .shadow,
+.site .shadow-sm,
+.site .shadow-md,
+.site .shadow-lg,
+.site .shadow-xl,
+.site .shadow-xs,
+.site .shadow-2xl {
+	box-shadow: none;
+}
+.site .backdrop-blur,
+.site .backdrop-blur-sm,
+.site .backdrop-blur-md,
+.site .backdrop-blur-lg {
+	backdrop-filter: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.site .band-row,
+	.site .switch-thumb,
+	.site .switch-track,
+	.site .check-box,
+	.site .progress-fill {
+		transition: none;
+	}
+	.site .menu-paper,
+	.site .tip-paper,
+	.site .sheet-paper,
+	.site .sheet-paper--side,
+	.site .scrim {
+		animation: none;
+	}
+}
+
+/* ── el tablero y el panel del teléfono ──────────────────────────────────── */
+.site .board-links a {
+	color: rgba(255, 255, 255, 0.8);
+	transition: color calc(var(--clock) / 60) ease-out;
+}
+.site .board-links a:hover,
+.site .board-links a[aria-current] {
+	color: #ffffff;
+}
+/* el anillo de presencia apagado, también cuando lo pinta una pantalla vieja
+   con las clases de `STATUS_META.dot` y sin `presence-ring` */
+.site .ring.is-offline {
+	opacity: 0.45;
+}
+/* el riel dentro de la franja: el filete lo lleva la fila, no el riel, para que
+   corra a todo lo ancho bajo la acción del final */
+.site .strip .page-rail {
+	border-bottom: 0;
+}
+
+/* ── el buscador de la franja: un campo a la altura del billete pequeño ──── */
+.site .field--sm {
+	min-height: 2.5rem;
+	padding: 0.4rem 0.9rem;
+	font-size: 0.95rem;
+	line-height: 1.3;
+}
+.site .field--search {
+	padding-left: 2.4rem;
+}
+/* el eje de la página empieza bajo la franja de tres niveles */
+.site main.axis {
+	min-height: 40vh;
+}
+
+/* ── un campo con un glifo dentro ────────────────────────────────────────── */
+/* Las pantallas viejas ponen `pl-9` al campo y el glifo encima; el relleno del
+   mundo no debe pisarlo o el texto nace bajo el glifo. */
+.site .field.pl-8 {
+	padding-left: 2rem;
+}
+.site .field.pl-9 {
+	padding-left: 2.25rem;
+}
+.site .field.pl-10 {
+	padding-left: 2.5rem;
+}
+.site .field.pr-9 {
+	padding-right: 2.25rem;
+}
+.site .field.pr-10 {
+	padding-right: 2.5rem;
+}
+
+/* ── cajas de trazos del mundo viejo ─────────────────────────────────────── */
+/* Los huecos vacíos de las pantallas no recompuestas se dibujaban con un borde
+   de trazos; en el mapa el único trazo discontinuo es la perforación del
+   billete, así que el hueco pasa a un filete fino. */
+.site .border-dashed {
+	border-style: solid;
+	border-color: var(--rule);
+}

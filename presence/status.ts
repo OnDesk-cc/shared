@@ -90,7 +90,11 @@ interface StatusMeta {
 	/** Una línea, en el menú, que dice qué les hace a los demás elegir esto. */
 	description: string;
 	icon: LucideIcon;
-	/** Fondo de Tailwind para el punto. */
+	/**
+	 * Las clases del anillo del mapa para este estado (ver `styles/site.css`,
+	 * `.ring`): relleno Online, con punto Busy, vacío Away, apagado Offline e
+	 * Invisible. El nombre `dot` se conserva de cuando era un color de fondo.
+	 */
 	dot: string;
 }
 
@@ -99,31 +103,31 @@ export const STATUS_META: Record<PresenceStatus | "offline", StatusMeta> = {
 		label: "Online",
 		description: "Available across OnDesk",
 		icon: Circle,
-		dot: "bg-emerald-500",
+		dot: "ring ring--filled",
 	},
 	away: {
 		label: "Away",
 		description: "Here, but not at your desk",
 		icon: Clock,
-		dot: "bg-amber-500",
+		dot: "ring",
 	},
 	busy: {
 		label: "Busy",
 		description: "Around, but ask before interrupting",
 		icon: MinusCircle,
-		dot: "bg-rose-500",
+		dot: "ring ring--dot",
 	},
 	invisible: {
 		label: "Invisible",
 		description: "Appear offline. Your last seen is hidden too",
 		icon: EyeOff,
-		dot: "bg-muted-foreground",
+		dot: "ring is-offline",
 	},
 	offline: {
 		label: "Offline",
 		description: "Not connected",
 		icon: Circle,
-		dot: "bg-muted-foreground",
+		dot: "ring is-offline",
 	},
 };
 

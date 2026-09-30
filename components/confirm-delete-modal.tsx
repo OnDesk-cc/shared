@@ -14,9 +14,9 @@ import {
  *
  * Es un `AlertDialog` y no un `Dialog`: el de alerta atrapa el foco y no se
  * cierra al pulsar fuera, que es lo que se quiere delante de algo irreversible.
- * Quien lo usa pasa el texto; el botón rojo y el «Cancel» los pone este
+ * Quien lo usa pasa el texto; el billete rojo y el «Cancel» los pone este
  * componente, para que no haya un producto donde el destructivo esté a la
- * izquierda.
+ * izquierda. El foco empieza en «Cancel», el lado que no hace nada.
  *
  * Confirmar llama a `onConfirm()` y CIERRA el diálogo acto seguido, sin esperar
  * a que la mutación termine. Así que aquí dentro no hay estado de carga: si el
@@ -50,13 +50,13 @@ export function ConfirmDeleteModal({
 					<AlertDialogDescription>{description}</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
-					<AlertDialogCancel className="text-xs">Cancel</AlertDialogCancel>
+					<AlertDialogCancel>Cancel</AlertDialogCancel>
 					<AlertDialogAction
+						variant="destructive"
 						onClick={() => {
 							onConfirm();
 							onOpenChange(false);
-						}}
-						className="bg-destructive text-destructive-foreground hover:bg-destructive/90 text-xs">
+						}}>
 						{confirmLabel}
 					</AlertDialogAction>
 				</AlertDialogFooter>
