@@ -66,7 +66,7 @@ está lista simplemente se queda en el tag anterior.
 | `v1.2.0` | el núcleo de auth del worker |
 | `v1.3.0` | `presence`, `console`, `initials` |
 | `v1.4.0` | `worker/api` — el núcleo de la API con token bearer |
-| `v1.5.0` | **esperado** por los seis productos para las horas de trabajo |
+| `v1.5.0` | **esperado** por los seis productos: las horas de trabajo y la plantilla de correo del mapa de red (`worker/email`: banda, placa con la línea de la app, billete, tabla de datos; `package.json` ya dice 1.5.0, sin tag todavía) |
 
 ## Las reglas de qué entra
 
