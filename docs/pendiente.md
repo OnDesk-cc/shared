@@ -32,8 +32,10 @@ Cosas que hoy están duplicadas y que **cumplen la regla** (idénticas, sin
   query — hoy Pulse lo hace a mano en 19 rutas y se deja permisos y derecho por
   el camino. Ver
   [`pulse/docs/pendiente.md`](../../pulse/docs/pendiente.md#asimetría-de-autorización-entre-colección-y-recurso).
-- El tratamiento responsive de consola (`useScrollRow`, `TwoPane open/onBack`,
-  diálogos con alto máximo), hoy sólo en `admin`.
+- Las piezas de consola del mundo del mapa de red (`console.tsx` y el bloque de
+  consola de `site.css`), responsive incluido: desde 2026-09-29 son copias
+  idénticas a mano en `partners`, `developers`, `ondesk` y `admin`. Candidatas a
+  vivir aquí cuando lleguen también a los seis productos.
 
 ## Cómo cerrar una fila de aquí
 
