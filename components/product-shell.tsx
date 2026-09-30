@@ -68,8 +68,10 @@ export function ProductStrip({
 	return (
 		<header className="strip" style={{ "--stop-color": lineColor(app) } as CSSProperties}>
 			<div className="wrap flex h-16 items-center justify-between gap-4">
-				<div className="flex h-full min-w-0 items-center gap-4 md:gap-5">{brand}</div>
-				{nav}
+				<div className="flex h-full min-w-0 flex-1 items-center gap-4 md:flex-none md:gap-5">{brand}</div>
+				{/* El buscador sólo desde 768px: en un teléfono la placa del workspace se
+				    queda con el ancho y envuelve su nombre en vez de cortarlo. */}
+				{nav && <div className="hidden min-w-0 flex-1 items-center justify-center md:flex">{nav}</div>}
 				<div className="hidden items-center gap-2 md:flex">{actions}</div>
 				<button
 					type="button"
@@ -462,19 +464,19 @@ export function WorkspaceSwitch<T extends { id: string; name: string; slug: stri
 	return (
 		<div ref={box} className="relative min-w-0">
 			{single ? (
-				<span className="plate-block min-w-0 max-w-[14rem] px-2.5 py-1.5 text-[0.95rem] leading-none font-extrabold tracking-[-0.01em] lg:max-w-[20rem]">
-					<span className="truncate">{current.name}</span>
+				<span className="plate-block min-w-0 max-w-full px-2.5 py-1.5 text-[0.95rem] leading-[1.15] font-extrabold tracking-[-0.01em] sm:max-w-[14rem] sm:leading-none lg:max-w-[20rem]">
+					<span className="min-w-0 [overflow-wrap:anywhere] sm:truncate">{current.name}</span>
 				</span>
 			) : (
 				<button
 					ref={trigger}
 					type="button"
-					className="plate-block min-w-0 max-w-[14rem] px-2.5 py-1.5 text-[0.95rem] leading-none font-extrabold tracking-[-0.01em] lg:max-w-[20rem]"
+					className="plate-block min-w-0 max-w-full px-2.5 py-1.5 text-left text-[0.95rem] leading-[1.15] font-extrabold tracking-[-0.01em] sm:max-w-[14rem] sm:leading-none lg:max-w-[20rem]"
 					aria-haspopup="menu"
 					aria-expanded={open}
 					aria-label={`Switch workspace, currently ${current.name}`}
 					onClick={() => setOpen((v) => !v)}>
-					<span className="truncate">{current.name}</span>
+					<span className="min-w-0 [overflow-wrap:anywhere] sm:truncate">{current.name}</span>
 					<ChevronDown className={`size-4 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} aria-hidden="true" />
 				</button>
 			)}

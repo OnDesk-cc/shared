@@ -5,7 +5,7 @@
  * las clases del billete, y el CSS del mundo, que va sin capa, gana a cualquier
  * utilidad que una pantalla vieja ponga en `className`.
  *
- *   default      billete macizo (la acción primaria)
+ *   default      billete macizo con talón (la acción primaria)
  *   outline      billete de contorno (la secundaria)
  *   secondary    billete de contorno sobre la única tinta clara
  *   ghost        billete de contorno (el mundo no tiene botones sin forma)
@@ -28,7 +28,10 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "ticket--solid",
+        // La acción primaria es el billete macizo con su talón, como en el resto
+        // del mundo: un formulario, una página o el riel tienen una y se reconoce
+        // por la perforación.
+        default: "ticket--solid ticket--stub",
         destructive: "ticket--danger",
         outline: "",
         secondary: "bg-(--paper-2)",
