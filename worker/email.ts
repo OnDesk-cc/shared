@@ -192,7 +192,7 @@ function plateBlock(name: string, line: string | null): string {
 	const swatch = line
 		? `<td width="10" style="width:10px;font-size:1px;line-height:1px;">&nbsp;</td><td valign="middle"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td width="26" height="10" bgcolor="${line}" style="width:26px;height:10px;line-height:10px;font-size:10px;mso-line-height-rule:exactly;background:${line};">&nbsp;</td></tr></table></td>`
 		: "";
-	return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;"><tr><td bgcolor="${INK}" style="background:${INK};color:${PAPER};font-family:${FONT};font-size:18px;font-weight:800;letter-spacing:-0.02em;line-height:22px;padding:6px 11px 8px;">${escapeHtml(name)}</td>${swatch}</tr></table>`;
+	return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;"><tr><td class="ink-bg" bgcolor="${INK}" style="background:${INK};color:${PAPER};font-family:${FONT};font-size:18px;font-weight:800;letter-spacing:-0.02em;line-height:22px;padding:6px 11px 8px;">${escapeHtml(name)}</td>${swatch}</tr></table>`;
 }
 
 function heading(text: string): string {
@@ -211,7 +211,7 @@ function block(inner: string, top = 8): string {
 /** El billete: celda de tinta con borde de 3px, cuadrada, texto de papel en negrita. */
 function action(url: string, label: string): string {
 	return block(
-		`<table role="presentation" class="act" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" bgcolor="${INK}" style="background:${INK};border:3px solid ${INK};padding:14px 28px;font-family:${FONT};font-size:16px;line-height:20px;font-weight:700;"><a href="${escapeHtml(url)}" style="color:${PAPER};text-decoration:none;font-weight:700;display:inline-block;">${escapeHtml(label)}</a></td></tr></table>`,
+		`<table role="presentation" class="act" cellpadding="0" cellspacing="0" border="0"><tr><td class="ink-bg ink-border" align="center" bgcolor="${INK}" style="background:${INK};border:3px solid ${INK};mso-padding-alt:14px 28px;font-family:${FONT};font-size:16px;line-height:20px;font-weight:700;"><a class="ink-bg ink-fg" href="${escapeHtml(url)}" style="display:inline-block;padding:14px 28px;background:${INK};color:${PAPER};text-decoration:none;font-family:${FONT};font-size:16px;line-height:20px;font-weight:700;">${escapeHtml(label)}</a></td></tr></table>`,
 		8,
 	);
 }
@@ -264,6 +264,19 @@ function card(input: { title: string; preheader: string; plate: string; line: st
   body { margin: 0; padding: 0; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
   table { border-collapse: collapse; mso-table-lspace: 0; mso-table-rspace: 0; }
   a { color: ${INK}; }
+  /* Modo oscuro, en lo posible: papel, tinta y celdas de tinta se quedan como son. */
+  @media (prefers-color-scheme: dark) {
+    body, .paper { background: #ffffff !important; color: #111111 !important; }
+    .ink-text, .ink-text h1, .ink-text p { color: #111111 !important; }
+    .ink-bg { background: #111111 !important; color: #ffffff !important; }
+    .ink-fg { color: #ffffff !important; }
+    .ink-border { border-color: #111111 !important; }
+  }
+  [data-ogsb] body, [data-ogsb] .paper { background-color: #ffffff !important; }
+  [data-ogsb] .ink-bg { background-color: #111111 !important; }
+  [data-ogsc] .ink-text, [data-ogsc] .ink-text h1, [data-ogsc] .ink-text p { color: #111111 !important; }
+  [data-ogsc] .ink-bg, [data-ogsc] .ink-fg { color: #ffffff !important; }
+  [data-ogsc] .ink-border { border-color: #111111 !important; }
   @media only screen and (max-width: 599px) {
     .col { width: 100% !important; max-width: 100% !important; }
     .pad { padding-left: 20px !important; padding-right: 20px !important; }
@@ -272,19 +285,20 @@ function card(input: { title: string; preheader: string; plate: string; line: st
     .kcell { border-top: 1px solid ${RULE} !important; padding: 10px 0 0 !important; }
     .vcell { border-top: 0 !important; padding-top: 4px !important; }
     .act { width: 100% !important; }
+    .act a { display: block !important; }
   }
 </style>
 </head>
-<body bgcolor="${PAPER}" style="margin:0;padding:0;background:${PAPER};color:${INK};font-family:${FONT};">
+<body class="paper" bgcolor="${PAPER}" style="margin:0;padding:0;background:${PAPER};color:${INK};font-family:${FONT};">
 <div data-preheader style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">${escapeHtml(input.preheader)}${filler}</div>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${PAPER}" style="background:${PAPER};">
+<table role="presentation" class="paper" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${PAPER}" style="background:${PAPER};">
 <tr><td align="center" style="padding:0;">
-<table role="presentation" class="col" width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="${PAPER}" style="width:600px;max-width:600px;background:${PAPER};">
+<table role="presentation" class="col paper" width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="${PAPER}" style="width:600px;max-width:600px;background:${PAPER};">
 <tr><td>${band(4)}</td></tr>
 <tr><td class="pad" style="padding:24px 32px 0;">${plateBlock(input.plate, input.line)}</td></tr>
-<tr><td class="pad" style="padding:24px 32px 0;font-family:${FONT};color:${INK};">${input.content}</td></tr>
+<tr><td class="pad paper ink-text" style="padding:24px 32px 0;font-family:${FONT};color:${INK};">${input.content}</td></tr>
 <tr><td class="pad" style="padding:32px 32px 40px;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="border-top:1px solid ${RULE};padding:16px 0 0;font-family:${FONT};font-size:13px;line-height:1.5;color:${INK_2};">${input.footer}</td></tr></table>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="border-top:3px solid ${INK};padding:16px 0 0;font-family:${FONT};font-size:13px;line-height:1.5;color:${INK_2};">${input.footer}</td></tr></table>
 </td></tr>
 </table>
 </td></tr>
