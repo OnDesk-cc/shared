@@ -1,6 +1,6 @@
 ---
 name: OnDesk products
-description: Inside an app you ride one line. The six product apps (Pulse, Vault, Orbit, Nexus, Halo, Atlas) are the Network Map's route strip and ledger sheet extended to a product, with the app's own line lit in the six-line band and every stop mark drawn in its colour; the world's CSS and its primitives ship from @ondesk/shared.
+description: "Clear Sky since 2026-10-04 (see the note under the front matter and ondesk/DESIGN.md). Historical: Inside an app you ride one line. The six product apps (Pulse, Vault, Orbit, Nexus, Halo, Atlas) are the Network Map's route strip and ledger sheet extended to a product, with the app's own line lit in the six-line band and every stop mark drawn in its colour; the world's CSS and its primitives ship from @ondesk/shared."
 colors:
   paper: "#ffffff"
   paper-2: "#f3f3f1"
@@ -390,6 +390,13 @@ components:
   mobile-row-active:
     textColor: "{colors.ink}"
 ---
+> **2026-10-04: the six products are in Clear Sky.** The full system is documented in `ondesk/DESIGN.md`; the Network Map sections below are **historical** and no longer describe anything that renders (they still explain the structure the screens write, which `sky.css` reinterprets).
+>
+> - **Root:** `<html>` carries `site sk`; each app's `index.css` imports `styles/site.css` → `styles/sky.css` (a literal copy of `ondesk/src/sky.css`, whose consoles block repaints the map vocabulary) → `styles/product.css`, whose last block, «los productos en el cielo», holds what only products have: Radix panels (`menu-paper`, `tip-paper`, `sheet-paper`, `check-box`, `switch-track`, `progress-*`), tabs (`.page-rail` stays visible; pill tabs), the bar tickets (`--xs`, `--ghost`, `--secondary`, `--link`), the 16px rem root with 15px body, `--radius: 10px`, and the legacy fixes (1px-divider grids become loose cards, `border bg-card` becomes a card, small monospace and spaced uppercase labels speak in Geist, field widths keep their Tailwind `w-*`).
+> - **Frame:** `components/product-shell.tsx` → `ProductFrame` is the console's shape: a sidebar (the app tile and name, `WorkspaceSwitch`, an optional create action as a white pill, the app's destinations via `sideLinkClass` + `SideLinkBody`, the other five apps as tiles and the OnDesk console, Profile at the foot), a top bar that turns to glass (search, Nova, help, notifications, `AccountMenu` with the presence dot), a drawer on phones, and `bounded` for Nexus's conversation. `BareFrame` is the top bar alone, for the workspace selector and the outer 404.
+> - **Pieces:** `components/sky.tsx` (Mark, AppTile, APP_ICON), `components/console-kit.tsx` (= ondesk's `console.tsx`), `components/console.tsx` (PageHeader, StatTile as a white card, PanelHeader and EmptyState that take the card's padding), `ui/card.tsx` (white, 18px, shadow; shadcn's padding split so `py-0 gap-0` + `CardContent p-0` stays flush).
+> - **Rules kept:** light only; the app's colour lives only in its tile; elevation is shadow, never border and shadow; a state is a word.
+
 
 # Design System: OnDesk products
 

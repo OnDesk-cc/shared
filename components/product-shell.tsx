@@ -1,20 +1,23 @@
 /**
- * El marco de un producto en el mundo del mapa de red: las piezas de la franja
- * de ruta que son iguales en las seis apps y no saben nada del router ni de los
- * contextos de cada una. Cada app las cablea en su `shell/workspace-shell.tsx`
- * con sus propios `Link`, sus hooks y sus destinos.
+ * El marco de un producto en el mundo «Clear Sky» (2026-10-04): la forma de la
+ * consola de ondesk, para que pasar de la consola a una app, o de una app a
+ * otra, se sienta como quedarse en el mismo sitio.
  *
- * Dentro de una app se viaja en UNA línea. La franja lleva la placa de OnDesk,
- * el tramo de la línea de la app con su nombre y la placa del workspace; la
- * banda de seis líneas debajo enciende la de la app y apaga las otras cinco; el
- * riel de páginas es el segundo nivel de la franja, con la barra de la parada
- * actual en el color de la línea. Cambiar de app es cambiar de línea: al pasar
- * el ratón por otra app en el menú, su línea se enciende en la banda antes de
- * saltar.
+ * - A la izquierda, la barra lateral: la baldosa y el nombre de la app, el
+ *   selector de workspace, la acción que crea algo en esta app, sus destinos y,
+ *   debajo, las otras cinco apps con su baldosa y la consola de OnDesk. Fija
+ *   mientras la página se mueve; en un teléfono es un cajón.
+ * - Arriba, la barra: el buscador y las acciones (Nova, ayuda, avisos, la
+ *   cuenta). Se vuelve vidrio cuando la página se desplaza.
+ * - En el centro, la página sobre el suelo del cielo.
+ *
+ * Estas piezas no saben nada del router ni de los contextos de cada app: cada
+ * una las cablea en su `shell/workspace-shell.tsx` con sus `Link`, sus hooks y
+ * sus destinos. `<html>` ya lleva `site sk` (index.html de cada app).
  */
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { ArrowUpRight, ChevronDown, LayoutGrid, Menu, X } from "lucide-react";
-import { APP_NAME, APP_TAGLINE, PRODUCT_IDS, lineColor, type ProductId } from "../lib/lines";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { ArrowUpRight, Check, ChevronDown, Menu, X, type LucideIcon } from "lucide-react";
+import { APP_NAME, PRODUCT_IDS, type ProductId } from "../lib/lines";
 import { useDismiss } from "../hooks/map";
 import {
 	CHOOSABLE_STATUSES,
@@ -25,176 +28,361 @@ import {
 	type PresenceStatus,
 } from "../presence/status";
 import { PresenceRing } from "../presence/presence-dot";
-import { LineBand } from "./map";
 import { Monogram } from "./console-kit";
+import { AppTile, Mark } from "./sky";
 
-// ─── la franja ───────────────────────────────────────────────────────────────
+// ─── el marco ────────────────────────────────────────────────────────────────
 
-/**
- * La cabecera entera, pegada arriba: la fila de la franja, la banda con la línea
- * de la app encendida y el riel de páginas. `focus` es la línea encendida —
- * la de la app, salvo mientras el menú de apps previsualiza otra — y
- * `stopColor` pinta las marcas de parada de toda la página en ese color.
- */
-export function ProductStrip({
+export function ProductFrame({
 	app,
-	focus,
-	brand,
+	pathname,
+	home,
+	workspace,
+	create,
 	nav,
+	hrefFor,
+	consoleHref,
+	sidebarFooter,
+	search,
 	actions,
-	rail,
-	railAction,
-	menuOpen,
-	onMenuToggle,
-	mobile,
+	drawerExtra,
+	ondeskHref,
+	bounded = false,
+	children,
 }: {
 	app: ProductId;
-	focus?: ProductId | null;
-	/** La placa de OnDesk, el tramo de la app y la placa del workspace. */
-	brand: ReactNode;
-	/** Enlaces de la franja a la derecha de la marca (opcional). */
-	nav?: ReactNode;
-	/** Los billetes de la derecha: buscar, apps, Nova, ayuda, avisos, cuenta. */
+	/** La ruta actual: el cajón del teléfono se cierra solo al navegar. */
+	pathname: string;
+	/** El enlace a la portada de la app, con el `Link` del router de cada una. */
+	home: (content: ReactNode, className: string) => ReactNode;
+	/** El selector de workspace (`WorkspaceSwitch`). */
+	workspace: ReactNode;
+	/** La acción que crea algo en esta app («New channel»), bajo el selector. */
+	create?: ReactNode;
+	/** Los destinos, con `sideLinkClass` y `SideLinkBody`. */
+	nav: ReactNode;
+	/** La URL de una app para el workspace actual: `${origin}/w/${slug}`. */
+	hrefFor: (id: ProductId) => string;
+	consoleHref: string;
+	/** Lo que va al pie de la barra lateral (el perfil). */
+	sidebarFooter?: ReactNode;
+	/** El buscador de la barra superior (desde 768px). */
+	search?: ReactNode;
+	/** Las acciones de la derecha de la barra superior. */
 	actions: ReactNode;
-	/** Los destinos del riel (`<a>` o `Link` con `aria-current`). */
-	rail: ReactNode;
-	/** La acción que crea algo en esta app, al final del riel. */
-	railAction?: ReactNode;
-	menuOpen: boolean;
-	onMenuToggle: () => void;
-	/** El panel del teléfono, ya compuesto por la app. */
-	mobile: ReactNode;
+	/** Lo que el cajón del teléfono añade bajo la barra lateral (el estado). */
+	drawerExtra?: ReactNode;
+	/** El origen de ondesk.cc, para Status y Legal. */
+	ondeskHref: string;
+	/** La página acota su columna al viewport y gestiona su propio scroll (una conversación). */
+	bounded?: boolean;
+	children: ReactNode;
 }) {
+	const [scrolled, setScrolled] = useState(false);
+	const sentinel = useRef<HTMLDivElement>(null);
+	// El cajón recuerda en qué página se abrió: al navegar queda cerrado solo.
+	const [drawerAt, setDrawerAt] = useState<string | null>(null);
+	const drawerOpen = drawerAt === pathname;
+
+	useEffect(() => {
+		const el = sentinel.current;
+		if (!el) return;
+		const io = new IntersectionObserver(([entry]) => setScrolled(!entry.isIntersecting));
+		io.observe(el);
+		return () => io.disconnect();
+	}, []);
+
+	useEffect(() => {
+		if (!drawerOpen) return;
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key === "Escape") setDrawerAt(null);
+		};
+		const previous = document.body.style.overflow;
+		document.body.style.overflow = "hidden";
+		document.addEventListener("keydown", onKey);
+		return () => {
+			document.body.style.overflow = previous;
+			document.removeEventListener("keydown", onKey);
+		};
+	}, [drawerOpen]);
+
+	const brand = (size: "sm" | "md") =>
+		home(
+			<>
+				<AppTile id={app} size={size === "md" ? "sm" : "xs"} />
+				{APP_NAME[app]}
+			</>,
+			`inline-flex items-center gap-2.5 font-semibold tracking-[-0.03em] text-(--sk-ink) no-underline ${size === "md" ? "text-[1.0625rem]" : "text-[1rem]"}`,
+		);
+
+	const sidebar = (
+		<>
+			<div className="mb-4 px-2">{brand("md")}</div>
+			{workspace}
+			{create && <div className="mt-3 [&>*]:w-full">{create}</div>}
+			<nav aria-label={APP_NAME[app]} className="mt-4 flex flex-col gap-0.5">
+				{nav}
+			</nav>
+			<SidebarApps current={app} hrefFor={hrefFor} consoleHref={consoleHref} />
+			{sidebarFooter && <div className="mt-auto flex flex-col gap-0.5 pt-6">{sidebarFooter}</div>}
+		</>
+	);
+
 	return (
-		<header className="strip" style={{ "--stop-color": lineColor(app) } as CSSProperties}>
-			<div className="wrap flex h-16 items-center justify-between gap-4">
-				<div className="flex h-full min-w-0 flex-1 items-center gap-4 md:flex-none md:gap-5">{brand}</div>
-				{/* El buscador sólo desde 768px: en un teléfono la placa del workspace se
-				    queda con el ancho y envuelve su nombre en vez de cortarlo. */}
-				{nav && <div className="hidden min-w-0 flex-1 items-center justify-center md:flex">{nav}</div>}
-				<div className="hidden items-center gap-2 md:flex">{actions}</div>
-				<button
-					type="button"
-					className="-mr-2 border-[length:var(--stroke)] border-transparent p-2 transition-colors hover:border-(--ink) md:hidden"
-					onClick={onMenuToggle}
-					aria-expanded={menuOpen}
-					aria-label={menuOpen ? "Close the menu" : "Open the menu"}>
-					{menuOpen ? <X className="size-5" aria-hidden="true" /> : <Menu className="size-5" aria-hidden="true" />}
-				</button>
+		<div className={`relative min-h-dvh lg:grid lg:grid-cols-[16rem_minmax(0,1fr)] ${bounded ? "h-dvh overflow-hidden" : ""}`}>
+			<div ref={sentinel} className="pointer-events-none absolute inset-x-0 top-0 h-2" aria-hidden="true" />
+
+			{/* ── la barra lateral ── */}
+			<aside className="sticky top-0 hidden h-dvh flex-col overflow-y-auto bg-[#eef3f9] px-3 pb-4 pt-4 lg:flex">{sidebar}</aside>
+
+			<div className={`flex min-w-0 flex-col ${bounded ? "h-dvh min-h-0" : "min-h-dvh"}`}>
+				{/* ── la barra superior ── */}
+				<header className="sk-header sticky top-0 z-40 shrink-0" data-scrolled={scrolled || drawerOpen || bounded}>
+					<div className="flex h-16 items-center gap-3 px-4 sm:px-6 lg:px-8">
+						<span className="-ml-2 lg:hidden">
+							<button
+								type="button"
+								className="sk-navlink size-10! justify-center p-0!"
+								onClick={() => setDrawerAt(drawerOpen ? null : pathname)}
+								aria-expanded={drawerOpen}
+								aria-label={drawerOpen ? "Close the menu" : "Open the menu"}>
+								{drawerOpen ? <X className="size-5" strokeWidth={1.75} /> : <Menu className="size-5" strokeWidth={1.75} />}
+							</button>
+						</span>
+						<span className="lg:hidden">{brand("sm")}</span>
+
+						{/* El buscador sólo desde 768px: en un teléfono la marca se queda con el ancho. */}
+						{search && (
+							<span className="hidden min-w-0 max-w-md flex-1 md:block">
+								<span className="block">{search}</span>
+							</span>
+						)}
+
+						<div className="ml-auto flex items-center gap-1.5">{actions}</div>
+					</div>
+				</header>
+
+				{/* ── la página ── */}
+				{bounded ? (
+					<main className="relative flex min-h-0 flex-1 flex-col overflow-hidden px-4 pb-4 pt-2 sm:px-6 lg:px-8">{children}</main>
+				) : (
+					<>
+						<main className="relative flex-1 px-4 pb-20 pt-4 sm:px-6 lg:px-8 lg:pt-6">
+							<div className="mx-auto w-full max-w-[80rem]">{children}</div>
+						</main>
+						<footer className="px-4 pb-6 sm:px-6 lg:px-8">
+							<div className="mx-auto flex w-full max-w-[80rem] flex-wrap items-center justify-between gap-3 border-t border-(--sk-hair) pt-5">
+								<span className="sk-small">
+									© {new Date().getFullYear()} OnDesk {APP_NAME[app]}. Northstar Platforms LLC
+								</span>
+								<span className="flex gap-4">
+									<a href={`${ondeskHref}/status`} className="sk-small no-underline hover:text-(--sk-ink)">
+										Status
+									</a>
+									<a href={`${ondeskHref}/help`} className="sk-small no-underline hover:text-(--sk-ink)">
+										Help
+									</a>
+									<a href={`${ondeskHref}/legal`} className="sk-small no-underline hover:text-(--sk-ink)">
+										Legal
+									</a>
+								</span>
+							</div>
+						</footer>
+					</>
+				)}
 			</div>
-			<LineBand focus={focus === undefined ? app : focus} />
-			<div className="rail-row border-b border-(--rule)">
-				<div className="wrap flex items-center gap-4">
-					<nav className="page-rail min-w-0 flex-1" aria-label="Pages" style={{ borderBottom: 0 }}>
-						{rail}
-					</nav>
-					{railAction && <div className="hidden shrink-0 items-center gap-2 py-1 sm:flex">{railAction}</div>}
-				</div>
-			</div>
-			{menuOpen && (
-				<div className="arrive fixed inset-x-0 top-[calc(4rem+1.5rem)] bottom-0 z-50 overflow-y-auto bg-(--paper) md:hidden">
-					<div className="wrap py-4">{mobile}</div>
+
+			{/* ── el cajón del teléfono: la misma barra lateral ── */}
+			{drawerOpen && (
+				<div className="fixed inset-0 z-50 lg:hidden">
+					<button
+						type="button"
+						aria-label="Close the menu"
+						className="absolute inset-0 bg-[rgba(14,27,46,0.35)] backdrop-blur-[2px]"
+						onClick={() => setDrawerAt(null)}
+					/>
+					<aside className="sk-sheet absolute inset-y-0 left-0 flex w-[min(20rem,86vw)] flex-col overflow-y-auto bg-[#eef3f9] px-3 pb-4 pt-4 shadow-(--sk-shadow-3)">
+						{sidebar}
+						{drawerExtra && <div className="mt-4 border-t border-(--sk-hair) px-2 pt-4">{drawerExtra}</div>}
+					</aside>
 				</div>
 			)}
-		</header>
+		</div>
 	);
 }
 
-/** La marca de la franja: la placa de OnDesk y, tras ella, el tramo de la línea de la app con su nombre. */
-export function StripBrand({ app, homeHref, children }: { app: ProductId; homeHref: string; children?: ReactNode }) {
+/**
+ * El marco de las pantallas de una app que aún no están en un workspace (el
+ * selector, el 404 de fuera): la barra superior con la baldosa de la app y lo
+ * que haga falta a la derecha, sin barra lateral, como el selector de la
+ * consola de ondesk. Una barra de un workspace que todavía no se ha elegido
+ * sería una promesa vacía.
+ */
+export function BareFrame({
+	app,
+	homeHref,
+	right,
+	ondeskHref,
+	children,
+}: {
+	app: ProductId;
+	homeHref: string;
+	right?: ReactNode;
+	ondeskHref: string;
+	children: ReactNode;
+}) {
+	return (
+		<div className="flex min-h-dvh flex-col">
+			<header className="sk-header sticky top-0 z-40">
+				<div className="mx-auto flex h-16 w-full max-w-[72rem] items-center gap-3 px-4 sm:px-6">
+					<a href={homeHref} className="inline-flex items-center gap-2.5 text-[1.0625rem] font-semibold tracking-[-0.03em] text-(--sk-ink) no-underline">
+						<AppTile id={app} size="sm" />
+						{APP_NAME[app]}
+					</a>
+					<div className="ml-auto flex items-center gap-2">{right}</div>
+				</div>
+			</header>
+			<main className="flex-1 px-4 pb-20 pt-8 sm:px-6 md:pt-14">
+				<div className="mx-auto w-full max-w-[72rem]">{children}</div>
+			</main>
+			<footer className="px-4 pb-6 sm:px-6">
+				<div className="mx-auto flex w-full max-w-[72rem] flex-wrap items-center justify-between gap-3 border-t border-(--sk-hair) pt-5">
+					<span className="sk-small">
+						© {new Date().getFullYear()} OnDesk {APP_NAME[app]}. Northstar Platforms LLC
+					</span>
+					<span className="flex gap-4">
+						<a href={`${ondeskHref}/status`} className="sk-small no-underline hover:text-(--sk-ink)">
+							Status
+						</a>
+						<a href={`${ondeskHref}/legal`} className="sk-small no-underline hover:text-(--sk-ink)">
+							Legal
+						</a>
+					</span>
+				</div>
+			</footer>
+		</div>
+	);
+}
+
+// ─── los destinos ────────────────────────────────────────────────────────────
+
+/** Las clases de un destino de la barra lateral, para el `Link` del router de cada app. */
+export function sideLinkClass(active: boolean): string {
+	return `flex h-9 items-center gap-3 rounded-[10px] px-3 text-[0.875rem] no-underline transition-colors duration-150 ${
+		active ? "bg-white font-medium text-(--sk-ink) shadow-(--sk-shadow-1)" : "text-(--sk-ink-2) hover:bg-white/60 hover:text-(--sk-ink)"
+	}`;
+}
+
+/** Lo de dentro de un destino: el icono y la palabra, y un estado si lo hay («3 unread»). */
+export function SideLinkBody({ icon: Icon, active, badge, children }: { icon: LucideIcon; active: boolean; badge?: ReactNode; children: ReactNode }) {
 	return (
 		<>
-			<a href={homeHref} className="plate shrink-0 px-2.5 py-1.5 text-[1.15rem] leading-none font-extrabold tracking-[-0.02em]">
-				OnDesk
-			</a>
-			{/* El tramo de la línea siempre; el nombre desde 640px, donde cabe junto a la placa del workspace. */}
-			<span className="inline-flex shrink-0 items-center gap-2.5" aria-label={APP_NAME[app]}>
-				<span className="swatch" style={{ "--swatch": lineColor(app), width: "1.6rem" } as CSSProperties} aria-hidden="true" />
-				<span className="hidden text-[1.05rem] leading-none font-extrabold tracking-[-0.02em] sm:inline">{APP_NAME[app]}</span>
-			</span>
-			{children}
+			<Icon className={`size-4 shrink-0 ${active ? "text-(--sk-ink)" : "text-(--sk-ink-3)"}`} strokeWidth={1.75} aria-hidden="true" />
+			<span className="min-w-0 flex-1 truncate">{children}</span>
+			{badge}
 		</>
 	);
 }
 
-/** Un enlace de la franja: negrita, tinta secundaria, tinta y barra de 3px cuando es el actual. */
-export function StripLink({ active, children, ...rest }: { active?: boolean; children: ReactNode } & React.AnchorHTMLAttributes<HTMLAnchorElement>) {
+/** Las otras cinco apps, con su baldosa, y la consola de OnDesk al final. */
+function SidebarApps({ current, hrefFor, consoleHref }: { current: ProductId; hrefFor: (id: ProductId) => string; consoleHref: string }) {
+	const row =
+		"flex h-9 items-center gap-3 rounded-[10px] px-3 text-[0.875rem] text-(--sk-ink-2) no-underline transition-colors duration-150 hover:bg-white/60 hover:text-(--sk-ink)";
 	return (
-		<a
-			{...rest}
-			aria-current={active ? "page" : undefined}
-			className={`relative inline-flex h-full items-center px-3 text-[0.95rem] font-bold transition-colors ${
-				active ? "text-(--ink)" : "text-(--ink-2) hover:text-(--ink)"
-			}`}>
-			{children}
-			{active && <span className="absolute inset-x-3 bottom-0 h-[3px] bg-(--ink)" aria-hidden="true" />}
-		</a>
+		<div className="mt-6">
+			<p className="sk-small px-3 pb-1.5 font-medium">Apps</p>
+			<ul className="flex flex-col gap-0.5">
+				{PRODUCT_IDS.filter((id) => id !== current).map((id) => (
+					<li key={id}>
+						<a href={hrefFor(id)} className={row}>
+							<AppTile id={id} size="xs" />
+							{APP_NAME[id]}
+						</a>
+					</li>
+				))}
+				<li>
+					<a href={consoleHref} className={row}>
+						<Mark className="size-5" />
+						<span className="min-w-0 flex-1 truncate">OnDesk console</span>
+						<ArrowUpRight className="size-3.5 text-(--sk-ink-3)" strokeWidth={1.75} aria-hidden="true" />
+					</a>
+				</li>
+			</ul>
+		</div>
 	);
 }
 
-// ─── el menú de apps ─────────────────────────────────────────────────────────
+// ─── el workspace ────────────────────────────────────────────────────────────
 
 /**
- * Cambiar de línea: las otras cinco apps como filas de una clave de mapa (el
- * tramo de su línea, el nombre, la frase) y, al final, la consola de OnDesk. Al
- * pasar el ratón por una fila avisa a la franja para que encienda esa línea en
- * la banda; al salir, la banda vuelve a la línea de la app.
+ * El selector de workspace de la barra lateral: una tarjeta con la cara y el
+ * nombre del actual. Con un solo workspace es una tarjeta quieta; con varios,
+ * abre un menú que marca el actual y acaba en la consola de OnDesk, donde se
+ * crean y se administran.
  */
-export function AppsMenu({
+export function WorkspaceSwitch<T extends { id: string; name: string; slug: string; logo_url?: string | null }>({
 	current,
-	hrefFor,
+	all,
+	onChoose,
 	consoleHref,
-	onPreview,
 }: {
-	current: ProductId;
-	/** La URL de una app para el workspace actual: `${origin}/w/${slug}`. */
-	hrefFor: (id: ProductId) => string;
+	current: T;
+	all: T[];
+	onChoose: (workspace: T) => void;
 	consoleHref: string;
-	onPreview?: (id: ProductId | null) => void;
 }) {
 	const [open, setOpen] = useState(false);
 	const box = useRef<HTMLDivElement>(null);
 	const trigger = useRef<HTMLButtonElement>(null);
 	useDismiss(open, box, trigger, () => setOpen(false));
-	useEffect(() => {
-		if (!open) onPreview?.(null);
-	}, [open, onPreview]);
+	const single = all.length <= 1;
+	const card = "flex w-full items-center gap-2.5 rounded-[12px] bg-white px-2.5 py-2 text-left shadow-(--sk-shadow-1)";
+	const face = <Monogram name={current.name} logoUrl={current.logo_url} size="xs" />;
+
+	if (single) {
+		return (
+			<div className={card}>
+				{face}
+				<span className="min-w-0 flex-1 truncate text-[0.875rem] font-medium text-(--sk-ink)">{current.name}</span>
+			</div>
+		);
+	}
 
 	return (
 		<div ref={box} className="relative">
 			<button
 				ref={trigger}
 				type="button"
-				className="ticket ticket--sm gap-2"
-				aria-label="Switch app"
+				className={`${card} transition-shadow hover:shadow-(--sk-shadow-2)`}
 				aria-haspopup="menu"
 				aria-expanded={open}
+				aria-label={`Switch workspace, currently ${current.name}`}
 				onClick={() => setOpen((v) => !v)}>
-				<LayoutGrid className="size-4" aria-hidden="true" />
-				<span className="hidden lg:inline">Apps</span>
+				{face}
+				<span className="min-w-0 flex-1 truncate text-[0.875rem] font-medium text-(--sk-ink)">{current.name}</span>
+				<ChevronDown className={`size-4 shrink-0 text-(--sk-ink-3) transition-transform duration-200 ${open ? "rotate-180" : ""}`} strokeWidth={1.75} aria-hidden="true" />
 			</button>
 			{open && (
-				<div role="menu" aria-label="Switch app" className="menu-panel top-full right-0 mt-2 w-80" onMouseLeave={() => onPreview?.(null)}>
-					<p className="t-tab px-4 pt-3 pb-1.5 text-(--ink-2)">Change line</p>
-					{PRODUCT_IDS.filter((id) => id !== current).map((id) => (
-						<a
-							key={id}
+				<div role="menu" aria-label="Workspaces" className="menu-panel left-0 right-0 top-full z-50 mt-2">
+					{all.map((workspace) => (
+						<button
+							key={workspace.id}
+							type="button"
 							role="menuitem"
-							href={hrefFor(id)}
-							onMouseEnter={() => onPreview?.(id)}
-							onFocus={() => onPreview?.(id)}
-							className="!items-start">
-							<span className="swatch mt-[0.45rem]" style={{ "--swatch": lineColor(id), width: "1.25rem" } as CSSProperties} aria-hidden="true" />
-							<span className="min-w-0 flex-1">
-								<span className="block">{APP_NAME[id]}</span>
-								<span className="block text-[0.85rem] leading-snug font-normal text-(--ink-2)">{APP_TAGLINE[id]}</span>
-							</span>
-						</a>
+							aria-current={workspace.id === current.id ? "true" : undefined}
+							onClick={() => {
+								setOpen(false);
+								if (workspace.id !== current.id) onChoose(workspace);
+							}}>
+							<Monogram name={workspace.name} logoUrl={workspace.logo_url} size="xs" />
+							<span className="min-w-0 flex-1 truncate">{workspace.name}</span>
+							{workspace.id === current.id && <Check className="size-4 shrink-0 text-(--sk-accent)" strokeWidth={2} aria-hidden="true" />}
+						</button>
 					))}
-					<div className="rule-thin" />
+					<div className="mx-2 my-1 border-t border-(--sk-hair)" />
 					<a role="menuitem" href={consoleHref}>
-						OnDesk console
-						<ArrowUpRight className="ml-auto size-4 text-(--ink-2)" aria-hidden="true" />
+						Manage in the console
+						<ArrowUpRight className="ml-auto size-3.5 text-(--sk-ink-3)" strokeWidth={1.75} aria-hidden="true" />
 					</a>
 				</div>
 			)}
@@ -205,11 +393,11 @@ export function AppsMenu({
 // ─── la cuenta ───────────────────────────────────────────────────────────────
 
 /**
- * El billete de cuenta: la cara y el nombre de quien ha entrado, con su estado
- * en un anillo, que abre un panel de papel con el selector de estado, los
- * destinos que la app quiera (Profile, Security en OnDesk…) y la salida. El
- * anillo muestra la ELECCIÓN, no el resultado: una persona invisible tiene
- * derecho a ver que es invisible, que es justo lo que nadie más ve.
+ * El menú de cuenta: la cara de quien ha entrado con su estado, que abre un
+ * menú de vidrio con el selector de estado, los destinos que la app quiera
+ * (Profile, Security en OnDesk…) y la salida. El punto muestra la ELECCIÓN, no
+ * el resultado: una persona invisible tiene derecho a ver que es invisible,
+ * que es justo lo que nadie más ve.
  */
 export function AccountMenu({
 	name,
@@ -244,36 +432,41 @@ export function AccountMenu({
 			<button
 				ref={trigger}
 				type="button"
-				className="ticket ticket--sm max-w-[16rem] gap-2.5"
+				className="flex items-center gap-2 rounded-full p-1 pr-2.5 transition-colors hover:bg-[rgba(14,27,46,0.05)]"
 				onClick={() => setOpen((v) => !v)}
 				aria-expanded={open}
-				aria-haspopup="menu">
-				<PresenceRing status={chosen} />
-				<span className="hidden truncate lg:inline">{name}</span>
-				<ChevronDown className={`size-3.5 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} aria-hidden="true" />
+				aria-haspopup="menu"
+				aria-label={`Your account, ${name}`}>
+				<span className="relative">
+					<Monogram name={name} logoUrl={logoUrl} size="sm" />
+					{/* el punto de estado, pequeño en la esquina de la cara */}
+					<span className="absolute -bottom-0.5 -right-0.5 flex size-3.5 items-center justify-center rounded-full bg-white">
+						<span
+							className={`block size-2 rounded-full ${chosen === "online" ? "bg-(--sk-ink)" : chosen === "busy" ? "bg-(--sk-ink-2)" : "bg-white ring-[1.5px] ring-[#9aa8ba]"}`}
+							title={STATUS_META[chosen].label}
+						/>
+					</span>
+				</span>
+				<ChevronDown className={`size-3.5 shrink-0 text-(--sk-ink-3) transition-transform duration-200 ${open ? "rotate-180" : ""}`} strokeWidth={1.75} aria-hidden="true" />
 			</button>
 			{open && (
-				<div role="menu" aria-label="Your account" className="menu-panel top-full right-0 mt-2 w-80">
-					<div className="flex items-center gap-3 border-b border-(--rule) px-4 py-3">
+				<div role="menu" aria-label="Your account" className="menu-panel right-0 top-full mt-2 w-80">
+					<div className="flex items-center gap-3 px-3 pb-3 pt-2">
 						<Monogram name={name} logoUrl={logoUrl} size="sm" />
 						<div className="min-w-0">
-							<p className="truncate font-bold">{name}</p>
-							<p className="t-cond truncate text-[0.9rem] text-(--ink-2)">{email}</p>
+							<p className="truncate font-medium text-(--sk-ink)">{name}</p>
+							<p className="sk-small truncate">{email}</p>
 						</div>
 					</div>
-					<div className="px-4 pt-3 pb-2">
+					<div className="border-t border-(--sk-hair) px-3 pb-2 pt-3">
 						<PresenceChoices presence={presence} onChoose={onChooseStatus} disabled={choosing} />
 					</div>
-					{links && (
-						<>
-							<div className="rule-thin" />
-							<div onClick={() => setOpen(false)}>{links}</div>
-						</>
-					)}
-					<div className="rule-thin" />
-					<button type="button" role="menuitem" disabled={signingOut} onClick={onSignOut}>
-						{signingOut ? "Signing out…" : "Sign out"}
-					</button>
+					<div className="mt-1 border-t border-(--sk-hair) pt-1">
+						{links && <div onClick={() => setOpen(false)}>{links}</div>}
+						<button type="button" role="menuitem" disabled={signingOut} onClick={onSignOut}>
+							{signingOut ? "Signing out…" : "Sign out"}
+						</button>
+					</div>
 				</div>
 			)}
 		</div>
@@ -281,7 +474,7 @@ export function AccountMenu({
 }
 
 /**
- * El selector de estado: los cuatro que se eligen, cada uno un anillo y su
+ * El selector de estado: los cuatro que se eligen, cada uno con su anillo y su
  * palabra, y debajo la CONSECUENCIA («Everyone sees you as offline»), porque
  * que la elección y lo que ven los demás no coincidan sin explicación es como
  * alguien acaba preguntándose por qué nadie le ha escrito en toda la tarde.
@@ -300,8 +493,8 @@ export function PresenceChoices({
 
 	return (
 		<div role="radiogroup" aria-label="Your status">
-			<p className="t-tab mb-1.5 text-(--ink-2)">Your status</p>
-			<ul className="flex flex-col">
+			<p className="sk-small mb-1.5 font-medium">Your status</p>
+			<ul className="flex flex-col gap-0.5">
 				{CHOOSABLE_STATUSES.map((status) => {
 					const option = STATUS_META[status];
 					const on = status === chosen;
@@ -313,198 +506,30 @@ export function PresenceChoices({
 								aria-checked={on}
 								disabled={disabled}
 								onClick={() => onChoose(status)}
-								className={`-mx-2 flex w-[calc(100%+1rem)] items-start gap-3 px-2 py-1.5 text-left transition-colors hover:bg-(--paper-2) disabled:opacity-45 ${
-									on ? "bg-(--paper-2)" : ""
+								className={`-mx-2 flex w-[calc(100%+1rem)] items-start gap-3 rounded-[10px] px-2 py-1.5 text-left transition-colors hover:bg-[rgba(14,27,46,0.05)] disabled:opacity-50 ${
+									on ? "bg-(--sk-ground)" : ""
 								}`}>
 								<span className="mt-1">
 									<PresenceRing status={status} />
 								</span>
 								<span className="min-w-0 flex-1">
-									<span className="block font-bold">{option.label}</span>
-									<span className="block text-[0.85rem] leading-snug text-(--ink-2)">{option.description}</span>
+									<span className="block text-[0.875rem] font-medium text-(--sk-ink)">{option.label}</span>
+									<span className="sk-small block leading-snug">{option.description}</span>
 								</span>
 							</button>
 						</li>
 					);
 				})}
 			</ul>
-			<p className="mt-2 text-[0.85rem] leading-snug text-(--ink-2)" aria-live="polite">
+			<p className="sk-small mt-2 leading-snug" aria-live="polite">
 				{chosen === "invisible"
 					? "Everyone sees you as offline, in every OnDesk product."
 					: presence?.activity
-						? `You're in a meeting — everyone sees you as ${presenceLabel({ status: "busy", activity: presence.activity })} until you leave, then ${meta.label} again.`
+						? `You're in a meeting. Everyone sees you as ${presenceLabel({ status: "busy", activity: presence.activity })} until you leave, then ${meta.label} again.`
 						: presence?.effective === "offline"
 							? (lastSeenSentence(presence.last_seen_at) ?? "Nobody has seen you online yet.")
 							: "Visible in every OnDesk product."}
 			</p>
-		</div>
-	);
-}
-
-// ─── el panel del teléfono ───────────────────────────────────────────────────
-
-/** La cabecera del panel del teléfono: la cara, el nombre y el correo de quien ha entrado. */
-export function MobileIdentity({ name, email, logoUrl }: { name: string; email: string; logoUrl?: string | null }) {
-	return (
-		<div className="flex items-center gap-3 border-b border-(--rule) pb-4">
-			<Monogram name={name} logoUrl={logoUrl} size="sm" />
-			<div className="min-w-0">
-				<p className="truncate font-bold">{name}</p>
-				<p className="t-cond truncate text-[0.9rem] text-(--ink-2)">{email}</p>
-			</div>
-		</div>
-	);
-}
-
-/** Una fila del panel del teléfono, con la flecha del mapa. */
-export function MobileRow({ active, children, ...rest }: { active?: boolean; children: ReactNode } & React.AnchorHTMLAttributes<HTMLAnchorElement>) {
-	return (
-		<a
-			{...rest}
-			className={`flex items-center justify-between border-b border-(--rule-2) py-3 font-bold ${active ? "text-(--ink)" : "text-(--ink-2)"}`}>
-			{children}
-			<ArrowUpRight className="size-4" aria-hidden="true" />
-		</a>
-	);
-}
-
-/** Las otras apps en el panel del teléfono: la clave del mapa, una fila por línea. */
-export function MobileApps({ current, hrefFor }: { current: ProductId; hrefFor: (id: ProductId) => string }) {
-	return (
-		<ul>
-			{PRODUCT_IDS.filter((id) => id !== current).map((id) => (
-				<li key={id}>
-					<a href={hrefFor(id)} className="flex items-center gap-3 border-b border-(--rule-2) py-3 font-bold text-(--ink-2)">
-						<span className="swatch" style={{ "--swatch": lineColor(id) } as CSSProperties} aria-hidden="true" />
-						{APP_NAME[id]}
-						<span className="ml-auto text-[0.85rem] font-normal">{APP_TAGLINE[id]}</span>
-					</a>
-				</li>
-			))}
-		</ul>
-	);
-}
-
-// ─── el tablero ──────────────────────────────────────────────────────────────
-
-/** El tablero de información que cierra cada página: la placa, una frase, los destinos y la línea de derechos. */
-export function Board({
-	app,
-	homeHref,
-	links,
-	tagline = "One account, one team list, and one invoice per app.",
-}: {
-	app: ProductId;
-	homeHref: string;
-	/** `<a>` o `Link` de 0.95rem; el tablero les pone el color. */
-	links: ReactNode;
-	tagline?: string;
-}) {
-	return (
-		<footer className="board">
-			<div className="wrap flex flex-col gap-6 py-10 md:flex-row md:items-center md:justify-between">
-				<div className="flex flex-wrap items-center gap-4">
-					<a
-						href={homeHref}
-						className="inline-block bg-(--paper) px-2.5 py-1.5 text-[1.15rem] leading-none font-extrabold tracking-[-0.02em] text-(--ink)">
-						OnDesk
-					</a>
-					<span className="inline-flex items-center gap-2.5 text-[1.05rem] font-extrabold tracking-[-0.02em]">
-						<span className="swatch" style={{ "--swatch": lineColor(app), width: "1.6rem" } as CSSProperties} aria-hidden="true" />
-						{APP_NAME[app]}
-					</span>
-					<p className="t-body max-w-md text-[0.95rem]">{tagline}</p>
-				</div>
-				<ul className="board-links flex flex-wrap gap-x-6 gap-y-2 text-[0.95rem]">{links}</ul>
-			</div>
-			<div className="border-t-[length:var(--stroke)] border-white">
-				<div className="wrap flex flex-col items-center justify-between gap-2 py-4 text-[0.9rem] text-white/70 sm:flex-row">
-					<span>© {new Date().getFullYear()} OnDesk</span>
-					<span className="t-cond">Northstar Platforms LLC</span>
-				</div>
-			</div>
-		</footer>
-	);
-}
-
-/** Las clases de una fila del panel del teléfono, para los `Link` del router de cada app. */
-export function mobileRowClass(active: boolean): string {
-	return `flex items-center justify-between border-b border-(--rule-2) py-3 font-bold ${active ? "text-(--ink)" : "text-(--ink-2)"}`;
-}
-
-/** Las clases de un destino del riel, para los `Link` del router de cada app (el riel las viste por `a`). */
-export const RAIL_LINK_CLASS = "";
-
-// ─── el workspace en la franja ───────────────────────────────────────────────
-
-/**
- * La placa del workspace en la franja, que es también el selector: el workspace
- * es el tema de todo lo que hay debajo, no un filtro sobre ello. Con un solo
- * workspace es una placa quieta; con varios, un botón que abre un panel de
- * papel con un anillo relleno en el actual y, al final, la consola de OnDesk,
- * donde se crean y se administran.
- */
-export function WorkspaceSwitch<T extends { id: string; name: string; slug: string }>({
-	current,
-	all,
-	onChoose,
-	consoleHref,
-}: {
-	current: T;
-	all: T[];
-	onChoose: (workspace: T) => void;
-	consoleHref: string;
-}) {
-	const [open, setOpen] = useState(false);
-	const box = useRef<HTMLDivElement>(null);
-	const trigger = useRef<HTMLButtonElement>(null);
-	useDismiss(open, box, trigger, () => setOpen(false));
-	const single = all.length <= 1;
-
-	return (
-		<div ref={box} className="relative min-w-0">
-			{single ? (
-				<span className="plate-block min-w-0 max-w-full px-2.5 py-1.5 text-[0.95rem] leading-[1.15] font-extrabold tracking-[-0.01em] sm:max-w-[14rem] sm:leading-none lg:max-w-[20rem]">
-					<span className="min-w-0 [overflow-wrap:anywhere] sm:truncate">{current.name}</span>
-				</span>
-			) : (
-				<button
-					ref={trigger}
-					type="button"
-					className="plate-block min-w-0 max-w-full px-2.5 py-1.5 text-left text-[0.95rem] leading-[1.15] font-extrabold tracking-[-0.01em] sm:max-w-[14rem] sm:leading-none lg:max-w-[20rem]"
-					aria-haspopup="menu"
-					aria-expanded={open}
-					aria-label={`Switch workspace, currently ${current.name}`}
-					onClick={() => setOpen((v) => !v)}>
-					<span className="min-w-0 [overflow-wrap:anywhere] sm:truncate">{current.name}</span>
-					<ChevronDown className={`size-4 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} aria-hidden="true" />
-				</button>
-			)}
-			{open && (
-				<div role="menu" aria-label="Workspaces" className="menu-panel top-full left-0 mt-2 w-80 max-w-[calc(100vw-2rem)]">
-					<p className="t-tab px-4 pt-3 pb-1.5 text-(--ink-2)">Workspaces</p>
-					{all.map((workspace) => (
-						<button
-							key={workspace.id}
-							type="button"
-							role="menuitem"
-							aria-current={workspace.id === current.id ? "true" : undefined}
-							onClick={() => {
-								setOpen(false);
-								if (workspace.id !== current.id) onChoose(workspace);
-							}}>
-							<span className={`ring ${workspace.id === current.id ? "ring--filled" : ""}`} aria-hidden="true" />
-							<span className="min-w-0 flex-1 truncate">{workspace.name}</span>
-							<span className="t-cond text-[0.85rem] font-normal text-(--ink-2)">/{workspace.slug}</span>
-						</button>
-					))}
-					<div className="rule-thin" />
-					<a role="menuitem" href={consoleHref}>
-						Manage in the console
-						<ArrowUpRight className="ml-auto size-4 text-(--ink-2)" aria-hidden="true" />
-					</a>
-				</div>
-			)}
 		</div>
 	);
 }

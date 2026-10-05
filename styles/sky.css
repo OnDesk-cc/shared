@@ -1,0 +1,1507 @@
+/*
+ * El mundo visual nuevo del sitio público: «Clear Sky».
+ *
+ * Una cuenta es un planeta de vidrio; las seis apps son lunas que recorren su
+ * anillo, y todo lo demás es aire frío de mañana alrededor. Vive bajo `.sk`
+ * (cabecera, pie y landing) para que las páginas que todavía no se han migrado
+ * sigan pintándose con el mapa de red de `site.css` dentro del marco nuevo.
+ *
+ * Reglas del sistema:
+ * - Sólo claro. Suelo `--sk-ground`, tinta azul marino para titulares y para la
+ *   única píldora primaria; un solo acento (`--sk-accent`) para la marca, los
+ *   enlaces y el foco.
+ * - Los seis colores de app sólo aparecen dentro de las baldosas de icono y en
+ *   las lunas del planeta; nunca como texto ni como fondo de sección.
+ * - Una sola familia (Geist). Jerarquía por tamaño y peso, nunca por una
+ *   segunda familia ni por monoespaciada.
+ * - Elevación por sombra fría y suave, nunca borde + sombra a la vez. Radios:
+ *   tarjeta 18px, panel 28px, baldosa 10px, controles en píldora.
+ * - Vidrio (desenfoque de fondo) sólo donde algo flota sobre el cielo: la
+ *   cabecera al hacer scroll, los menús y el planeta.
+ * - Un módulo de 4px para todo hueco.
+ */
+
+.sk {
+	--sk-ground: #f4f7fb;
+	--sk-mist: #eaf0f7;
+	--sk-haze: #dce6f1;
+	--sk-surface: #ffffff;
+	--sk-glass: rgba(255, 255, 255, 0.66);
+	--sk-ink: #0e1b2e;
+	--sk-ink-2: #46566c;
+	--sk-ink-3: #56657a;
+	--sk-hair: rgba(14, 27, 46, 0.08);
+	--sk-hair-2: rgba(14, 27, 46, 0.14);
+	--sk-accent: #2f6be0;
+
+	/* los seis colores de app */
+	--sk-pulse: #0b9fb3;
+	--sk-vault: #17996a;
+	--sk-orbit: #ee6c2b;
+	--sk-nexus: #4466f2;
+	--sk-halo: #8f55e8;
+	--sk-atlas: #5aa82e;
+
+	/* sombras frías: siempre con desplazamiento y desenfoque */
+	--sk-shadow-1: 0 1px 2px rgba(17, 38, 72, 0.05), 0 4px 14px -6px rgba(17, 38, 72, 0.1);
+	--sk-shadow-2: 0 1px 2px rgba(17, 38, 72, 0.05), 0 18px 40px -18px rgba(17, 38, 72, 0.22);
+	--sk-shadow-3: 0 2px 6px rgba(17, 38, 72, 0.06), 0 40px 80px -32px rgba(17, 38, 72, 0.3);
+
+	--sk-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+	--sk-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+
+	--sk-font: "Geist", "Segoe UI", system-ui, sans-serif;
+
+	font-family: var(--sk-font);
+	color: var(--sk-ink);
+	font-feature-settings: "kern" 1, "ss01" 1;
+	letter-spacing: -0.006em;
+}
+
+/* El suelo del documento cuando la página entera vive en el cielo (va en la
+   raíz, fuera de `.sk`, así que el color va escrito). */
+.sk-page {
+	background: #f4f7fb;
+}
+
+/* La columna del sitio: 1240px con márgenes de 16 / 24 / 32px. */
+.sk .sk-wrap {
+	width: 100%;
+	max-width: calc(1240px + 64px);
+	margin-inline: auto;
+	padding-inline: 16px;
+}
+@media (min-width: 40rem) {
+	.sk .sk-wrap {
+		padding-inline: 24px;
+	}
+}
+@media (min-width: 64rem) {
+	.sk .sk-wrap {
+		padding-inline: 32px;
+	}
+}
+
+/* ── superficies del navegador ───────────────────────────────────────────── */
+.sk ::selection {
+	background: #cfe0fb;
+	color: var(--sk-ink);
+}
+.sk :focus-visible {
+	outline: 2px solid var(--sk-accent);
+	outline-offset: 3px;
+	border-radius: 6px;
+}
+.sk a {
+	text-underline-offset: 0.2em;
+	text-decoration-thickness: 1px;
+}
+.sk .sk-num {
+	font-variant-numeric: tabular-nums;
+}
+
+/* ── tipografía ──────────────────────────────────────────────────────────── */
+.sk .sk-display {
+	font-weight: 500;
+	letter-spacing: -0.038em;
+	line-height: 1.04;
+	text-wrap: balance;
+	color: var(--sk-ink);
+}
+.sk .sk-h2 {
+	font-weight: 500;
+	letter-spacing: -0.032em;
+	line-height: 1.08;
+	text-wrap: balance;
+	color: var(--sk-ink);
+}
+.sk .sk-h3 {
+	font-weight: 500;
+	letter-spacing: -0.018em;
+	line-height: 1.25;
+	text-wrap: balance;
+	color: var(--sk-ink);
+}
+.sk .sk-body {
+	color: var(--sk-ink-2);
+	line-height: 1.6;
+	text-wrap: pretty;
+}
+.sk .sk-small {
+	color: var(--sk-ink-3);
+	font-size: 0.8125rem;
+	line-height: 1.5;
+}
+/* Una pastilla de categoría: la palabra del diccionario llega en mayúsculas y
+   aquí se compone en caja de frase. */
+.sk .sk-pill {
+	/* inline-block y no inline-flex: `::first-letter` no se aplica a un flex. */
+	display: inline-block;
+	line-height: 22px;
+	height: 22px;
+	padding: 0 8px;
+	border-radius: 999px;
+	background: var(--sk-mist);
+	color: var(--sk-ink-2);
+	font-size: 0.75rem;
+	font-weight: 500;
+	text-transform: lowercase;
+	white-space: nowrap;
+}
+.sk .sk-pill::first-letter {
+	text-transform: uppercase;
+}
+
+/* ── botones: píldoras ───────────────────────────────────────────────────── */
+.sk .sk-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	height: 48px;
+	padding: 0 22px;
+	border-radius: 999px;
+	font-size: 0.9375rem;
+	font-weight: 500;
+	letter-spacing: -0.01em;
+	white-space: nowrap;
+	text-decoration: none;
+	cursor: pointer;
+	transition:
+		transform 160ms var(--sk-ease-out),
+		background-color 200ms ease,
+		box-shadow 200ms ease,
+		color 200ms ease;
+}
+.sk .sk-btn:active {
+	transform: scale(0.97);
+}
+.sk .sk-btn--sm {
+	height: 38px;
+	padding: 0 16px;
+	font-size: 0.875rem;
+}
+.sk .sk-btn--primary {
+	background: var(--sk-ink);
+	color: #ffffff;
+	box-shadow:
+		inset 0 1px 0 rgba(255, 255, 255, 0.14),
+		0 1px 2px rgba(14, 27, 46, 0.2),
+		0 8px 20px -8px rgba(14, 27, 46, 0.45);
+}
+.sk .sk-btn--quiet {
+	background: transparent;
+	color: var(--sk-ink);
+}
+.sk .sk-btn--glass {
+	background: var(--sk-glass);
+	color: var(--sk-ink);
+	box-shadow: var(--sk-shadow-1), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+	backdrop-filter: blur(12px) saturate(140%);
+}
+.sk .sk-btn .sk-arrow {
+	transition: transform 200ms var(--sk-ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+	.sk .sk-btn--primary:hover {
+		background: #1a2c45;
+	}
+	.sk .sk-btn--quiet:hover {
+		background: rgba(14, 27, 46, 0.05);
+	}
+	.sk .sk-btn--glass:hover {
+		background: rgba(255, 255, 255, 0.85);
+	}
+	.sk .sk-btn:hover .sk-arrow,
+	.sk .group:hover .sk-arrow {
+		transform: translateX(3px);
+	}
+}
+
+/* un enlace de texto con flecha */
+.sk .sk-link {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-weight: 500;
+	color: var(--sk-ink);
+	text-decoration: none;
+}
+.sk .sk-link .sk-arrow {
+	transition: transform 200ms var(--sk-ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+	.sk .sk-link:hover {
+		color: var(--sk-accent);
+	}
+	.sk .sk-link:hover .sk-arrow {
+		transform: translateX(3px);
+	}
+}
+
+/* ── baldosa de icono: el único sitio donde vive el color de una app ─────── */
+.sk .sk-tile {
+	--tile: var(--sk-accent);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	width: 40px;
+	height: 40px;
+	border-radius: 10px;
+	color: var(--tile);
+	background:
+		linear-gradient(180deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0) 60%),
+		color-mix(in oklab, var(--tile) 13%, white);
+	box-shadow:
+		inset 0 0 0 1px color-mix(in oklab, var(--tile) 16%, transparent),
+		0 1px 2px color-mix(in oklab, var(--tile) 18%, transparent);
+}
+.sk .sk-tile--lg {
+	width: 48px;
+	height: 48px;
+	border-radius: 13px;
+}
+.sk .sk-tile--sm {
+	width: 28px;
+	height: 28px;
+	border-radius: 8px;
+}
+.sk .sk-tile--xs {
+	width: 22px;
+	height: 22px;
+	border-radius: 6px;
+}
+
+/* ── tarjetas y paneles ──────────────────────────────────────────────────── */
+.sk .sk-card {
+	background: var(--sk-surface);
+	border-radius: 18px;
+	box-shadow: var(--sk-shadow-1);
+	transition:
+		transform 260ms var(--sk-ease-out),
+		box-shadow 260ms var(--sk-ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+	.sk a.sk-card:hover {
+		transform: translateY(-3px);
+		box-shadow: var(--sk-shadow-2);
+	}
+}
+.sk a.sk-card:active {
+	transform: translateY(-1px) scale(0.99);
+}
+.sk .sk-panel {
+	border-radius: 28px;
+	box-shadow: var(--sk-shadow-2);
+	overflow: hidden;
+	isolation: isolate;
+}
+/* El cielo de un panel: la misma neblina del héroe, sin lienzo. */
+.sk .sk-skyfill {
+	background:
+		radial-gradient(60% 70% at 12% 100%, rgba(248, 224, 206, 0.55), transparent 70%),
+		radial-gradient(50% 60% at 92% 0%, rgba(196, 213, 236, 0.7), transparent 70%),
+		linear-gradient(180deg, #e3ebf4 0%, #edf2f8 55%, #f6f4f1 100%);
+}
+
+/* ── vidrio: sólo lo que flota ───────────────────────────────────────────── */
+.sk .sk-glass {
+	background: rgba(255, 255, 255, 0.72);
+	backdrop-filter: blur(18px) saturate(150%);
+	box-shadow: var(--sk-shadow-2), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+@media (prefers-reduced-transparency: reduce) {
+	.sk .sk-glass,
+	.sk .sk-btn--glass {
+		background: #fbfcfe;
+		backdrop-filter: none;
+	}
+}
+
+/* ── cabecera ────────────────────────────────────────────────────────────── */
+.sk-header {
+	transition:
+		background-color 240ms ease,
+		box-shadow 240ms ease,
+		backdrop-filter 240ms ease;
+}
+.sk-header[data-scrolled="true"] {
+	background: rgba(246, 249, 252, 0.9);
+	backdrop-filter: blur(16px) saturate(160%);
+	box-shadow: 0 1px 0 var(--sk-hair), 0 10px 30px -20px rgba(17, 38, 72, 0.25);
+}
+@media (prefers-reduced-transparency: reduce) {
+	.sk-header[data-scrolled="true"] {
+		background: #f6f9fc;
+		backdrop-filter: none;
+	}
+}
+.sk .sk-navlink {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	height: 36px;
+	padding: 0 12px;
+	border-radius: 999px;
+	font-size: 0.875rem;
+	font-weight: 450;
+	color: var(--sk-ink-2);
+	text-decoration: none;
+	transition:
+		color 160ms ease,
+		background-color 160ms ease;
+}
+.sk .sk-navlink[aria-current="page"],
+.sk .sk-navlink[aria-expanded="true"] {
+	color: var(--sk-ink);
+	background: rgba(14, 27, 46, 0.05);
+}
+@media (hover: hover) and (pointer: fine) {
+	.sk .sk-navlink:hover {
+		color: var(--sk-ink);
+	}
+}
+
+/* Menús desplegables: entran desde su disparador; la salida es instantánea. */
+.sk .sk-menu {
+	transform-origin: top left;
+	border-radius: 18px;
+	/* Sobre el titular del héroe el vidrio tiene que dejar leer el menú, no lo de detrás. */
+	background: rgba(250, 252, 254, 0.94);
+	backdrop-filter: blur(28px) saturate(160%);
+	transition:
+		opacity 180ms var(--sk-ease-out),
+		transform 180ms var(--sk-ease-out);
+}
+/* `@starting-style` va suelto y no anidado: el compilador de CSS metía en él
+   las reglas que venían detrás. */
+@starting-style {
+	.sk .sk-menu {
+		opacity: 0;
+		transform: translateY(-4px) scale(0.98);
+	}
+}
+.sk .sk-menu--right {
+	transform-origin: top right;
+}
+.sk .sk-menu-item {
+	border-radius: 12px;
+	transition: background-color 140ms ease;
+}
+@media (hover: hover) and (pointer: fine) {
+	.sk .sk-menu-item:hover {
+		background: rgba(14, 27, 46, 0.045);
+	}
+}
+
+/* La hoja móvil baja desde la cabecera. */
+.sk .sk-sheet {
+	transition:
+		opacity 220ms var(--sk-ease-out),
+		transform 260ms var(--sk-ease-out);
+}
+@starting-style {
+	.sk .sk-sheet {
+		opacity: 0;
+		transform: translateY(-8px);
+	}
+}
+
+/* ── héroe ───────────────────────────────────────────────────────────────── */
+/* El cielo de CSS va debajo del lienzo: es lo que se ve antes del primer
+   fotograma y lo que queda si no hay WebGL. */
+.sk .sk-hero-sky {
+	background:
+		radial-gradient(42% 30% at 14% 74%, rgba(249, 222, 202, 0.75), transparent 72%),
+		radial-gradient(40% 40% at 92% 4%, rgba(204, 219, 238, 0.8), transparent 70%),
+		linear-gradient(180deg, #dee7f1 0%, #ecf1f7 42%, #f8f4f0 72%, #f3f6fa 100%);
+}
+.sk .sk-canvas {
+	opacity: 0;
+	transition: opacity 900ms var(--sk-ease-out);
+}
+.sk .sk-canvas[data-ready="true"] {
+	opacity: 1;
+}
+
+/* El planeta de respaldo, sólo si no hay WebGL2. */
+.sk .sk-orb {
+	position: relative;
+	border-radius: 50%;
+	background:
+		radial-gradient(circle at 34% 30%, rgba(255, 255, 255, 0.95) 0 6%, transparent 22%),
+		radial-gradient(circle at 40% 38%, #f3f7fc 0%, #cbdaee 46%, #9fb6d6 72%, #dfe8f4 100%);
+	box-shadow:
+		inset -18px -24px 50px rgba(120, 146, 186, 0.35),
+		inset 10px 12px 30px rgba(255, 255, 255, 0.8),
+		0 40px 80px -30px rgba(40, 70, 120, 0.35);
+}
+.sk .sk-orb::after {
+	content: "";
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	width: 165%;
+	height: 34%;
+	border-radius: 50%;
+	border: 3px solid rgba(255, 255, 255, 0.85);
+	box-shadow: 0 0 0 1px rgba(160, 185, 220, 0.4);
+	transform: translate(-50%, -50%) rotate(-18deg);
+}
+
+/* Llegada del héroe: una sola coreografía, sube y se enfoca. */
+.sk .sk-rise {
+	animation: sk-rise 900ms var(--sk-ease-out) both;
+	animation-delay: calc(var(--i, 0) * 70ms + 80ms);
+}
+/* Parte de visible (el titular es el LCP): sólo se enfoca y asienta. */
+@keyframes sk-rise {
+	from {
+		opacity: 0.6;
+		transform: translateY(8px);
+		filter: blur(5px);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+		filter: blur(0);
+	}
+}
+
+/* Entradas al hacer scroll: sólo donde la secuencia dice algo (las seis apps y
+   la ventana del ejemplo). Contenido visible por defecto; la animación es un
+   añadido de los navegadores con línea de tiempo de vista. */
+@supports (animation-timeline: view()) {
+	.sk .sk-reveal {
+		animation: sk-reveal linear both;
+		animation-timeline: view();
+		animation-range: entry 0% entry 55%;
+	}
+}
+@keyframes sk-reveal {
+	from {
+		opacity: 0;
+		transform: translateY(24px) scale(0.985);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+/* ── el ejemplo de workspace ─────────────────────────────────────────────── */
+.sk .sk-window {
+	background: rgba(255, 255, 255, 0.82);
+	border-radius: 20px;
+	box-shadow: var(--sk-shadow-3), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+	backdrop-filter: blur(10px);
+}
+/* Un interruptor de acceso: la baldosa de la app encendida o apagada. */
+.sk .sk-toggle {
+	--tile: var(--sk-accent);
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	border-radius: 9px;
+	cursor: pointer;
+	color: var(--tile);
+	background: color-mix(in oklab, var(--tile) 14%, white);
+	box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--tile) 22%, transparent);
+	transition:
+		transform 160ms var(--sk-ease-out),
+		background-color 180ms ease,
+		color 180ms ease,
+		box-shadow 180ms ease;
+}
+.sk .sk-toggle[aria-pressed="false"] {
+	color: #7b889b;
+	background: #f1f4f8;
+	box-shadow: inset 0 0 0 1px rgba(14, 27, 46, 0.06);
+}
+.sk .sk-toggle:active {
+	transform: scale(0.92);
+}
+@media (hover: hover) and (pointer: fine) {
+	.sk .sk-toggle[aria-pressed="false"]:hover {
+		color: var(--tile);
+	}
+}
+/* Una fila apagada mientras se sigue a otra persona. */
+.sk .sk-dim {
+	opacity: 0.45;
+	transition: opacity 220ms ease;
+}
+/* Una cifra que cambia entra desenfocada, no parpadea. */
+.sk .sk-tick {
+	display: inline-block;
+	animation: sk-tick 260ms var(--sk-ease-out);
+}
+@keyframes sk-tick {
+	from {
+		opacity: 0.2;
+		transform: translateY(4px);
+		filter: blur(3px);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+		filter: blur(0);
+	}
+}
+
+/* ── el recorrido de tres pasos ──────────────────────────────────────────── */
+.sk .sk-orbit-line {
+	background-image: linear-gradient(90deg, var(--sk-hair-2) 50%, transparent 50%);
+	background-size: 8px 1px;
+	background-repeat: repeat-x;
+}
+
+/* ── páginas interiores (2026-10-04, extensión a todo el marketing) ─────── */
+
+/* Un chip que filtra o elige: píldora pequeña, encendida en tinta. */
+.sk .sk-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	height: 34px;
+	padding: 0 14px;
+	border-radius: 999px;
+	font-size: 0.8125rem;
+	font-weight: 500;
+	color: var(--sk-ink-2);
+	background: var(--sk-surface);
+	box-shadow: inset 0 0 0 1px var(--sk-hair-2);
+	cursor: pointer;
+	white-space: nowrap;
+	transition:
+		transform 160ms var(--sk-ease-out),
+		background-color 180ms ease,
+		color 180ms ease,
+		box-shadow 180ms ease;
+}
+.sk .sk-chip:active {
+	transform: scale(0.97);
+}
+.sk .sk-chip[aria-pressed="true"] {
+	color: #ffffff;
+	background: var(--sk-ink);
+	box-shadow: none;
+}
+@media (hover: hover) and (pointer: fine) {
+	.sk .sk-chip[aria-pressed="false"]:hover {
+		color: var(--sk-ink);
+		box-shadow: inset 0 0 0 1px rgba(14, 27, 46, 0.28);
+	}
+}
+
+/* El control segmentado: un riel de niebla con la opción elegida en blanco. */
+.sk .sk-segment {
+	display: inline-flex;
+	padding: 4px;
+	gap: 2px;
+	border-radius: 999px;
+	background: var(--sk-mist);
+	box-shadow: inset 0 0 0 1px var(--sk-hair);
+}
+.sk .sk-segment > button {
+	height: 34px;
+	padding: 0 16px;
+	border-radius: 999px;
+	font-size: 0.8125rem;
+	font-weight: 500;
+	color: var(--sk-ink-2);
+	cursor: pointer;
+	transition:
+		background-color 200ms ease,
+		color 200ms ease,
+		box-shadow 200ms ease;
+}
+.sk .sk-segment > button[aria-pressed="true"] {
+	color: var(--sk-ink);
+	background: var(--sk-surface);
+	box-shadow: var(--sk-shadow-1);
+}
+
+/* Campos de formulario: blancos sobre el suelo, el foco en el acento. */
+.sk .sk-label {
+	display: block;
+	margin-bottom: 6px;
+	font-size: 0.8125rem;
+	font-weight: 500;
+	color: var(--sk-ink);
+}
+.sk .sk-field {
+	width: 100%;
+	min-height: 44px;
+	padding: 10px 14px;
+	border-radius: 12px;
+	font: inherit;
+	font-size: 0.9375rem;
+	line-height: 1.4;
+	color: var(--sk-ink);
+	background: var(--sk-surface);
+	box-shadow: inset 0 0 0 1px var(--sk-hair-2);
+	outline: none;
+	transition:
+		box-shadow 160ms ease,
+		background-color 160ms ease;
+}
+.sk .sk-field::placeholder {
+	color: var(--sk-ink-3);
+}
+.sk .sk-field:focus,
+.sk .sk-field:focus-visible {
+	box-shadow:
+		inset 0 0 0 1px var(--sk-accent),
+		0 0 0 4px rgba(47, 107, 224, 0.14);
+	border-radius: 12px;
+	outline: none;
+}
+.sk .sk-field[aria-invalid="true"] {
+	box-shadow: inset 0 0 0 1px #c2362b;
+}
+.sk select.sk-field {
+	appearance: none;
+	padding-right: 40px;
+	background-image:
+		linear-gradient(45deg, transparent 50%, var(--sk-ink-2) 50%),
+		linear-gradient(135deg, var(--sk-ink-2) 50%, transparent 50%);
+	background-position:
+		calc(100% - 20px) 52%,
+		calc(100% - 15px) 52%;
+	background-size:
+		5px 5px,
+		5px 5px;
+	background-repeat: no-repeat;
+}
+.sk textarea.sk-field {
+	resize: vertical;
+}
+.sk .sk-help {
+	margin-top: 6px;
+	font-size: 0.8125rem;
+	color: var(--sk-ink-3);
+}
+/* Avisos: el error en un rojo apagado; lo informativo (y el éxito) en tinta
+   sobre niebla, porque el verde ya es de una app. */
+.sk .sk-alert {
+	display: flex;
+	gap: 10px;
+	padding: 12px 14px;
+	border-radius: 12px;
+	font-size: 0.875rem;
+	line-height: 1.5;
+}
+.sk .sk-alert--error {
+	color: #8f2219;
+	background: #fbeceb;
+}
+.sk .sk-alert--info {
+	color: var(--sk-ink);
+	background: var(--sk-mist);
+}
+
+/* Deslizador: riel de niebla, pulgar blanco con sombra. */
+.sk input[type="range"].sk-range {
+	appearance: none;
+	width: 100%;
+	height: 6px;
+	border-radius: 999px;
+	background: var(--sk-haze);
+	cursor: pointer;
+}
+.sk input[type="range"].sk-range::-webkit-slider-thumb {
+	appearance: none;
+	width: 22px;
+	height: 22px;
+	border-radius: 999px;
+	background: #ffffff;
+	box-shadow:
+		0 0 0 1px var(--sk-hair-2),
+		0 2px 6px rgba(17, 38, 72, 0.2);
+}
+.sk input[type="range"].sk-range::-moz-range-thumb {
+	width: 22px;
+	height: 22px;
+	border: 0;
+	border-radius: 999px;
+	background: #ffffff;
+	box-shadow:
+		0 0 0 1px var(--sk-hair-2),
+		0 2px 6px rgba(17, 38, 72, 0.2);
+}
+
+/* Tablas: una tarjeta blanca con filetes finos; la cabecera en voz pequeña. */
+.sk .sk-table-wrap {
+	overflow-x: auto;
+	border-radius: 18px;
+	background: var(--sk-surface);
+	box-shadow: var(--sk-shadow-1);
+}
+.sk .sk-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.875rem;
+	font-variant-numeric: tabular-nums;
+}
+.sk .sk-table th {
+	padding: 14px 18px;
+	text-align: left;
+	font-size: 0.8125rem;
+	font-weight: 500;
+	color: var(--sk-ink-3);
+	border-bottom: 1px solid var(--sk-hair);
+	white-space: nowrap;
+}
+.sk .sk-table td {
+	padding: 14px 18px;
+	vertical-align: top;
+	color: var(--sk-ink-2);
+	border-bottom: 1px solid var(--sk-hair);
+}
+.sk .sk-table tr:last-child td {
+	border-bottom: 0;
+}
+.sk .sk-table td.sk-strong {
+	color: var(--sk-ink);
+	font-weight: 500;
+}
+.sk .sk-table tr.sk-group td {
+	padding-top: 10px;
+	padding-bottom: 10px;
+	font-size: 0.8125rem;
+	font-weight: 500;
+	color: var(--sk-ink);
+	background: var(--sk-ground);
+}
+
+/* Preguntas: <details> dentro de una tarjeta, el chevrón gira. */
+.sk .sk-faq > details {
+	border-bottom: 1px solid var(--sk-hair);
+}
+.sk .sk-faq > details:last-child {
+	border-bottom: 0;
+}
+.sk .sk-faq summary {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	padding: 20px 24px;
+	cursor: pointer;
+	list-style: none;
+	font-size: 1rem;
+	font-weight: 500;
+	color: var(--sk-ink);
+}
+.sk .sk-faq summary::-webkit-details-marker {
+	display: none;
+}
+.sk .sk-faq summary .sk-chevron {
+	margin-left: auto;
+	flex-shrink: 0;
+	color: var(--sk-ink-3);
+	transition: transform 220ms var(--sk-ease-out);
+}
+.sk .sk-faq details[open] summary .sk-chevron {
+	transform: rotate(180deg);
+}
+.sk .sk-faq .sk-answer {
+	padding: 0 24px 22px;
+	max-width: 70ch;
+	color: var(--sk-ink-2);
+	line-height: 1.65;
+	font-size: 0.9375rem;
+}
+@media (hover: hover) and (pointer: fine) {
+	.sk .sk-faq summary:hover {
+		color: var(--sk-accent);
+	}
+}
+
+/* Texto largo (legal, blog): medida de lectura, jerarquía tranquila. */
+.sk .sk-prose {
+	max-width: 70ch;
+	color: var(--sk-ink-2);
+	font-size: 1rem;
+	line-height: 1.75;
+}
+.sk .sk-prose h2 {
+	margin-top: 2.5em;
+	margin-bottom: 0.6em;
+	font-size: 1.375rem;
+	font-weight: 500;
+	letter-spacing: -0.02em;
+	line-height: 1.3;
+	color: var(--sk-ink);
+	text-wrap: balance;
+}
+.sk .sk-prose h3 {
+	margin-top: 1.8em;
+	margin-bottom: 0.4em;
+	font-size: 1.0625rem;
+	font-weight: 500;
+	color: var(--sk-ink);
+}
+.sk .sk-prose p,
+.sk .sk-prose ul,
+.sk .sk-prose ol {
+	margin-top: 0.9em;
+}
+.sk .sk-prose ul {
+	padding-left: 1.2em;
+	list-style: disc;
+}
+.sk .sk-prose ol {
+	padding-left: 1.4em;
+	list-style: decimal;
+}
+.sk .sk-prose li {
+	margin-top: 0.35em;
+}
+.sk .sk-prose li::marker {
+	color: var(--sk-ink-3);
+}
+.sk .sk-prose a {
+	color: var(--sk-accent);
+	text-decoration: underline;
+}
+.sk .sk-prose strong {
+	color: var(--sk-ink);
+	font-weight: 500;
+}
+
+/* Una nota de letra pequeña bajo un bloque. */
+.sk .sk-note {
+	font-size: 0.8125rem;
+	line-height: 1.55;
+	color: var(--sk-ink-3);
+}
+
+/* La cabecera de página interior: el mismo cielo del héroe, más baja. */
+.sk .sk-page-hero {
+	position: relative;
+	overflow: hidden;
+	margin-top: -64px;
+	padding-top: 64px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.sk .sk-rise,
+	.sk .sk-reveal,
+	.sk .sk-tick {
+		animation: none;
+	}
+	.sk .sk-chip:active {
+		transform: none;
+	}
+	.sk .sk-btn:active,
+	.sk .sk-toggle:active,
+	.sk a.sk-card:active {
+		transform: none;
+	}
+	.sk .sk-menu,
+	.sk .sk-sheet {
+		transition: opacity 120ms ease;
+	}
+}
+
+/* Rótulos que el diccionario trae en mayúsculas (de cuando eran placas de
+   andén): aquí se componen en caja de frase. Bloque, porque `::first-letter`
+   sólo se aplica a cajas de bloque. */
+.sk .sk-sentence {
+	display: block;
+	text-transform: lowercase;
+}
+.sk .sk-sentence::first-letter {
+	text-transform: uppercase;
+}
+
+/* ══ las consolas en el cielo (2026-10-04, tercera pasada) ══════════════════
+   La consola de ondesk, admin y los paneles de partners y developers montan su
+   raíz con `site sk` a la vez. Las vistas siguen escribiendo el vocabulario del
+   mapa de red (ticket, fare, stamp, t-tab, --ink…): aquí ese vocabulario se
+   reinterpreta en el mundo «Clear Sky». La estructura que site.css ya resuelve
+   (rejillas, recomposición de tablas en el teléfono) se queda; lo visual
+   (trazo, tinta, radio, sombra, familia) se reescribe. Selector `.site.sk`:
+   sólo una raíz de consola lleva las dos clases, así que nada de esto toca el
+   sitio público ni un panel que siga en el mapa. Este bloque es la misma copia
+   en los cuatro repos. */
+
+.site.sk {
+	/* los tokens del mapa, con valores del cielo */
+	--paper: #ffffff;
+	--paper-2: #f4f7fb;
+	--ink: #0e1b2e;
+	--ink-2: #46566c;
+	--ink-deep: #0e1b2e;
+	--rule: rgba(14, 27, 46, 0.12);
+	--rule-2: rgba(14, 27, 46, 0.07);
+	--stroke: 1px;
+	--line: 3px;
+	--destructive: #b3261e;
+	--l-pulse: #0b9fb3;
+	--l-vault: #17996a;
+	--l-orbit: #ee6c2b;
+	--l-nexus: #4466f2;
+	--l-halo: #8f55e8;
+	--l-atlas: #5aa82e;
+	--font-site: var(--sk-font);
+	--font-cond: var(--sk-font);
+	/* el suelo y los tokens de shadcn que lea un componente compartido */
+	--background: #f4f7fb;
+	--card: #ffffff;
+	--popover: #ffffff;
+	--muted: #eaf0f7;
+	--secondary: #eaf0f7;
+	--border: rgba(14, 27, 46, 0.12);
+	--input: rgba(14, 27, 46, 0.14);
+	--ring: #2f6be0;
+	background: #f4f7fb;
+	font-family: var(--sk-font);
+	font-size: 15px;
+	line-height: 1.55;
+	font-feature-settings: "kern" 1;
+	scrollbar-color: #c3cfdd #f4f7fb;
+}
+.site.sk ::selection {
+	background: #cfe0fb;
+	color: var(--sk-ink);
+}
+.site.sk :focus-visible {
+	outline: 2px solid var(--sk-accent);
+	outline-offset: 2px;
+}
+
+/* Cualquier trazo de tinta escrito en línea (border-(--ink)) es un filete. */
+.site.sk [class*="border-(--ink)"],
+.site.sk [class*="divide-(--ink)"] > * {
+	border-color: var(--sk-hair-2);
+}
+
+/* tipografía */
+.site.sk .t-display,
+.site.sk .t-h2 {
+	font-weight: 500;
+	letter-spacing: -0.03em;
+	line-height: 1.12;
+}
+.site.sk .t-h3 {
+	font-weight: 500;
+	letter-spacing: -0.018em;
+	line-height: 1.25;
+}
+.site.sk .t-tab {
+	font-weight: 500;
+	font-size: 0.8125rem;
+	letter-spacing: 0;
+	text-transform: none;
+	line-height: 1.35;
+}
+.site.sk .t-cond {
+	font-weight: inherit;
+	letter-spacing: 0;
+}
+.site.sk .t-body {
+	color: var(--sk-ink-2);
+}
+.site.sk .font-bold {
+	font-weight: 500;
+}
+.site.sk .plate,
+.site.sk .plate-block {
+	background: transparent;
+	color: var(--sk-ink);
+	padding: 0;
+}
+.site.sk button.plate-block {
+	border-radius: 10px;
+	padding: 2px 8px;
+	margin-left: -8px;
+}
+.site.sk button.plate-block:hover {
+	background: rgba(14, 27, 46, 0.05);
+}
+
+/* billetes → píldoras */
+.site.sk .ticket {
+	min-height: 40px;
+	padding: 0 18px;
+	gap: 8px;
+	border: 0;
+	border-radius: 999px;
+	background: var(--sk-surface);
+	box-shadow: inset 0 0 0 1px var(--sk-hair-2), 0 1px 2px rgba(17, 38, 72, 0.05);
+	color: var(--sk-ink);
+	font-weight: 500;
+	font-size: 0.875rem;
+	letter-spacing: -0.01em;
+	transition:
+		transform 160ms var(--sk-ease-out),
+		background-color 180ms ease,
+		box-shadow 180ms ease,
+		color 180ms ease;
+}
+.site.sk .ticket--sm {
+	min-height: 34px;
+	padding: 0 14px;
+	font-size: 0.8125rem;
+}
+.site.sk .ticket:hover {
+	background: var(--sk-ground);
+}
+.site.sk .ticket:active:not(:disabled) {
+	background: var(--sk-ground);
+	color: var(--sk-ink);
+	transform: scale(0.97);
+}
+.site.sk .ticket--solid,
+.site.sk .ticket[aria-pressed="true"] {
+	background: var(--sk-ink);
+	color: #ffffff;
+	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 6px 16px -8px rgba(14, 27, 46, 0.5);
+}
+.site.sk .ticket--solid:hover,
+.site.sk .ticket--solid:active:not(:disabled) {
+	background: #1a2c45;
+	color: #ffffff;
+}
+.site.sk .ticket--solid:not(.ticket--stub):not([aria-busy="true"]):disabled,
+.site.sk .ticket--solid:not(.ticket--stub):not([aria-busy="true"])[aria-disabled="true"] {
+	background: var(--sk-surface);
+	color: var(--sk-ink-3);
+	box-shadow: inset 0 0 0 1px var(--sk-hair-2);
+}
+.site.sk .ticket:disabled,
+.site.sk .ticket[aria-disabled="true"] {
+	opacity: 0.55;
+}
+.site.sk .ticket--stub {
+	padding-left: 18px;
+}
+.site.sk .ticket--stub.ticket--sm {
+	padding-left: 14px;
+}
+.site.sk .ticket--stub::before {
+	display: none;
+}
+.site.sk .ticket--glyph,
+.site.sk .ticket--square {
+	width: 36px;
+	min-height: 36px;
+	padding: 0;
+}
+.site.sk .ticket--danger {
+	color: #8f2219;
+	background: #fbeceb;
+	box-shadow: none;
+}
+.site.sk .ticket--danger:hover,
+.site.sk .ticket--danger:active:not(:disabled) {
+	background: #b3261e;
+	color: #ffffff;
+}
+.site.sk .ticket--inverse,
+.site.sk .ticket--inverse-solid {
+	background: var(--sk-surface);
+	color: var(--sk-ink);
+}
+
+/* filetes: finos, nunca la tinta entera */
+.site.sk .rule {
+	border-top: 1px solid var(--sk-hair-2);
+}
+.site.sk .rule-thin {
+	border-top-color: var(--sk-hair);
+}
+.site.sk .stop-mark,
+.site.sk .axis::before {
+	display: none;
+}
+.site.sk .axis .stop-mark {
+	margin-left: 0;
+}
+
+/* anillos y pastillas */
+.site.sk .ring {
+	width: 0.875rem;
+	height: 0.875rem;
+	border: 1.5px solid #b7c3d3;
+	background: var(--sk-surface);
+}
+.site.sk .ring--filled,
+.site.sk .ring--dot::after {
+	background: var(--sk-ink);
+}
+.site.sk .ring--filled {
+	border-color: var(--sk-ink);
+}
+.site.sk .swatch {
+	width: 12px;
+	height: 12px;
+	border-radius: 4px;
+}
+
+/* tablas: filetes finos, la cabecera en voz pequeña */
+.site.sk .fare {
+	font-size: 0.875rem;
+	color: var(--sk-ink-2);
+}
+.site.sk .fare th {
+	font-weight: 500;
+	text-transform: none;
+	letter-spacing: 0;
+	font-size: 0.8125rem;
+	color: var(--sk-ink-3);
+	padding: 12px 14px;
+	border-bottom: 1px solid var(--sk-hair);
+}
+.site.sk .fare td {
+	padding: 12px 14px;
+	border-bottom: 1px solid var(--sk-hair);
+}
+.site.sk .fare td .font-bold,
+.site.sk .fare td.font-bold {
+	color: var(--sk-ink);
+}
+.site.sk .fare tr:last-child td {
+	border-bottom: 0;
+}
+.site.sk .fare tr.total td,
+.site.sk .fare tr.total th {
+	border-top: 1px solid var(--sk-hair-2);
+	font-weight: 500;
+	color: var(--sk-ink);
+}
+.site.sk .fare--facts tr:first-child th,
+.site.sk .fare--facts tr:first-child td {
+	border-top: 0;
+}
+.site.sk .fare--facts tr:last-child th,
+.site.sk .fare--facts tr:last-child td {
+	border-bottom: 0;
+}
+.site.sk .fare--facts th {
+	color: var(--sk-ink-3);
+}
+.site.sk .fare--facts td {
+	font-weight: 500;
+	color: var(--sk-ink);
+}
+.site.sk .fare tr.is-link:hover {
+	background: var(--sk-ground);
+}
+@media (max-width: 47.9rem) {
+	.site.sk .fare--reflow tr {
+		border-bottom: 1px solid var(--sk-hair);
+		padding: 14px 0;
+	}
+	.site.sk .fare--reflow tbody tr:last-child {
+		border-bottom: 0;
+	}
+	.site.sk .fare--reflow td[data-label]::before {
+		font-weight: 500;
+		text-transform: none;
+		letter-spacing: 0;
+		font-size: 0.8125rem;
+		color: var(--sk-ink-3);
+	}
+	.site.sk .fare--reflow tr.total {
+		border-top: 1px solid var(--sk-hair-2);
+	}
+}
+
+/* sellos → píldoras de estado (siempre con su palabra) */
+.site.sk .stamp {
+	gap: 5px;
+	padding: 2px 8px;
+	border: 0;
+	border-radius: 999px;
+	background: var(--sk-mist);
+	color: var(--sk-ink-2);
+	font-weight: 500;
+	font-size: 0.75rem;
+	letter-spacing: 0;
+	text-transform: none;
+}
+.site.sk .stamp--solid {
+	background: var(--sk-ink);
+	color: #ffffff;
+}
+.site.sk .stamp--alert {
+	background: #fbeceb;
+	color: #8f2219;
+}
+
+/* campos */
+.site.sk .field {
+	min-height: 42px;
+	padding: 9px 13px;
+	border: 0;
+	border-radius: 12px;
+	background: var(--sk-surface);
+	box-shadow: inset 0 0 0 1px var(--sk-hair-2);
+	color: var(--sk-ink);
+	font-size: 0.9375rem;
+	transition: box-shadow 160ms ease;
+}
+.site.sk .field:focus {
+	background: var(--sk-surface);
+	box-shadow:
+		inset 0 0 0 1px var(--sk-accent),
+		0 0 0 4px rgba(47, 107, 224, 0.14);
+}
+.site.sk .field[aria-invalid="true"] {
+	box-shadow: inset 0 0 0 1px #c2362b;
+}
+.site.sk .field::placeholder {
+	color: var(--sk-ink-3);
+	opacity: 1;
+}
+.site.sk .field:disabled,
+.site.sk .field[readonly] {
+	background: var(--sk-ground);
+	color: var(--sk-ink-2);
+}
+.site.sk .field-prefix > span {
+	border: 0;
+	border-radius: 12px 0 0 12px;
+	background: var(--sk-mist);
+	box-shadow: inset 0 0 0 1px var(--sk-hair-2);
+	color: var(--sk-ink-3);
+}
+.site.sk .field-prefix > .field {
+	border-radius: 0 12px 12px 0;
+}
+
+/* menús, diálogos, huecos de carga y avisos */
+.site.sk .menu-panel {
+	border: 0;
+	border-radius: 16px;
+	padding: 6px;
+	background: rgba(250, 252, 254, 0.97);
+	box-shadow: var(--sk-shadow-2), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+	backdrop-filter: blur(20px) saturate(160%);
+	animation: none;
+	transition:
+		opacity 180ms var(--sk-ease-out),
+		transform 180ms var(--sk-ease-out);
+}
+@starting-style {
+	.site.sk .menu-panel {
+		opacity: 0;
+		transform: translateY(-4px) scale(0.98);
+	}
+}
+.site.sk .menu-panel [role="menuitem"] {
+	border-radius: 10px;
+	padding: 9px 12px;
+	font-weight: 450;
+	font-size: 0.875rem;
+}
+.site.sk .menu-panel [role="menuitem"]:hover,
+.site.sk .menu-panel [role="menuitem"]:focus-visible {
+	background: rgba(14, 27, 46, 0.05);
+}
+.site.sk .menu-panel [role="menuitem"].is-danger {
+	color: #b3261e;
+}
+.site.sk dialog.sheet-dialog {
+	border: 0;
+	border-radius: 24px;
+	background: var(--sk-surface);
+	box-shadow: var(--sk-shadow-3);
+	animation: none;
+	transition:
+		opacity 200ms var(--sk-ease-out),
+		transform 200ms var(--sk-ease-out);
+}
+@starting-style {
+	.site.sk dialog.sheet-dialog[open] {
+		opacity: 0;
+		transform: translateY(6px) scale(0.985);
+	}
+}
+.site.sk dialog.sheet-dialog::backdrop {
+	background: rgba(14, 27, 46, 0.42);
+	backdrop-filter: blur(2px);
+}
+.site.sk .skeleton {
+	border-radius: 10px;
+	background: var(--sk-mist);
+	animation: sk-pulse 1.4s ease-in-out infinite;
+}
+@keyframes sk-pulse {
+	50% {
+		opacity: 0.55;
+	}
+}
+.site.sk [data-sonner-toast] {
+	border: 0 !important;
+	border-radius: 14px !important;
+	box-shadow: var(--sk-shadow-2) !important;
+	background: #ffffff !important;
+	color: var(--sk-ink) !important;
+	font-weight: 450;
+}
+
+/* el riel de páginas → pestañas en píldora */
+.site.sk .page-rail {
+	gap: 4px;
+	border-bottom: 0;
+	padding: 4px;
+	border-radius: 999px;
+	background: var(--sk-mist);
+	width: fit-content;
+	max-width: 100%;
+}
+.site.sk .page-rail a {
+	height: 34px;
+	padding: 0 14px;
+	border-radius: 999px;
+	font-weight: 500;
+	font-size: 0.8125rem;
+}
+.site.sk .page-rail a[aria-current] {
+	background: var(--sk-surface);
+	box-shadow: var(--sk-shadow-1);
+}
+.site.sk .page-rail a[aria-current]::after {
+	display: none;
+}
+
+/* la tira de paradas de un pliego → «en esta página» */
+.site.sk .calling-at {
+	top: 64px;
+	border: 0;
+	background: rgba(244, 247, 251, 0.92);
+	backdrop-filter: blur(12px);
+}
+.site.sk .line-stops a,
+.site.sk .line-stops button {
+	font-weight: 500;
+	font-size: 0.8125rem;
+}
+.site.sk .line-stops .seg {
+	width: 14px;
+	height: 1px;
+	background: var(--sk-hair-2);
+}
+.site.sk .line-stops [aria-current]::after {
+	height: 2px;
+	border-radius: 2px;
+	background: var(--sk-accent);
+}
+
+/* el intercambiador de accesos: tramos de 3px redondeados */
+.site.sk .access-cell::before {
+	border-radius: 3px;
+}
+
+/* los tableros de tinta, dentro de una consola, son paneles de niebla */
+.site.sk .board {
+	background: var(--sk-mist);
+	color: var(--sk-ink);
+}
+.site.sk .board .t-body {
+	color: var(--sk-ink-2);
+}
+
+/* entradas: la familia del cielo */
+.site.sk .arrive {
+	animation: sk-rise 600ms var(--sk-ease-out) both;
+}
+
+/* el desplegable nativo: el fondo blanco del campo con la flecha del mundo */
+.site.sk select.field {
+	appearance: none;
+	padding-right: 40px;
+	background-image:
+		linear-gradient(45deg, transparent 50%, var(--sk-ink-2) 50%),
+		linear-gradient(135deg, var(--sk-ink-2) 50%, transparent 50%);
+	background-position:
+		calc(100% - 20px) 52%,
+		calc(100% - 15px) 52%;
+	background-size:
+		5px 5px,
+		5px 5px;
+	background-repeat: no-repeat;
+}
+
+/* La tira «en esta página» (`CallingAt`): pegada bajo la barra superior, un
+   enlace por sección; el punto se llena al pasarla y la actual lleva la raya
+   del acento debajo. */
+.sk .sk-onpage {
+	position: sticky;
+	top: 64px;
+	z-index: 30;
+	margin-inline: -4px;
+	padding: 6px 4px;
+	background: rgba(244, 247, 251, 0.9);
+	backdrop-filter: blur(12px) saturate(150%);
+}
+.sk .sk-onpage ol {
+	display: flex;
+	gap: 4px;
+	overflow-x: auto;
+	scrollbar-width: none;
+}
+.sk .sk-onpage ol::-webkit-scrollbar {
+	display: none;
+}
+.sk .sk-onpage a {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	height: 34px;
+	padding: 0 12px;
+	border-radius: 999px;
+	font-size: 0.8125rem;
+	font-weight: 500;
+	color: var(--sk-ink-2);
+	text-decoration: none;
+	white-space: nowrap;
+	transition:
+		background-color 160ms ease,
+		color 160ms ease;
+}
+.sk .sk-onpage a:hover {
+	color: var(--sk-ink);
+	background: rgba(14, 27, 46, 0.04);
+}
+.sk .sk-onpage a[aria-current] {
+	color: var(--sk-ink);
+	background: var(--sk-surface);
+	box-shadow: var(--sk-shadow-1);
+}
+.sk .sk-onpage-dot {
+	width: 7px;
+	height: 7px;
+	border-radius: 999px;
+	box-shadow: inset 0 0 0 1.5px #b7c3d3;
+	transition: background-color 200ms ease, box-shadow 200ms ease;
+}
+.sk .sk-onpage .is-done .sk-onpage-dot,
+.sk .sk-onpage a[aria-current] .sk-onpage-dot {
+	background: var(--sk-ink);
+	box-shadow: none;
+}
+.sk .sk-onpage a[aria-current] .sk-onpage-dot {
+	background: var(--sk-accent);
+}
+
+/* Con la barra lateral de la consola (desde lg) las pestañas de página
+   sobran: la barra ya es la navegación. */
+@media (min-width: 64rem) {
+	.site.sk .page-rail {
+		display: none;
+	}
+}
+/* Los pliegos separaban sus paradas con 4rem; como tarjetas, 1.5rem. */
+.site.sk main .gap-16 {
+	gap: 1.5rem;
+}

@@ -69,6 +69,7 @@ está lista simplemente se queda en el tag anterior.
 | `v1.5.0` | las horas de trabajo y la plantilla de correo del mapa de red (`worker/email`: banda, placa con la línea de la app, billete, tabla de datos) |
 | `v1.6.0` | los seis productos en el mundo del mapa (estilos y piezas de producto) |
 | `v1.7.0` | la tarjeta de correo en el mundo «Clear Sky» (`worker/email`: la baldosa de la app sobre el suelo azulado, tarjeta blanca, píldora azul marino, filas de datos con filetes finos); misma API, nada que cambiar en un consumidor |
+| `v1.8.0` | los seis productos en el mundo «Clear Sky»: `styles/sky.css` (copia de ondesk), el bloque «los productos en el cielo» de `product.css`, `components/sky.tsx` (Mark, AppTile), `console-kit.tsx` = el `console.tsx` de ondesk, `Card` como tarjeta blanca y `components/product-shell.tsx` con forma de consola (`ProductFrame`, `BareFrame`, `sideLinkClass`, `SideLinkBody`). **Rompe la API de `product-shell`** (fuera `ProductStrip`, `StripBrand`, `AppsMenu`, `Board`, `Mobile*`): las seis apps se repinearon ya adaptadas, y cada una importa `sky.css` entre `site.css` y `product.css` y lleva `site sk` en `<html>` |
 
 ## Las reglas de qué entra
 

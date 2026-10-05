@@ -1,21 +1,21 @@
 /**
- * El billete: la única forma de botón del mundo del mapa (ver
- * `styles/site.css`, «billetes y botones»). La API de shadcn se conserva para
- * que las seis apps sigan compilando; cada variante y cada tamaño se traducen a
- * las clases del billete, y el CSS del mundo, que va sin capa, gana a cualquier
+ * El botón. Escribe el vocabulario del billete (`ticket`, ver `styles/site.css`)
+ * y el bloque de productos de `styles/product.css` lo pinta en el mundo «Clear
+ * Sky» desde el 2026-10-04: una píldora. La API de shadcn se conserva para que
+ * las seis apps sigan compilando, y el CSS, que va sin capa, gana a cualquier
  * utilidad que una pantalla vieja ponga en `className`.
  *
- *   default      billete macizo con talón (la acción primaria)
- *   outline      billete de contorno (la secundaria)
- *   secondary    billete de contorno sobre la única tinta clara
- *   ghost        billete de contorno (el mundo no tiene botones sin forma)
- *   destructive  billete con el trazo en rojo de error: lo irreversible
- *   link         un enlace subrayado, sin forma de billete
+ *   default      píldora azul marino (la acción primaria)
+ *   outline      píldora blanca con filete (la secundaria)
+ *   secondary    píldora de niebla
+ *   ghost        sin forma hasta que se pasa por encima: los glifos de una barra
+ *   destructive  píldora roja clara: lo irreversible
+ *   link         un enlace subrayado en el acento
  *
- *   xs / sm      2.25rem: barras de herramientas y filas
- *   default      2.5rem: el billete pequeño del mundo
- *   lg / xl      3.25rem: el billete entero
- *   icon-*       el billete cuadrado para un glifo solo
+ *   xs / sm      30px: barras de herramientas y filas
+ *   default      34px
+ *   lg / xl      40px
+ *   icon-*       la píldora redonda para un glifo solo
  */
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
@@ -28,16 +28,12 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        // La acción primaria es el billete macizo con su talón, como en el resto
-        // del mundo: un formulario, una página o el riel tienen una y se reconoce
-        // por la perforación.
+        // La acción primaria: una por formulario, página o barra.
         default: "ticket--solid ticket--stub",
         destructive: "ticket--danger",
         outline: "",
-        secondary: "bg-(--paper-2)",
-        // Un glifo solo va en un billete cuadrado con su trazo, en todas las
-        // apps igual: el mundo no tiene botones sin forma.
-        ghost: "",
+        secondary: "ticket--secondary",
+        ghost: "ticket--ghost",
         link: "ticket--link",
       },
       size: {

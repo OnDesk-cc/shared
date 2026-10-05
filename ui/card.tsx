@@ -1,9 +1,10 @@
 /**
- * En el mundo del mapa no hay tarjetas: hay paradas. Un `Card` es un bloque de
- * la hoja sin caja propia; su `CardHeader` es el filete grueso con el título,
- * como la parada de una consola, y el contenido sigue debajo a todo el ancho.
- * Así, una pantalla vieja llena de tarjetas se lee como una hoja de paradas
- * sin tocarla, y una rejilla de dos tarjetas son dos paradas en columnas.
+ * La tarjeta del mundo «Clear Sky» (2026-10-04): blanca, radio de 18px, la
+ * elevación en sombra y nunca en borde. El relleno se reparte como en shadcn
+ * (la tarjeta lleva el vertical, cada parte el horizontal), porque así están
+ * escritas las pantallas de las seis apps: `Card className="py-0 gap-0"` con un
+ * `CardContent className="p-0"` deja una tabla a ras de la tarjeta, y
+ * `CardContent className="p-4"` le da su propio relleno.
  */
 import * as React from "react"
 
@@ -13,7 +14,10 @@ function Card({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card"
-      className={cn("flex min-w-0 flex-col gap-4 text-(--ink)", className)}
+      className={cn(
+        "flex min-w-0 flex-col gap-5 overflow-hidden rounded-[18px] bg-white py-5 text-(--sk-ink) shadow-(--sk-shadow-1)",
+        className
+      )}
       {...props}
     />
   )
@@ -24,7 +28,7 @@ function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card-header"
       className={cn(
-        "@container/card-header rule grid auto-rows-min grid-rows-[auto_auto] items-start gap-1.5 pt-4 has-data-[slot=card-action]:grid-cols-[1fr_auto]",
+        "@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-1 px-5 has-data-[slot=card-action]:grid-cols-[1fr_auto]",
         className
       )}
       {...props}
@@ -36,7 +40,7 @@ function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-title"
-      className={cn("t-h3 text-[1.125rem]", className)}
+      className={cn("text-[1rem] font-medium leading-snug tracking-[-0.015em] text-(--sk-ink)", className)}
       {...props}
     />
   )
@@ -46,7 +50,7 @@ function CardDescription({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-description"
-      className={cn("max-w-[72ch] text-[0.95rem] leading-snug text-(--ink-2)", className)}
+      className={cn("max-w-[72ch] text-[0.875rem] leading-relaxed text-(--sk-ink-3)", className)}
       {...props}
     />
   )
@@ -69,7 +73,7 @@ function CardContent({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-content"
-      className={cn("min-w-0", className)}
+      className={cn("min-w-0 px-5", className)}
       {...props}
     />
   )
@@ -79,7 +83,7 @@ function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-footer"
-      className={cn("rule-thin flex items-center gap-3 pt-4", className)}
+      className={cn("flex items-center gap-3 border-t border-(--sk-hair) px-5 pt-4", className)}
       {...props}
     />
   )

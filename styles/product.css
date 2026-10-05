@@ -1,5 +1,13 @@
 /*
- * El mundo del mapa de red dentro de los seis productos.
+ * El mundo dentro de los seis productos.
+ *
+ * Desde el 2026-10-04 los productos viven en el mundo «Clear Sky»: `<html>`
+ * lleva `site sk`, `styles/sky.css` (copia literal de `ondesk/src/sky.css`) se
+ * importa entre `site.css` y este archivo, y su bloque de consolas reinterpreta
+ * el vocabulario del mapa que escriben las pantallas y las primitivas. Lo que
+ * sólo tienen los productos va en el bloque «los productos en el cielo», al
+ * final de este archivo. Lo de antes de ese bloque es el mapa de red: sigue
+ * dando la estructura (y unas pocas reglas que el cielo no pisa).
  *
  * `site.css` (al lado, copia literal de `ondesk/src/site.css`) es el mundo
  * entero: papel y tinta, el trazo de 3px, las seis líneas, los billetes, los
@@ -490,10 +498,8 @@ html.site body {
 	-webkit-text-fill-color: inherit;
 	color: inherit;
 }
-/* las esquinas y las sombras del mundo viejo se retiran de golpe */
-.site .rounded-full:not(.ring):not(.presence-ring):not(.animate-spin):not([role="radio"]) {
-	border-radius: 0;
-}
+/* las sombras del mundo viejo se retiran de golpe (las esquinas redondas
+   vuelven con el cielo: ver el bloque del final) */
 .site .shadow,
 .site .shadow-sm,
 .site .shadow-md,
@@ -620,5 +626,491 @@ html.site body {
 		bottom: 0;
 		width: var(--stroke);
 		height: auto;
+	}
+}
+
+/* ══ los productos en el cielo (2026-10-04) ═════════════════════════════════
+   Lo que sólo tienen los productos, en el mundo «Clear Sky». El bloque de
+   consolas de `sky.css` ya pinta billetes, campos, sellos, tablas, menús de
+   papel y diálogos nativos; aquí va lo que pinta Radix por su cuenta, los
+   billetes que piden las barras densas y dos correcciones de raíz:
+
+   · `.site` va en `<html>`, así que los 15px del bloque de consolas encogerían
+     cada rem de Tailwind: la raíz vuelve a 100% y los 15px van en `body`;
+   · las pestañas de las pantallas son `.page-rail`, que el bloque de consolas
+     esconde desde lg (allí la barra lateral ya es la navegación): aquí se ven.
+
+   Selector `html.site.sk`: gana por especificidad al bloque de consolas y a
+   todo lo de arriba de este archivo. */
+
+html.site.sk {
+	font-size: 100%;
+	/* las esquinas vuelven: todos los niveles de radio de Tailwind leen esto */
+	--radius: 10px;
+	/* un estado es su palabra; el color sólo lo apoya */
+	--warning: #a35f00;
+	--warning-foreground: #ffffff;
+	--success: var(--sk-ink);
+	--success-foreground: #ffffff;
+	--info: var(--sk-ink-2);
+	--muted-foreground: var(--sk-ink-3);
+	--accent: var(--sk-mist);
+	--accent-foreground: var(--sk-ink);
+	--chart-1: var(--sk-accent);
+	--chart-2: #8fb3f0;
+	--chart-3: var(--sk-ink-3);
+	--chart-4: #c3cfdd;
+	--chart-5: var(--sk-haze);
+	--sidebar: #eef3f9;
+	--sidebar-foreground: var(--sk-ink);
+	--sidebar-primary: var(--sk-ink);
+	--sidebar-primary-foreground: #ffffff;
+	--sidebar-accent: #ffffff;
+	--sidebar-accent-foreground: var(--sk-ink);
+	--sidebar-border: var(--sk-hair);
+	--sidebar-ring: var(--sk-accent);
+}
+html.site.sk body {
+	background: var(--sk-ground);
+	color: var(--sk-ink);
+	font-family: var(--sk-font);
+	font-size: 15px;
+	line-height: 1.55;
+}
+
+/* los pesos del mundo viejo: el cielo no pasa de 600 */
+html.site.sk .font-black,
+html.site.sk .font-extrabold {
+	font-weight: 600;
+}
+
+/* ── billetes que piden los productos ────────────────────────────────────── */
+html.site.sk .ticket--xs {
+	min-height: 30px;
+	padding: 0 12px;
+	gap: 6px;
+	font-size: 0.8125rem;
+}
+html.site.sk .ticket--stub.ticket--xs {
+	padding-left: 12px;
+}
+html.site.sk .ticket--glyph.ticket--xs {
+	width: 30px;
+	min-height: 30px;
+	padding: 0;
+}
+html.site.sk .ticket--glyph.ticket--lg {
+	width: 44px;
+	min-height: 44px;
+	padding: 0;
+}
+/* sin forma hasta que se pasa por encima: los glifos de una barra */
+html.site.sk .ticket--ghost {
+	background: transparent;
+	box-shadow: none;
+	color: var(--sk-ink-2);
+}
+html.site.sk .ticket--ghost:hover,
+html.site.sk .ticket--ghost[aria-expanded="true"],
+html.site.sk .ticket--ghost[data-state="open"] {
+	background: rgba(14, 27, 46, 0.05);
+	color: var(--sk-ink);
+}
+html.site.sk .ticket--secondary {
+	background: var(--sk-mist);
+	box-shadow: none;
+}
+html.site.sk .ticket--secondary:hover {
+	background: var(--sk-haze);
+}
+/* un enlace que parece enlace */
+html.site.sk .ticket--link {
+	min-height: 0;
+	padding: 0;
+	border-radius: 0;
+	background: transparent;
+	box-shadow: none;
+	color: var(--sk-accent);
+	text-decoration: underline;
+	text-decoration-thickness: 1px;
+	text-underline-offset: 0.2em;
+}
+html.site.sk .ticket--link:hover,
+html.site.sk .ticket--link:active:not(:disabled) {
+	background: transparent;
+	color: var(--sk-ink);
+	transform: none;
+}
+
+/* ── pestañas: la píldora de niebla con la elegida en blanco ─────────────── */
+html.site.sk .page-rail {
+	display: flex;
+}
+html.site.sk .page-rail > button {
+	height: 32px;
+	padding: 0 14px;
+	border-radius: 999px;
+	font-weight: 500;
+	font-size: 0.8125rem;
+	color: var(--sk-ink-2);
+	transition:
+		background-color 160ms ease,
+		color 160ms ease,
+		box-shadow 160ms ease;
+}
+html.site.sk .page-rail > button:hover {
+	color: var(--sk-ink);
+}
+html.site.sk .page-rail > button[aria-selected="true"] {
+	background: var(--sk-surface);
+	color: var(--sk-ink);
+	box-shadow: var(--sk-shadow-1);
+}
+html.site.sk .page-rail > button[aria-selected="true"]::after,
+html.site.sk .page-rail a[aria-current]::after {
+	display: none;
+}
+/* pestañas verticales: una lista, no una píldora */
+html.site.sk .page-rail[data-orientation="vertical"] {
+	flex-direction: column;
+	align-items: stretch;
+	width: auto;
+	border-radius: 14px;
+}
+html.site.sk .page-rail[data-orientation="vertical"] > button {
+	justify-content: flex-start;
+	border-radius: 10px;
+}
+/* el riel apilado (las secciones de una página larga, desde lg) */
+@media (min-width: 64rem) {
+	html.site.sk .lg\:page-rail--stack {
+		flex-direction: column;
+		align-items: stretch;
+		width: auto;
+		padding: 0;
+		gap: 2px;
+		border-radius: 0;
+		background: transparent;
+	}
+	html.site.sk .lg\:page-rail--stack > button,
+	html.site.sk .lg\:page-rail--stack > a {
+		height: auto;
+		align-items: flex-start;
+		padding: 8px 12px;
+		border-bottom: 0;
+		border-radius: 10px;
+	}
+	html.site.sk .lg\:page-rail--stack > button[aria-selected="true"],
+	html.site.sk .lg\:page-rail--stack > a[aria-current] {
+		background: var(--sk-surface);
+		box-shadow: var(--sk-shadow-1);
+	}
+}
+
+/* ── el panel de Radix (menú, select, popover, hover card, command) ──────── */
+html.site.sk .menu-paper {
+	border: 0;
+	border-radius: 16px;
+	padding: 6px;
+	background: rgba(250, 252, 254, 0.97);
+	box-shadow: var(--sk-shadow-2), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+	backdrop-filter: blur(20px) saturate(160%);
+	transform-origin: var(--radix-popper-transform-origin, top);
+	animation: sk-pop-in 160ms var(--sk-ease-out) both;
+}
+@keyframes sk-pop-in {
+	from {
+		opacity: 0;
+		transform: translateY(-4px) scale(0.98);
+	}
+}
+html.site.sk .menu-paper [role="menuitem"],
+html.site.sk .menu-paper [role="menuitemcheckbox"],
+html.site.sk .menu-paper [role="menuitemradio"],
+html.site.sk .menu-paper [role="option"],
+html.site.sk .menu-paper [cmdk-item] {
+	gap: 10px;
+	padding: 8px 10px;
+	border-radius: 10px;
+	font-weight: 450;
+	font-size: 0.875rem;
+	color: var(--sk-ink);
+}
+html.site.sk .menu-paper [role="menuitem"]:hover,
+html.site.sk .menu-paper [role="menuitem"]:focus-visible,
+html.site.sk .menu-paper [role="menuitem"][data-highlighted],
+html.site.sk .menu-paper [role="menuitemcheckbox"][data-highlighted],
+html.site.sk .menu-paper [role="menuitemradio"][data-highlighted],
+html.site.sk .menu-paper [role="option"][data-highlighted],
+html.site.sk .menu-paper [cmdk-item][data-selected="true"] {
+	background: rgba(14, 27, 46, 0.05);
+	color: var(--sk-ink);
+}
+html.site.sk .menu-paper [role="menuitem"][data-variant="destructive"],
+html.site.sk .menu-paper [role="menuitem"].is-danger {
+	color: #b3261e;
+}
+html.site.sk .menu-paper [data-slot$="-label"],
+html.site.sk .menu-paper [cmdk-group-heading] {
+	font-family: var(--sk-font);
+	font-weight: 500;
+	font-size: 0.75rem;
+	letter-spacing: 0;
+	text-transform: none;
+	color: var(--sk-ink-3);
+	padding: 8px 10px 4px;
+}
+html.site.sk .menu-paper [data-slot$="-separator"],
+html.site.sk .menu-paper [cmdk-separator] {
+	margin: 4px 0;
+	border-top-color: var(--sk-hair);
+}
+html.site.sk .menu-paper.menu-paper--content {
+	padding: 16px;
+	background: var(--sk-surface);
+}
+
+/* ── el tooltip ──────────────────────────────────────────────────────────── */
+html.site.sk .tip-paper {
+	border-radius: 8px;
+	padding: 5px 9px;
+	background: var(--sk-ink);
+	color: #ffffff;
+	font-family: var(--sk-font);
+	font-weight: 450;
+	font-size: 0.75rem;
+	letter-spacing: 0;
+	animation: sk-pop-in 120ms var(--sk-ease-out) both;
+}
+
+/* ── controles que Radix pinta por su cuenta ─────────────────────────────── */
+html.site.sk .check-box {
+	width: 18px;
+	height: 18px;
+	border: 0;
+	border-radius: 5px;
+	background: var(--sk-surface);
+	color: #ffffff;
+	box-shadow: inset 0 0 0 1.5px #b7c3d3;
+	transition:
+		background-color 140ms ease,
+		box-shadow 140ms ease;
+}
+html.site.sk .check-box[data-state="checked"],
+html.site.sk .check-box[data-state="indeterminate"] {
+	background: var(--sk-ink);
+	box-shadow: none;
+}
+html.site.sk .switch-track {
+	width: 36px;
+	height: 20px;
+	border: 0;
+	border-radius: 999px;
+	background: #d5dfeb;
+	transition: background-color 180ms ease;
+}
+html.site.sk .switch-track[data-size="sm"] {
+	width: 30px;
+	height: 17px;
+}
+html.site.sk .switch-track[data-state="checked"] {
+	background: var(--sk-ink);
+}
+html.site.sk .switch-thumb,
+html.site.sk .switch-track[data-state="checked"] .switch-thumb {
+	width: 16px;
+	height: 16px;
+	margin: 0 2px;
+	border-radius: 999px;
+	background: #ffffff;
+	box-shadow: 0 1px 2px rgba(17, 38, 72, 0.25);
+	transition: transform 200ms var(--sk-ease-out);
+}
+html.site.sk .switch-track[data-state="checked"] .switch-thumb {
+	transform: translateX(16px);
+}
+html.site.sk .switch-track[data-size="sm"] .switch-thumb {
+	width: 13px;
+	height: 13px;
+}
+html.site.sk .switch-track[data-size="sm"][data-state="checked"] .switch-thumb {
+	transform: translateX(13px);
+}
+html.site.sk .progress-track {
+	height: 6px;
+	border: 0;
+	border-radius: 999px;
+	background: var(--sk-haze);
+}
+html.site.sk .progress-fill {
+	border-radius: 999px;
+	background: var(--sk-accent);
+}
+
+/* ── el diálogo y la hoja lateral de Radix ───────────────────────────────── */
+html.site.sk .scrim {
+	background: rgba(14, 27, 46, 0.42);
+	backdrop-filter: blur(2px);
+}
+html.site.sk .sheet-paper {
+	border: 0;
+	border-radius: 24px;
+	background: var(--sk-surface);
+	color: var(--sk-ink);
+	box-shadow: var(--sk-shadow-3);
+	animation: sk-pop-in 200ms var(--sk-ease-out) both;
+}
+html.site.sk .sheet-paper--side {
+	animation: slide-in 260ms var(--sk-ease-out) both;
+}
+html.site.sk .sheet-paper--right {
+	border-radius: 24px 0 0 24px;
+}
+html.site.sk .sheet-paper--left {
+	border-radius: 0 24px 24px 0;
+}
+html.site.sk .sheet-paper--top {
+	border-radius: 0 0 24px 24px;
+}
+html.site.sk .sheet-paper--bottom {
+	border-radius: 24px 24px 0 0;
+}
+
+/* ── la cara de una persona: un círculo de bruma ─────────────────────────── */
+html.site.sk .monogram {
+	border: 0;
+	border-radius: 999px;
+	background: var(--sk-haze);
+	color: var(--sk-ink-2);
+}
+html.site.sk .monogram [data-slot="avatar-fallback"] {
+	border-radius: 999px;
+	background: var(--sk-haze);
+	color: var(--sk-ink-2);
+	font-family: var(--sk-font);
+	font-weight: 600;
+}
+html.site.sk [data-slot="avatar-badge"] {
+	border-radius: 999px;
+}
+
+/* ── la rejilla de cifras: tarjetas sueltas ──────────────────────────────── */
+html.site.sk .zone {
+	gap: 16px;
+	border: 0;
+	background: transparent;
+}
+html.site.sk .zone > * {
+	border-radius: 18px;
+	background: var(--sk-surface);
+	box-shadow: var(--sk-shadow-1);
+}
+
+/* ── lo heredado ─────────────────────────────────────────────────────────── */
+html.site.sk .console-label {
+	font-family: var(--sk-font);
+	font-weight: 500;
+	font-size: 0.8125rem;
+	letter-spacing: 0;
+	text-transform: none;
+	color: var(--sk-ink-3);
+}
+html.site.sk .border-dashed {
+	border-style: dashed;
+	border-color: var(--sk-hair-2);
+}
+/* Un campo con una anchura de Tailwind (`w-48`) la conserva: el 100% del mapa
+   va sin capa y la pisaba, así que una barra de filtros se apilaba entera. */
+html.site.sk .field[class^="w-"],
+html.site.sk .field[class*=" w-"],
+html.site.sk .field[class*=":w-"] {
+	width: revert-layer;
+}
+html.site.sk .field--sm {
+	min-height: 34px;
+	padding: 6px 12px;
+	font-size: 0.875rem;
+}
+html.site.sk .field--search {
+	padding-left: 36px;
+	border-radius: 999px;
+}
+
+/* Las rejillas de divisores de 1px del mundo viejo (`gap-px` sobre
+   `bg-border`): tarjetas sueltas. La elegida (un filtro) lleva el aro de tinta. */
+html.site.sk .gap-px.bg-border {
+	gap: 12px;
+	border: 0;
+	background: transparent;
+}
+html.site.sk .gap-px.bg-border > * {
+	border-radius: 16px;
+	background: var(--sk-surface);
+	box-shadow: var(--sk-shadow-1);
+	transition: box-shadow 180ms ease;
+}
+html.site.sk .gap-px.bg-border > button:hover {
+	box-shadow: var(--sk-shadow-2);
+}
+html.site.sk .gap-px.bg-border > [aria-pressed="true"] {
+	box-shadow:
+		inset 0 0 0 1.5px var(--sk-ink),
+		var(--sk-shadow-1);
+}
+
+/* Una caja con borde y fondo de tarjeta (`border bg-card`) quería ser una
+   tarjeta: la elevación es sombra, nunca borde y sombra a la vez. */
+html.site.sk .border.bg-card {
+	border-color: transparent;
+	border-radius: 16px;
+	box-shadow: var(--sk-shadow-1);
+}
+
+/* Un hueco vacío dentro de una caja de filete toma el relleno de la caja. */
+html.site.sk .border > [data-slot="empty-state"] {
+	padding-inline: 20px;
+}
+
+/* Los rótulos de telemetría (monoespaciada en versalitas espaciadas): una
+   palabra en la voz del cielo, en caja de frase. */
+html.site.sk .font-mono.uppercase,
+html.site.sk .uppercase[class*="tracking-"] {
+	font-family: var(--sk-font);
+	text-transform: none;
+	letter-spacing: 0;
+}
+/* La monoespaciada pequeña (9 a 11px) era telemetría, no un identificador: la
+   voz del cielo con cifras tabulares. Los identificadores de 12px en adelante
+   (#4470, claves, slugs) siguen en Geist Mono. */
+html.site.sk .font-mono.text-\[9px\],
+html.site.sk .font-mono.text-\[10px\],
+html.site.sk .font-mono.text-\[11px\] {
+	font-family: var(--sk-font);
+	font-variant-numeric: tabular-nums;
+}
+
+/* En la barra superior los botones de glifo no llevan forma hasta que se pasa
+   por encima, como Nova: la barra es una fila tranquila. */
+html.site.sk .sk-header .ticket:not(.ticket--solid) {
+	background: transparent;
+	box-shadow: none;
+}
+html.site.sk .sk-header .ticket:not(.ticket--solid):hover,
+html.site.sk .sk-header .ticket:not(.ticket--solid)[aria-expanded="true"],
+html.site.sk .sk-header .ticket:not(.ticket--solid)[data-state="open"] {
+	background: rgba(14, 27, 46, 0.05);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	html.site.sk .menu-paper,
+	html.site.sk .tip-paper,
+	html.site.sk .sheet-paper,
+	html.site.sk .sheet-paper--side {
+		animation: none;
+	}
+	html.site.sk .switch-thumb,
+	html.site.sk .switch-track,
+	html.site.sk .check-box {
+		transition: none;
 	}
 }
