@@ -73,7 +73,7 @@ function SheetContent({
       >
         {children}
         {showCloseButton && (
-          <SheetPrimitive.Close className="ticket ticket--glyph absolute top-3 right-3" aria-label="Close">
+          <SheetPrimitive.Close className="ticket ticket--glyph absolute top-4 right-4" aria-label="Close">
             <XIcon className="size-4" aria-hidden="true" />
           </SheetPrimitive.Close>
         )}
@@ -86,7 +86,7 @@ function SheetHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="sheet-header"
-      className={cn("flex flex-col gap-1 border-b-[length:var(--stroke)] border-(--ink) px-5 py-4 pr-14", className)}
+      className={cn("flex flex-col gap-1 border-b border-(--sk-hair) px-6 pb-4 pt-6 pr-16", className)}
       {...props}
     />
   )
@@ -96,7 +96,7 @@ function SheetFooter({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="sheet-footer"
-      className={cn("rule-thin mt-auto flex flex-col gap-2 px-5 py-4", className)}
+      className={cn("mt-auto flex flex-col gap-2 border-t border-(--sk-hair) px-6 py-4", className)}
       {...props}
     />
   )
@@ -109,7 +109,7 @@ function SheetTitle({
   return (
     <SheetPrimitive.Title
       data-slot="sheet-title"
-      className={cn("t-h3 text-[1.25rem]", className)}
+      className={cn("text-[1.125rem] font-medium leading-snug tracking-[-0.015em] text-(--sk-ink)", className)}
       {...props}
     />
   )
@@ -122,7 +122,7 @@ function SheetDescription({
   return (
     <SheetPrimitive.Description
       data-slot="sheet-description"
-      className={cn("text-[0.95rem] leading-snug text-(--ink-2)", className)}
+      className={cn("text-[0.9375rem] leading-relaxed text-(--sk-ink-2)", className)}
       {...props}
     />
   )

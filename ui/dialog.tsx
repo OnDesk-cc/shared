@@ -62,7 +62,7 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          "sheet-paper fixed top-[50%] left-[50%] z-50 flex max-h-[calc(100vh-3rem)] w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] flex-col gap-4 overflow-y-auto p-5 outline-none sm:max-w-lg",
+          "sheet-paper fixed top-[50%] left-[50%] z-50 flex max-h-[calc(100vh-3rem)] w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] flex-col gap-5 overflow-y-auto p-6 outline-none sm:max-w-lg",
           className
         )}
         {...props}
@@ -71,7 +71,7 @@ function DialogContent({
         {showCloseButton && (
           <DialogPrimitive.Close
             data-slot="dialog-close"
-            className="ticket ticket--glyph absolute top-3 right-3"
+            className="ticket ticket--glyph absolute top-4 right-4"
             aria-label="Close"
           >
             <XIcon className="size-4" aria-hidden="true" />
@@ -82,13 +82,13 @@ function DialogContent({
   )
 }
 
-/** La cabecera: título y descripción, cerrados por el filete grueso; deja sitio al aspa. */
+/** La cabecera: título y descripción, sin filete; deja sitio al aspa. */
 function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="dialog-header"
       className={cn(
-        "-mx-5 -mt-5 flex flex-col gap-1 border-b-[length:var(--stroke)] border-(--ink) px-5 py-4 pr-14 text-left",
+        "flex flex-col gap-1.5 pr-10 text-left",
         className
       )}
       {...props}
@@ -108,7 +108,7 @@ function DialogFooter({
     <div
       data-slot="dialog-footer"
       className={cn(
-        "rule-thin -mx-5 -mb-5 flex flex-col-reverse gap-2 px-5 py-4 sm:flex-row sm:justify-end",
+        "flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:justify-end",
         className
       )}
       {...props}
@@ -130,7 +130,7 @@ function DialogTitle({
   return (
     <DialogPrimitive.Title
       data-slot="dialog-title"
-      className={cn("t-h3 text-[1.25rem]", className)}
+      className={cn("text-[1.125rem] font-medium leading-snug tracking-[-0.015em] text-(--sk-ink)", className)}
       {...props}
     />
   )
@@ -143,7 +143,7 @@ function DialogDescription({
   return (
     <DialogPrimitive.Description
       data-slot="dialog-description"
-      className={cn("text-[0.95rem] leading-snug text-(--ink-2)", className)}
+      className={cn("text-[0.9375rem] leading-relaxed text-(--sk-ink-2)", className)}
       {...props}
     />
   )

@@ -15,8 +15,8 @@
  * una las cablea en su `shell/workspace-shell.tsx` con sus `Link`, sus hooks y
  * sus destinos. `<html>` ya lleva `site sk` (index.html de cada app).
  */
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowUpRight, Check, ChevronDown, Menu, X, type LucideIcon } from "lucide-react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { ArrowUpRight, Check, ChevronDown, ChevronRight, Clock, LogOut, Menu, ShieldCheck, UserRound, X, type LucideIcon } from "lucide-react";
 import { APP_NAME, PRODUCT_IDS, type ProductId } from "../lib/lines";
 import { useDismiss } from "../hooks/map";
 import {
@@ -392,12 +392,19 @@ export function WorkspaceSwitch<T extends { id: string; name: string; slug: stri
 
 // ─── la cuenta ───────────────────────────────────────────────────────────────
 
+/** El icono de una entrada de un menú de vidrio: el mismo trazo y tinta que en la barra lateral. */
+export function MenuIcon({ icon: Icon }: { icon: LucideIcon }) {
+	return <Icon className="size-4 shrink-0 text-(--sk-ink-3)" strokeWidth={1.75} aria-hidden="true" />;
+}
+
 /**
- * El menú de cuenta: la cara de quien ha entrado con su estado, que abre un
- * menú de vidrio con el selector de estado, los destinos que la app quiera
- * (Profile, Security en OnDesk…) y la salida. El punto muestra la ELECCIÓN, no
- * el resultado: una persona invisible tiene derecho a ver que es invisible,
- * que es justo lo que nadie más ve.
+ * El menú de cuenta, el mismo que el de la consola de ondesk: la cara de quien
+ * ha entrado con su estado, que abre un menú de vidrio con el selector de
+ * estado, los destinos propios de la app (`links`, cada uno con su `MenuIcon`),
+ * el grupo «Account» con las páginas de la cuenta en OnDesk (Profile, Security,
+ * Working hours) y la salida. El punto muestra la ELECCIÓN, no el resultado: una
+ * persona invisible tiene derecho a ver que es invisible, que es justo lo que
+ * nadie más ve.
  */
 export function AccountMenu({
 	name,
@@ -407,6 +414,7 @@ export function AccountMenu({
 	onChooseStatus,
 	choosing = false,
 	links,
+	ondeskHref,
 	onSignOut,
 	signingOut = false,
 }: {
@@ -416,16 +424,26 @@ export function AccountMenu({
 	presence: OwnPresence | undefined;
 	onChooseStatus: (status: PresenceStatus) => void;
 	choosing?: boolean;
-	/** Filas `role="menuitem"` (enlaces o botones) entre el estado y la salida. */
+	/** Filas `role="menuitem"` de la app (enlaces o botones, con su `MenuIcon`) entre el estado y la cuenta. */
 	links?: ReactNode;
+	/** El origen de ondesk.cc: el grupo «Account» lleva a sus páginas de la cuenta. */
+	ondeskHref: string;
 	onSignOut: () => void;
 	signingOut?: boolean;
 }) {
 	const [open, setOpen] = useState(false);
+	// «Account» es un grupo, no un destino, como en la consola: se abre al
+	// pulsarlo y vuelve a plegarse cada vez que el menú se cierra.
+	const [accountOpen, setAccountOpen] = useState(false);
 	const box = useRef<HTMLDivElement>(null);
 	const trigger = useRef<HTMLButtonElement>(null);
-	useDismiss(open, box, trigger, () => setOpen(false));
+	const close = () => {
+		setOpen(false);
+		setAccountOpen(false);
+	};
+	useDismiss(open, box, trigger, close);
 	const chosen = presence?.status ?? "online";
+	const groupId = `account-group-${useId().replace(/:/g, "")}`;
 
 	return (
 		<div ref={box} className="relative">
@@ -462,8 +480,37 @@ export function AccountMenu({
 						<PresenceChoices presence={presence} onChoose={onChooseStatus} disabled={choosing} />
 					</div>
 					<div className="mt-1 border-t border-(--sk-hair) pt-1">
-						{links && <div onClick={() => setOpen(false)}>{links}</div>}
+						{links && <div onClick={close}>{links}</div>}
+						<button type="button" role="menuitem" aria-expanded={accountOpen} aria-controls={groupId} onClick={() => setAccountOpen((v) => !v)}>
+							<MenuIcon icon={UserRound} />
+							<span className="flex-1">Account</span>
+							<ChevronRight
+								className={`size-3.5 shrink-0 text-(--sk-ink-3) transition-transform duration-200 ${accountOpen ? "rotate-90" : ""}`}
+								strokeWidth={1.75}
+								aria-hidden="true"
+							/>
+						</button>
+						{accountOpen && (
+							<div id={groupId} className="ml-5 border-l border-(--sk-hair) pl-1" onClick={close}>
+								<a role="menuitem" href={`${ondeskHref}/account`}>
+									<MenuIcon icon={UserRound} />
+									<span className="flex-1">Profile</span>
+									<ArrowUpRight className="size-3.5 text-(--sk-ink-3)" strokeWidth={1.75} aria-hidden="true" />
+								</a>
+								<a role="menuitem" href={`${ondeskHref}/account/security`}>
+									<MenuIcon icon={ShieldCheck} />
+									<span className="flex-1">Security</span>
+									<ArrowUpRight className="size-3.5 text-(--sk-ink-3)" strokeWidth={1.75} aria-hidden="true" />
+								</a>
+								<a role="menuitem" href={`${ondeskHref}/account/hours`}>
+									<MenuIcon icon={Clock} />
+									<span className="flex-1">Working hours</span>
+									<ArrowUpRight className="size-3.5 text-(--sk-ink-3)" strokeWidth={1.75} aria-hidden="true" />
+								</a>
+							</div>
+						)}
 						<button type="button" role="menuitem" disabled={signingOut} onClick={onSignOut}>
+							<MenuIcon icon={LogOut} />
 							{signingOut ? "Signing out…" : "Sign out"}
 						</button>
 					</div>

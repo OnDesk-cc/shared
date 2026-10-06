@@ -60,7 +60,7 @@ function AlertDialogContent({
         data-slot="alert-dialog-content"
         data-size={size}
         className={cn(
-          "sheet-paper group/alert-dialog-content fixed top-[50%] left-[50%] z-50 flex w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] flex-col gap-4 p-5 outline-none data-[size=sm]:max-w-xs data-[size=default]:sm:max-w-lg",
+          "sheet-paper group/alert-dialog-content fixed top-[50%] left-[50%] z-50 flex w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] flex-col gap-5 p-6 outline-none data-[size=sm]:max-w-xs data-[size=default]:sm:max-w-lg",
           className
         )}
         {...props}
@@ -77,7 +77,7 @@ function AlertDialogHeader({
     <div
       data-slot="alert-dialog-header"
       className={cn(
-        "-mx-5 -mt-5 flex flex-col gap-1 border-b-[length:var(--stroke)] border-(--ink) px-5 py-4 text-left",
+        "flex flex-col gap-1.5 text-left",
         className
       )}
       {...props}
@@ -93,7 +93,7 @@ function AlertDialogFooter({
     <div
       data-slot="alert-dialog-footer"
       className={cn(
-        "rule-thin -mx-5 -mb-5 flex flex-col-reverse gap-2 px-5 py-4 sm:flex-row sm:justify-end",
+        "flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:justify-end",
         className
       )}
       {...props}
@@ -108,7 +108,7 @@ function AlertDialogTitle({
   return (
     <AlertDialogPrimitive.Title
       data-slot="alert-dialog-title"
-      className={cn("t-h3 text-[1.25rem]", className)}
+      className={cn("text-[1.125rem] font-medium leading-snug tracking-[-0.015em] text-(--sk-ink)", className)}
       {...props}
     />
   )
@@ -121,7 +121,7 @@ function AlertDialogDescription({
   return (
     <AlertDialogPrimitive.Description
       data-slot="alert-dialog-description"
-      className={cn("text-[0.95rem] leading-snug text-(--ink-2)", className)}
+      className={cn("text-[0.9375rem] leading-relaxed text-(--sk-ink-2)", className)}
       {...props}
     />
   )

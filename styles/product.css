@@ -960,6 +960,13 @@ html.site.sk .sheet-paper {
 	box-shadow: var(--sk-shadow-3);
 	animation: sk-pop-in 200ms var(--sk-ease-out) both;
 }
+/* Radix lleva el foco al panel al abrirlo: el panel no es un control, así que
+   no lleva anillo (era el borde azul alrededor del diálogo y de la hoja). Los
+   controles de dentro conservan el suyo. */
+html.site.sk .sheet-paper:focus,
+html.site.sk .sheet-paper:focus-visible {
+	outline: none;
+}
 html.site.sk .sheet-paper--side {
 	animation: slide-in 260ms var(--sk-ease-out) both;
 }
@@ -1099,6 +1106,42 @@ html.site.sk .sk-header .ticket:not(.ticket--solid):hover,
 html.site.sk .sk-header .ticket:not(.ticket--solid)[aria-expanded="true"],
 html.site.sk .sk-header .ticket:not(.ticket--solid)[data-state="open"] {
 	background: rgba(14, 27, 46, 0.05);
+}
+
+/* ── el buscador de la barra superior (`TopbarSearch`) ──────────────────────
+   Una píldora blanca de 40px con filete fino, el mismo alto que los botones de
+   la barra; el foco la rodea de acento. Una clase propia y no `.field`: el
+   campo de formulario es otra cosa y no debe cambiar cuando cambie éste. */
+html.site.sk .sk-topsearch {
+	width: 100%;
+	height: 40px;
+	padding: 0 16px 0 40px;
+	border: 0;
+	border-radius: 999px;
+	background: var(--sk-surface);
+	box-shadow: inset 0 0 0 1px var(--sk-hair-2);
+	font: inherit;
+	font-size: 0.875rem;
+	color: var(--sk-ink);
+	transition: box-shadow 150ms ease;
+	-webkit-appearance: none;
+	appearance: none;
+}
+html.site.sk .sk-topsearch::placeholder {
+	color: var(--sk-ink-3);
+}
+html.site.sk .sk-topsearch:hover {
+	box-shadow: inset 0 0 0 1px rgba(14, 27, 46, 0.22);
+}
+html.site.sk .sk-topsearch:focus {
+	outline: none;
+	box-shadow:
+		inset 0 0 0 1.5px var(--sk-accent),
+		0 0 0 4px rgba(47, 107, 224, 0.12);
+}
+html.site.sk .sk-topsearch::-webkit-search-cancel-button {
+	-webkit-appearance: none;
+	appearance: none;
 }
 
 /* ── filas: las listas de los paneles (`RowList` + `rowClass`) ──────────────

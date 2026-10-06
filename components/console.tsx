@@ -19,6 +19,7 @@
  *                  vivo debajo y su única acción a la derecha
  *   textLinkClass  el enlace de texto de la consola: acento, subrayado al pasar
  *   LinkArrow      su flecha, que avanza al pasar
+ *   ChartTooltip   el tooltip de recharts: tarjeta blanca, una fila por serie
  *   RowList        una lista de filas con filete fino, dentro del relleno
  *   rowClass       la fila que es un enlace o un botón (se pone en el `<Link>`
  *                  de cada app: shared no conoce sus rutas)
@@ -166,6 +167,69 @@ export function LinkArrow() {
 			strokeWidth={1.75}
 			aria-hidden="true"
 		/>
+	);
+}
+
+// ─── el tooltip de los gráficos ──────────────────────────────────────────────
+
+/** Las marcas de los ejes de recharts: la voz del cielo, en tinta terciaria. */
+export const chartTick = { fill: "var(--sk-ink-3)", fontSize: 12, fontFamily: "var(--sk-font)" };
+/** La leyenda de recharts (`<Legend wrapperStyle={chartLegend} />`): la misma voz, en tinta secundaria. */
+export const chartLegend = { fontSize: 12, fontFamily: "var(--sk-font)", color: "var(--sk-ink-2)" };
+
+type TooltipItem = {
+	name?: string | number;
+	value?: number | string | Array<number | string>;
+	color?: string;
+	stroke?: string;
+	fill?: string;
+	dataKey?: string | number | ((obj: unknown) => unknown);
+	payload?: { fill?: string } & Record<string, unknown>;
+};
+
+/**
+ * El tooltip de recharts en el mundo del cielo: una tarjeta blanca con su
+ * sombra, la etiqueta arriba y una fila por serie con su trazo, su nombre y la
+ * cifra tabular. Se monta con `<Tooltip content={<ChartTooltip />} />` y respeta
+ * el `formatter` y el `labelFormatter` que ya lleve el `<Tooltip>` (recharts se
+ * los pasa al contenido).
+ */
+export function ChartTooltip({
+	active,
+	payload,
+	label,
+	formatter,
+	labelFormatter,
+}: {
+	active?: boolean;
+	payload?: TooltipItem[];
+	label?: ReactNode;
+	// La firma de recharts: (value, name, item, index, payload) → valor o [valor, nombre].
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	formatter?: (...args: any[]) => ReactNode | [ReactNode, ReactNode];
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	labelFormatter?: (...args: any[]) => ReactNode;
+}) {
+	if (!active || !payload?.length) return null;
+	const heading = labelFormatter ? labelFormatter(label, payload) : label;
+	return (
+		<div className="min-w-36 rounded-[12px] bg-white px-3 py-2.5 text-[0.8125rem] shadow-(--sk-shadow-2)">
+			{heading !== undefined && heading !== null && heading !== "" && <p className="mb-1.5 font-medium text-(--sk-ink)">{heading}</p>}
+			<ul className="flex flex-col gap-1">
+				{payload.map((item, i) => {
+					const raw = formatter ? formatter(item.value, item.name, item, i, payload) : item.value;
+					const [value, name] = Array.isArray(raw) && raw.length === 2 && !Array.isArray(item.value) ? raw : [raw, item.name];
+					const color = item.color ?? item.stroke ?? item.fill ?? item.payload?.fill ?? "var(--sk-ink-3)";
+					return (
+						<li key={`${String(item.dataKey ?? item.name)}-${i}`} className="flex items-center gap-2 text-(--sk-ink-2)">
+							<span className="h-0.75 w-3 shrink-0 rounded-full" style={{ background: color }} aria-hidden="true" />
+							<span className="flex-1">{name as ReactNode}</span>
+							<span className="font-medium text-(--sk-ink) tabular-nums">{value as ReactNode}</span>
+						</li>
+					);
+				})}
+			</ul>
+		</div>
 	);
 }
 
