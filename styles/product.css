@@ -1101,7 +1101,92 @@ html.site.sk .sk-header .ticket:not(.ticket--solid)[data-state="open"] {
 	background: rgba(14, 27, 46, 0.05);
 }
 
+/* ── filas: las listas de los paneles (`RowList` + `rowClass`) ──────────────
+   El ritmo de las tablas de la consola: un filete fino entre filas y el fondo
+   de niebla al pasar, plano como el de `fare tr.is-link`. La lista sobresale
+   12px a cada lado del relleno de la tarjeta, así el texto queda alineado con
+   el título y el fondo al pasar respira. Sin movimiento: una fila se pasa
+   decenas de veces al día, sólo cambia el fondo. */
+html.site.sk .sk-rows {
+	display: flex;
+	flex-direction: column;
+	margin-inline: -12px;
+	margin-block: -4px;
+}
+html.site.sk .sk-rows > li + li {
+	border-top: 1px solid var(--sk-hair);
+}
+html.site.sk .sk-row {
+	display: flex;
+	width: 100%;
+	min-height: 56px;
+	align-items: center;
+	gap: 12px;
+	padding: 10px 12px;
+	border-radius: 12px;
+	color: var(--sk-ink);
+	text-align: left;
+	text-decoration: none;
+	cursor: pointer;
+	transition: background-color 150ms ease;
+}
+html.site.sk .sk-row--static {
+	cursor: default;
+}
+@media (hover: hover) and (pointer: fine) {
+	html.site.sk .sk-row:not(.sk-row--static):hover {
+		background: var(--sk-ground);
+	}
+}
+html.site.sk .sk-row:focus-visible {
+	outline: 2px solid var(--sk-accent);
+	outline-offset: -2px;
+}
+html.site.sk .sk-row-icon {
+	display: inline-flex;
+	width: 36px;
+	height: 36px;
+	flex-shrink: 0;
+	align-items: center;
+	justify-content: center;
+	border-radius: 10px;
+	background: var(--sk-ground);
+	color: var(--sk-ink-2);
+}
+html.site.sk .sk-row-title {
+	display: block;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 0.9375rem;
+	font-weight: 500;
+	line-height: 1.35;
+	color: var(--sk-ink);
+}
+html.site.sk .sk-row-sub {
+	display: block;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	margin-top: 2px;
+	font-size: 0.8125rem;
+	line-height: 1.4;
+	color: var(--sk-ink-3);
+}
+html.site.sk .sk-row-end {
+	display: inline-flex;
+	flex-shrink: 0;
+	align-items: center;
+	gap: 8px;
+	font-size: 0.8125rem;
+	font-variant-numeric: tabular-nums;
+	color: var(--sk-ink-3);
+}
+
 @media (prefers-reduced-motion: reduce) {
+	html.site.sk .sk-row {
+		transition: none;
+	}
 	html.site.sk .menu-paper,
 	html.site.sk .tip-paper,
 	html.site.sk .sheet-paper,

@@ -7,14 +7,29 @@
  *   PageHeader   el titular de la página, su frase y su única acción
  *   PanelHeader  el titular de un bloque, con lo que haga falta a la derecha
  *   StatGrid     una rejilla de cifras
- *   StatTile     una tarjeta blanca: rótulo, cifra, nota
+ *   StatTile     una tarjeta blanca: rótulo, cifra, nota y su icono en un círculo
  *   EmptyState   una frase que nombra el hueco y otra que dice cómo se llena
  *   ConsoleTag   un rótulo pequeño
+ *
+ * Y, desde el 2026-10-06, las piezas con las que la consola de ondesk compone
+ * su inicio, para que los seis paneles de producto se lean igual que ella en
+ * vez de inventar cada uno su caja y su fila:
+ *
+ *   Panel          la tarjeta de sección de la consola (`Section`): título, dato
+ *                  vivo debajo y su única acción a la derecha
+ *   textLinkClass  el enlace de texto de la consola: acento, subrayado al pasar
+ *   LinkArrow      su flecha, que avanza al pasar
+ *   RowList        una lista de filas con filete fino, dentro del relleno
+ *   rowClass       la fila que es un enlace o un botón (se pone en el `<Link>`
+ *                  de cada app: shared no conoce sus rutas)
+ *   RowContent     lo de dentro de una fila: icono, título, línea y final
  *
  * Sin antetítulos: `tag` sólo se imprime, pequeño y debajo, si dice algo que el
  * título no dice ya, y la numeración («02 — TICKETS») se limpia si llega.
  */
-import type { ReactNode, ElementType } from "react";
+import { useId, type ReactNode, type ElementType } from "react";
+import { ArrowRight } from "lucide-react";
+import { Section } from "./console-kit";
 
 /** Un rótulo pequeño, en tinta terciaria. */
 export function ConsoleTag({ children, className = "" }: { children: ReactNode; className?: string }) {
@@ -62,14 +77,17 @@ export function StatGrid({ children, className = "" }: { children: ReactNode; cl
 }
 
 /**
- * Una cifra en su tarjeta: el rótulo, la cifra tabular y una nota. `tone` sólo
- * distingue lo que se paró (`alert`, en rojo); una cifra buena o mala se dice
- * con la nota, no con un color. `icon` se acepta y no se pinta.
+ * Una cifra en su tarjeta, como las del inicio de la consola de ondesk: el
+ * rótulo, su icono en un círculo de niebla, la cifra tabular y una nota. `tone`
+ * sólo distingue lo que se paró (`alert`/`destructive`, en rojo en la cifra y
+ * en el círculo) y lo que pide mirarse (`warning`, sólo el círculo); una cifra
+ * buena o mala se dice con la nota, no con un color.
  */
 export function StatTile({
 	label,
 	value,
 	hint,
+	icon: Icon,
 	tone = "default",
 }: {
 	label: string;
@@ -79,14 +97,130 @@ export function StatTile({
 	tone?: "default" | "accent" | "warning" | "destructive" | "alert";
 }) {
 	const alert = tone === "destructive" || tone === "alert";
+	const ring = alert ? "bg-[#fbeceb] text-[#b3261e]" : tone === "warning" ? "bg-[#fdf1e1] text-[#a35f00]" : "bg-(--sk-ground) text-(--sk-ink-2)";
 	return (
 		<div className="flex min-w-0 flex-col rounded-[18px] bg-white p-5 shadow-(--sk-shadow-1)">
-			<p className="text-[0.8125rem] font-medium text-(--sk-ink-3)">{label}</p>
-			<p className={`mt-3 text-[1.875rem] font-medium leading-none tracking-[-0.035em] tabular-nums ${alert ? "text-[#b3261e]" : "text-(--sk-ink)"}`}>{value}</p>
-			{hint && <p className="mt-2.5 text-[0.8125rem] leading-snug text-(--sk-ink-3)">{hint}</p>}
+			<div className="flex items-start justify-between gap-3">
+				<p className="text-[0.8125rem] font-medium text-(--sk-ink-2)">{label}</p>
+				{Icon && (
+					<span className={`inline-flex size-8 shrink-0 items-center justify-center rounded-full ${ring}`} aria-hidden="true">
+						<Icon className="size-4" strokeWidth={1.75} />
+					</span>
+				)}
+			</div>
+			<p
+				className={`text-[2rem] font-medium leading-none tracking-[-0.03em] tabular-nums ${Icon ? "mt-2" : "mt-3"} ${alert ? "text-[#b3261e]" : "text-(--sk-ink)"}`}>
+				{value}
+			</p>
+			{hint && <p className="mt-2 text-[0.8125rem] leading-snug text-(--sk-ink-3)">{hint}</p>}
 		</div>
 	);
 }
+
+// ─── las piezas del inicio de la consola ─────────────────────────────────────
+
+/**
+ * Una sección del panel: la tarjeta blanca de la consola de ondesk, la misma
+ * `Section` y no una imitación. El título, el dato vivo debajo en voz pequeña
+ * («3 open · 1 overdue», «last 7 days») y su única acción a la derecha, que es
+ * un enlace con `textLinkClass`. `id` sólo hace falta si alguien enlaza a la
+ * sección con un ancla.
+ */
+export function Panel({
+	id,
+	title,
+	meta,
+	action,
+	className = "",
+	children,
+}: {
+	id?: string;
+	title: ReactNode;
+	meta?: ReactNode;
+	action?: ReactNode;
+	/** Para colocarla en una rejilla: `lg:col-span-7`. */
+	className?: string;
+	children: ReactNode;
+}) {
+	const fallback = useId().replace(/:/g, "");
+	const section = (
+		<Section id={id ?? `panel-${fallback}`} title={title} meta={meta} action={action}>
+			{children}
+		</Section>
+	);
+	return className ? <div className={`min-w-0 [&>section]:h-full ${className}`}>{section}</div> : section;
+}
+
+/**
+ * El enlace de texto de la consola: acento, sin subrayado hasta que se pasa por
+ * encima. Va en el `<Link>` (o el `<button>`) de cada app.
+ */
+export const textLinkClass =
+	"group/link inline-flex items-center gap-1 rounded-[4px] font-medium text-(--sk-accent) no-underline underline-offset-[0.2em] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--sk-accent)";
+
+/** La flecha de un enlace de sección («All tickets →»): avanza un poco al pasar por el enlace. */
+export function LinkArrow() {
+	return (
+		<ArrowRight
+			className="size-4 transition-transform duration-200 ease-out group-hover/link:translate-x-0.5 motion-reduce:transition-none"
+			strokeWidth={1.75}
+			aria-hidden="true"
+		/>
+	);
+}
+
+/** Una lista de filas con filete fino. Sus filas sobresalen un poco del texto para que el fondo al pasar respire. */
+export function RowList({ children, label }: { children: ReactNode; label?: string }) {
+	return (
+		<ul className="sk-rows" aria-label={label}>
+			{children}
+		</ul>
+	);
+}
+
+/** La fila que es un enlace o un botón: cursor de mano, fondo de niebla al pasar, foco visible. */
+export const rowClass = "sk-row";
+/** Una fila que no lleva a ninguna parte: el mismo ritmo, sin fondo ni cursor. */
+export const rowStaticClass = "sk-row sk-row--static";
+
+/**
+ * Lo de dentro de una fila: el icono (o la cara) a la izquierda, el título y su
+ * línea pequeña, y al final lo que se compara de un vistazo (una cifra, una
+ * fecha, una píldora).
+ */
+export function RowContent({
+	icon: Icon,
+	lead,
+	title,
+	sub,
+	end,
+}: {
+	/** Un icono de lucide, pintado en su cuadro de niebla. */
+	icon?: ElementType;
+	/** O lo que vaya a la izquierda tal cual: una cara (`Monogram`, `Avatar`), un punto de estado. */
+	lead?: ReactNode;
+	title: ReactNode;
+	sub?: ReactNode;
+	end?: ReactNode;
+}) {
+	return (
+		<>
+			{Icon ? (
+				<span className="sk-row-icon" aria-hidden="true">
+					<Icon className="size-4" strokeWidth={1.75} />
+				</span>
+			) : (
+				lead
+			)}
+			<span className="min-w-0 flex-1">
+				<span className="sk-row-title">{title}</span>
+				{sub && <span className="sk-row-sub">{sub}</span>}
+			</span>
+			{end && <span className="sk-row-end">{end}</span>}
+		</>
+	);
+}
+
 
 /** El titular de un bloque, con lo que haga falta a la derecha. Dentro de una tarjeta toma su relleno. */
 export function PanelHeader({ label, right, className = "" }: { label: string; right?: ReactNode; className?: string }) {
