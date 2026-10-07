@@ -6,7 +6,7 @@
  * app pone sólo lo suyo: qué busca, qué avisa y qué preguntas responde.
  *
  *   TopbarButton       el botón redondo de glifo de la barra
- *   NovaButton         el que abre Nova: el mismo botón, con su nombre desde sm
+ *   NovaButton         el que abre Nova: píldora con el aro de las seis luces
  *   NotificationsMenu  la campana con su contador y el panel de avisos
  *   NotificationGlyph  el icono de un aviso en su cuadro, con su tono
  *   TopbarSearch       el campo de la barra y su panel de resultados
@@ -18,9 +18,10 @@
  * `Popover`: los mismos radios, la misma sombra, la misma entrada.
  */
 import { forwardRef, useCallback, useId, useRef, useState, type ButtonHTMLAttributes, type ElementType, type ReactNode } from "react";
-import { ArrowUpRight, Bell, HelpCircle, Search, Sparkles, X } from "lucide-react";
+import { ArrowUpRight, Bell, HelpCircle, Search, X } from "lucide-react";
 import { useDismiss } from "../hooks/map";
 import { LinkArrow, textLinkClass } from "./console";
+import { NovaMark } from "./nova-mark";
 
 // ─── el botón ────────────────────────────────────────────────────────────────
 
@@ -41,25 +42,30 @@ export const TopbarButton = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<H
 });
 
 /**
- * El botón que abre Nova (`NovaSheet`, en `components/nova`): de la familia de
- * `TopbarButton` — el mismo alto, el mismo radio, el mismo fondo al pasar —, con
- * la chispa en el acento de la plataforma para que el asistente se encuentre sin
- * buscarlo, y el nombre a la vista desde sm. En un teléfono queda el glifo solo y
- * el nombre sigue ahí para el lector de pantalla. La app pasa `aria-expanded`.
+ * El botón que abre Nova (`NovaSheet`, en `components/nova`): una píldora blanca
+ * con el aro de las seis luces y la estrella de Nova, lo único con color en una
+ * barra de glifos grises, para que el asistente se encuentre sin buscarlo. El
+ * texto va en tinta sobre blanco, así que el contraste no depende del aro. En
+ * `md` (la barra) por debajo de sm queda la estrella sola en su círculo y el
+ * nombre sigue para el lector de pantalla; `sm` (dentro de una pantalla) lleva
+ * siempre su etiqueta. La app pasa `aria-expanded`.
  */
-export const NovaButton = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLButtonElement>>(function NovaButton(
-	{ className = "", ...rest },
+export const NovaButton = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLButtonElement> & { size?: "md" | "sm" }>(function NovaButton(
+	{ className = "", size = "md", children = "Nova", ...rest },
 	ref,
 ) {
+	const md = size === "md";
 	return (
 		<button
 			ref={ref}
 			type="button"
 			aria-haspopup="dialog"
-			className={`relative inline-flex h-9 min-w-9 shrink-0 items-center justify-center gap-2 rounded-full text-[0.875rem] font-medium text-(--sk-ink-2) transition-colors duration-150 hover:bg-[rgba(14,27,46,0.05)] hover:text-(--sk-ink) aria-expanded:bg-[rgba(14,27,46,0.06)] aria-expanded:text-(--sk-ink) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--sk-accent) sm:pl-2.5 sm:pr-3.5 ${className}`}
+			className={`sk-nova-ring relative inline-flex shrink-0 items-center justify-center gap-2 rounded-full font-medium text-(--sk-ink) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--sk-accent) ${
+				md ? "h-9 min-w-9 text-[0.875rem] sm:pl-2.5 sm:pr-3.5" : "h-8 pl-2 pr-3 text-[0.8125rem]"
+			} ${className}`}
 			{...rest}>
-			<Sparkles className="size-[1.125rem] text-(--sk-accent)" strokeWidth={1.75} aria-hidden="true" />
-			<span className="sr-only sm:not-sr-only">Nova</span>
+			<NovaMark size={md ? 18 : 16} />
+			<span className={md ? "sr-only sm:not-sr-only" : ""}>{children}</span>
 		</button>
 	);
 });
@@ -412,16 +418,15 @@ export function HelpMenu({ intro, topics, onAskNova }: { intro: string; topics: 
 						))}
 					</div>
 					<div className="p-3">
-						<button
-							type="button"
-							className="ticket ticket--sm w-full gap-2"
+						<NovaButton
+							size="sm"
+							className="w-full"
 							onClick={() => {
 								close();
 								onAskNova();
 							}}>
-							<Sparkles className="size-4" strokeWidth={1.75} aria-hidden="true" />
 							Ask Nova instead
-						</button>
+						</NovaButton>
 					</div>
 				</div>
 			)}

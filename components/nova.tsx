@@ -12,13 +12,15 @@
  *   NovaSuggestions  las preguntas de partida, como filas con icono
  *   NovaMarkup       la respuesta del modelo como nodos de React, nunca HTML
  *
- * Un solo acento, el de la plataforma: Nova es la misma en todas partes, así que
- * no lleva el color de la app en la que está.
+ * Un solo color, el de Nova: la estrella de las seis luces (`NovaMark`) y su
+ * aro, los mismos en todas partes, así que Nova no lleva el color de la app en
+ * la que está.
  */
 import { useLayoutEffect, useRef, useState, type ElementType, type ReactNode, type Ref } from "react";
-import { ArrowUp, CircleAlert, RotateCcw, Sparkles } from "lucide-react";
+import { ArrowUp, CircleAlert, MessageSquareText, RotateCcw } from "lucide-react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../ui/sheet";
 import { textLinkClass } from "./console";
+import { NovaMark } from "./nova-mark";
 
 export interface NovaMessage {
 	role: "user" | "assistant";
@@ -183,16 +185,23 @@ function formatBold(text: string): ReactNode[] {
 
 // ─── las piezas ──────────────────────────────────────────────────────────────
 
-/** El glifo de Nova en su círculo, con el tinte del acento (o el de alerta si la vuelta falló). */
-function NovaGlyph({ size = "sm", failed = false }: { size?: "sm" | "md"; failed?: boolean }) {
-	const Icon = failed ? CircleAlert : Sparkles;
+/**
+ * El glifo de Nova: su estrella en un círculo blanco con el aro fino de las seis
+ * luces, y el brillo latiendo mientras escribe. Si la vuelta falló, el círculo
+ * rojo con la alerta.
+ */
+function NovaGlyph({ size = "sm", failed = false, pending = false }: { size?: "sm" | "md"; failed?: boolean; pending?: boolean }) {
+	const box = size === "md" ? "size-10" : "size-8";
+	if (failed) {
+		return (
+			<span className={`inline-flex shrink-0 items-center justify-center rounded-full bg-[#fbeceb] text-[#b3261e] ${box}`} aria-hidden="true">
+				<CircleAlert className={size === "md" ? "size-5" : "size-4"} strokeWidth={1.75} />
+			</span>
+		);
+	}
 	return (
-		<span
-			className={`inline-flex shrink-0 items-center justify-center rounded-full ${size === "md" ? "size-10" : "size-8"} ${
-				failed ? "bg-[#fbeceb] text-[#b3261e]" : "bg-[#e8effc] text-(--sk-accent)"
-			}`}
-			aria-hidden="true">
-			<Icon className={size === "md" ? "size-5" : "size-4"} strokeWidth={1.75} />
+		<span className={`sk-nova-ring sk-nova-ring--thin inline-flex shrink-0 items-center justify-center rounded-full ${box} ${pending ? "sk-nova-pulse" : ""}`} aria-hidden="true">
+			<NovaMark size={size === "md" ? 22 : 18} />
 		</span>
 	);
 }
@@ -236,7 +245,7 @@ export function NovaMessageRow({
 	const partial = failed && Boolean(error);
 	return (
 		<div className="flex gap-3">
-			<NovaGlyph failed={failed && !partial} />
+			<NovaGlyph failed={failed && !partial} pending={pending} />
 			<div className="min-w-0 flex-1 pt-[0.3125rem]">
 				{pending ? (
 					<p className="sk-nova-writing text-[0.9375rem] leading-relaxed">Writing…</p>
@@ -350,7 +359,7 @@ export function NovaSuggestions({
 	return (
 		<ul className="flex flex-col gap-0.5 rounded-[16px] bg-(--sk-surface) p-1 shadow-[inset_0_0_0_1px_var(--sk-hair)]" aria-label="Suggested questions">
 			{all.map((s) => {
-				const Icon = s.icon ?? Sparkles;
+				const Icon = s.icon ?? MessageSquareText;
 				const isScoped = Boolean(s.scoped);
 				return (
 					<li key={s.label}>

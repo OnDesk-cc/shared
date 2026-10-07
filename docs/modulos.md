@@ -71,7 +71,7 @@ archivo nuevo es importable sin tocar `package.json`.
 <!-- BEGIN generated:modules -->
 <!-- No edites aquí: lo reescribe `npm run docs`. -->
 
-Módulos de las carpetas publicadas (57), con la primera línea de su comentario de cabecera.
+Módulos de las carpetas publicadas (59), con la primera línea de su comentario de cabecera.
 
 | Archivo | Qué hace |
 | --- | --- |
@@ -84,6 +84,7 @@ Módulos de las carpetas publicadas (57), con la primera línea de su comentario
 | [`components/data-table.tsx`](../components/data-table.tsx) | La tabla de una página (2026-10-06): auditoría, avisos, listas de elementos. |
 | [`components/form-modal.tsx`](../components/form-modal.tsx) | El envoltorio de cualquier formulario en diálogo: título, descripción y hueco. |
 | [`components/map.tsx`](../components/map.tsx) | Las piezas pequeñas del mapa que llevan los seis productos: la banda de seis líneas y el cierre de seis tramos. |
+| [`components/nova-mark.tsx`](../components/nova-mark.tsx) | La marca de Nova (2026-10-06): una estrella de cuatro puntas rellena con los seis colores de las apps, porque Nova es la que ve las seis, y un brillo blanco en el centro. |
 | [`components/nova.tsx`](../components/nova.tsx) | Nova, la hoja del asistente, una sola para los seis productos (2026-10-06). |
 | [`components/product-shell.tsx`](../components/product-shell.tsx) | El marco de un producto en el mundo «Clear Sky» (2026-10-04): la forma de la consola de ondesk, para que pasar de la consola a una app, o de una app a otra, se sienta… |
 | [`components/segmented.tsx`](../components/segmented.tsx) | El conmutador (2026-10-06): dos a cinco maneras de ver lo mismo (Board \| List, All \| Unread, Reply \| Internal note, los días de una semana). |
@@ -96,6 +97,7 @@ Módulos de las carpetas publicadas (57), con la primera línea de su comentario
 | [`lib/crud-hooks.ts`](../lib/crud-hooks.ts) | Los hooks de React Query que van encima de `crud-api.ts`. |
 | [`lib/initials.ts`](../lib/initials.ts) | Dos letras en lugar de alguien que todavía no tiene avatar. |
 | [`lib/lines.ts`](../lib/lines.ts) | Las seis líneas del mapa de red, tal como las conocen los seis productos. |
+| [`lib/nova-star.ts`](../lib/nova-star.ts) | La geometría de la estrella de Nova (2026-10-06): su silueta, los seis colores de las apps en el orden en que los recorre el degradado cónico, y las cuñas que dibujan… |
 | [`lib/use-copy.ts`](../lib/use-copy.ts) | Copiar, hecho una sola vez para todo el proyecto: la misma implementación que partners y developers, la que usa `CopyTicket` en `console.tsx`. |
 | [`lib/utils.ts`](../lib/utils.ts) | `cn` — juntar clases de Tailwind sin que se peleen entre ellas. |
 | [`presence/presence-dot.tsx`](../presence/presence-dot.tsx) | La presencia como anillo del intercambiador, con el mismo significado en las siete apps que la pintan: relleno es Online, con punto Busy, vacío Away, y apagado al 45 %… |

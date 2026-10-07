@@ -1336,6 +1336,72 @@ html.site.sk .sk-nova-writing {
 	}
 }
 
+/* ── Nova: el aro de las seis luces y el brillo de la estrella (2026-10-06) ──
+   El aro son dos fondos: el relleno en `padding-box` y el degradado cónico de
+   las apps en `border-box`, con el borde transparente; sin pseudoelementos que
+   un `overflow` recorte. Mismos colores y orden que `lib/nova-star`. Gira sólo
+   al pasar con un puntero fino (en un toque, el hover se queda pegado); abierto
+   se queda quieto sobre niebla. Sin `@property` el aro se ve igual, sólo que no
+   gira. Al pulsar, el botón cede un 3 %: la pantalla ha oído el clic. */
+@property --sk-nova-turn {
+	syntax: "<angle>";
+	inherits: false;
+	initial-value: 0deg;
+}
+html.site.sk .sk-nova-ring {
+	border: 1.5px solid transparent;
+	background:
+		linear-gradient(var(--sk-nova-fill, #ffffff), var(--sk-nova-fill, #ffffff)) padding-box,
+		conic-gradient(from var(--sk-nova-turn), #ee6c2b, #5aa82e, #17996a, #0b9fb3, #4466f2, #8f55e8, #ee6c2b) border-box;
+	box-shadow:
+		0 1px 2px rgba(17, 38, 72, 0.06),
+		0 6px 16px -10px rgba(17, 38, 72, 0.35);
+}
+html.site.sk .sk-nova-ring--thin {
+	border-width: 1px;
+	box-shadow: none;
+}
+html.site.sk button.sk-nova-ring {
+	transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+html.site.sk button.sk-nova-ring:active {
+	transform: scale(0.97);
+}
+html.site.sk .sk-nova-glow {
+	transition: opacity 200ms ease;
+}
+@media (hover: hover) and (pointer: fine) {
+	html.site.sk button.sk-nova-ring:hover {
+		--sk-nova-fill: #f7f9fc;
+		animation: sk-nova-turn 6s linear infinite;
+	}
+	html.site.sk button.sk-nova-ring:hover .sk-nova-glow {
+		opacity: 1;
+	}
+}
+html.site.sk button.sk-nova-ring[aria-expanded="true"] {
+	--sk-nova-fill: var(--sk-mist);
+	animation: none;
+}
+@keyframes sk-nova-turn {
+	to {
+		--sk-nova-turn: 360deg;
+	}
+}
+/* Mientras Nova escribe, el brillo de su estrella late despacio. */
+html.site.sk .sk-nova-pulse .sk-nova-glow {
+	animation: sk-nova-pulse 1.6s ease-in-out infinite;
+}
+@keyframes sk-nova-pulse {
+	0%,
+	100% {
+		opacity: 0.55;
+	}
+	50% {
+		opacity: 1;
+	}
+}
+
 /* ── la píldora de un dato (`Tag`, y `Badge`/`Stamp` que la usan) ─────────────
    Un estado es su palabra y el tono sólo la apoya. Sin borde: el fondo tintado
    es la forma. Va sin capa, como el resto del mundo, así que los restos de una
@@ -1702,6 +1768,13 @@ html.site.sk .sk-pager {
 		animation: none;
 		background: none;
 		color: var(--sk-ink-3);
+	}
+	html.site.sk button.sk-nova-ring:hover,
+	html.site.sk .sk-nova-pulse .sk-nova-glow {
+		animation: none;
+	}
+	html.site.sk button.sk-nova-ring {
+		transition: none;
 	}
 	html.site.sk .sk-composer,
 	html.site.sk .sk-composer-send {
