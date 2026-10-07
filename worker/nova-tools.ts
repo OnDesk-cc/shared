@@ -62,7 +62,12 @@ export class NovaToolError extends Error {
 	}
 }
 
-export const NOVA_MAX_RESULT_CHARS = 32_000;
+/**
+ * Tope de una respuesta (unos 16 000 tokens; el modelo de Nova tiene 128 000 de
+ * contexto). Cabe un snapshot normal con su documento o hilo abierto; cada
+ * producto recorta además lo suyo (hilos, documentos, miembros) para no llegar.
+ */
+export const NOVA_MAX_RESULT_CHARS = 64_000;
 
 export function novaIssuer(env: { NOVA_ISSUER?: string }): string {
 	return (env.NOVA_ISSUER ?? "https://nova.ondesk.cc").replace(/\/$/, "");

@@ -13,13 +13,13 @@
  * barra de cada app, abrir un WebSocket por cada página vista sería pagar por
  * nada.
  */
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { RotateCcw, SquarePen } from "lucide-react";
 import { useAgent } from "agents/react";
 import { useAgentChat } from "@cloudflare/ai-chat/react";
 import { NovaMessageRow, NovaSheetFrame, NovaSuggestions, novaErrorMessage, type NovaSheetProps } from "./nova";
 import { textLinkClass } from "./console";
-import { conversationKey, messageText, type NovaProduct } from "./nova-chat-parts";
+import { chatErrorText, classifyHistoryStatus, conversationKey, messageText, type NovaProduct } from "./nova-chat-parts";
 
 export { messageText, conversationKey, type NovaProduct } from "./nova-chat-parts";
 
@@ -54,7 +54,33 @@ export function NovaChatSheet(props: NovaChatSheetProps) {
 		if (props.open) setActivated(true);
 	}, [props.open]);
 	if (!activated) return null;
-	return <NovaChatConversation {...props} />;
+	// `key` por producto y workspace: cambiar de workspace sin recargar (TanStack no
+	// vuelve a montar la barra) monta una conversación nueva, con su propio id
+	// guardado, en vez de abrir la del workspace anterior bajo el nuevo (un 403 sin
+	// salida). `Suspense` porque `useAgentChat` suspende mientras llega el historial.
+	return (
+		<Suspense fallback={<NovaChatLoading {...props} />}>
+			<NovaChatConversation key={conversationKey(props.product, props.workspaceId)} {...props} />
+		</Suspense>
+	);
+}
+
+/** La hoja mientras llega el historial: el marco, el saludo y una fila pendiente. */
+function NovaChatLoading({ open, onOpenChange, title = "Nova", description, greeting, placeholder, footnote, inputLabel }: NovaChatSheetProps) {
+	return (
+		<NovaSheetFrame
+			open={open}
+			onOpenChange={onOpenChange}
+			title={title}
+			description={description}
+			busy
+			scrollKey={null}
+			composer={{ value: "", onChange: () => {}, onSubmit: () => {}, placeholder, label: inputLabel }}
+			footnote={footnote}>
+			<NovaMessageRow role="assistant" content={greeting} />
+			<NovaMessageRow role="assistant" content="" pending />
+		</NovaSheetFrame>
+	);
 }
 
 function NovaChatConversation({
@@ -78,11 +104,39 @@ function NovaChatConversation({
 	const [draft, setDraft] = useState("");
 	const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
 
+	const [sessionExpired, setSessionExpired] = useState(false);
+
+	function startOver() {
+		const id = crypto.randomUUID();
+		try {
+			sessionStorage.setItem(key, id);
+		} catch {
+			/* ver storedConversation */
+		}
+		setConversationId(id);
+	}
+
 	const agent = useAgent({ agent: "NovaChat", name: `${workspaceId}~${conversationId}`, host: novaHost });
 	const { messages, sendMessage, status, error, regenerate } = useAgentChat({
 		agent,
 		credentials: "include",
 		body: () => ({ product, place: place ?? {}, timezone }),
+		// El historial lo pide la hoja y no el SDK, que convierte cualquier fallo en
+		// «sin mensajes»: con la sesión caducada se dice, y una conversación guardada
+		// que es de otra persona u otro workspace se cambia por una nueva.
+		getInitialMessages: async ({ url }) => {
+			if (!url) return [];
+			const target = new URL(url);
+			target.pathname += "/get-messages";
+			const res = await fetch(target.toString(), { credentials: "include" }).catch(() => null);
+			const verdict = res ? classifyHistoryStatus(res.status) : "error";
+			if (verdict === "expired") setSessionExpired(true);
+			if (verdict === "foreign") startOver();
+			if (verdict !== "ok" || !res) return [];
+			setSessionExpired(false);
+			const text = await res.text();
+			return text.trim() ? JSON.parse(text) : [];
+		},
 	});
 
 	const busy = status === "submitted" || status === "streaming";
@@ -97,15 +151,11 @@ function NovaChatConversation({
 		return true;
 	}
 
-	function startOver() {
-		const id = crypto.randomUUID();
-		try {
-			sessionStorage.setItem(key, id);
-		} catch {
-			/* ver storedConversation */
-		}
-		setConversationId(id);
-	}
+	const errorText = sessionExpired
+		? "Your session expired. Reload the page to keep talking to Nova."
+		: error
+			? (chatErrorText(error.message) ?? novaErrorMessage(error))
+			: null;
 
 	return (
 		<NovaSheetFrame
@@ -150,12 +200,21 @@ function NovaChatConversation({
 
 			{waiting && <NovaMessageRow role="assistant" content="" pending />}
 
-			{error && !busy && (
-				<NovaMessageRow role="assistant" content={novaErrorMessage(error)} failed>
-					<button type="button" className={`${textLinkClass} text-[0.875rem]`} onClick={() => void regenerate()}>
-						<RotateCcw className="size-3.5" strokeWidth={1.75} aria-hidden="true" />
-						Try again
-					</button>
+			{errorText && !busy && (
+				<NovaMessageRow role="assistant" content={errorText} failed>
+					{!sessionExpired && (
+						<>
+							<button type="button" className={`${textLinkClass} text-[0.875rem]`} onClick={() => void regenerate()}>
+								<RotateCcw className="size-3.5" strokeWidth={1.75} aria-hidden="true" />
+								Try again
+							</button>
+							{/* Una salida siempre a mano, aunque la conversación no tenga mensajes. */}
+							<button type="button" className={`${textLinkClass} text-[0.875rem]`} onClick={startOver}>
+								<SquarePen className="size-3.5" strokeWidth={1.75} aria-hidden="true" />
+								New chat
+							</button>
+						</>
+					)}
 				</NovaMessageRow>
 			)}
 

@@ -64,8 +64,8 @@ const huge = defineTool<Env>({
 	name: "orbit.huge",
 	description: "Too big",
 	kind: "read",
-	params: { type: "object", properties: {} },
-	run: async () => ({ blob: "x".repeat(40_000) }),
+	params: { type: "object", properties: { size: { type: "integer" } } },
+	run: async (_ctx, params) => ({ blob: "x".repeat(Number(params.size ?? 70_000)) }),
 });
 
 let access: { ok: true; role: string } | { ok: false; status: 402 | 403; message: string } = { ok: true, role: "member" };
@@ -145,6 +145,12 @@ test("NovaToolError conserva su código", async () => {
 	const { status, json } = await invoke("orbit.missing", {}, await token({ tool: "orbit.missing" }));
 	assert.equal(status, 404);
 	assert.deepEqual(json, { ok: false, code: "not_found", message: "No such task" });
+});
+
+test("un snapshot normal de 50 000 caracteres cabe (un hilo largo, un documento abierto)", async () => {
+	const { status, json } = await invoke("orbit.huge", { size: 50_000 }, await token({ tool: "orbit.huge" }));
+	assert.equal(status, 200);
+	assert.equal(json.ok, true);
 });
 
 test("una respuesta demasiado grande → 413 too_large", async () => {
