@@ -1,6 +1,6 @@
 {
   "name": "@ondesk/shared",
-  "version": "1.13.1",
+  "version": "1.16.0",
   "private": true,
   "type": "module",
   "description": "Code shared by every OnDesk product (console, Pulse, Vault, Orbit, Nexus, Halo). Raw TypeScript — the consuming app's bundler compiles it.",
@@ -14,10 +14,14 @@
     "docs": "node scripts/gen-docs.mjs",
     "docs:check": "node scripts/gen-docs.mjs --check",
     "docs:gaps": "node scripts/gen-docs.mjs --gaps",
-    "test": "tsx --test \"worker/**/*.test.ts\""
+    "test": "tsx --test \"worker/**/*.test.ts\" \"components/**/*.test.ts\""
   },
   "peerDependencies": {
+    "@ai-sdk/react": "^4.0.0",
+    "@cloudflare/ai-chat": "^0.12.1",
     "@tanstack/react-query": "^5.90.21",
+    "agents": ">=0.26.0 <1.0.0",
+    "ai": "^7.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
@@ -29,10 +33,14 @@
     "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
+    "@ai-sdk/react": "^4.0.133",
+    "@cloudflare/ai-chat": "^0.12.1",
     "@cloudflare/workers-types": "4.20260302.0",
     "@tanstack/react-query": "^5.90.21",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
+    "agents": "^0.26.0",
+    "ai": "^7.0.130",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",

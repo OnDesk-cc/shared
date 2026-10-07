@@ -190,7 +190,7 @@ function formatBold(text: string): ReactNode[] {
  * luces, y el brillo latiendo mientras escribe. Si la vuelta falló, el círculo
  * rojo con la alerta.
  */
-function NovaGlyph({ size = "sm", failed = false, pending = false }: { size?: "sm" | "md"; failed?: boolean; pending?: boolean }) {
+export function NovaGlyph({ size = "sm", failed = false, pending = false }: { size?: "sm" | "md"; failed?: boolean; pending?: boolean }) {
 	const box = size === "md" ? "size-10" : "size-8";
 	if (failed) {
 		return (
@@ -425,11 +425,102 @@ export interface NovaSheetProps {
 	inputLabel?: string;
 }
 
+export interface NovaSheetFrameProps {
+	open: boolean;
+	onOpenChange: (open: boolean) => void;
+	title: string;
+	description: ReactNode;
+	/** A la derecha del título (la «New chat» de Nova central). */
+	headerAction?: ReactNode;
+	busy: boolean;
+	/** Cambia con cada cosa nueva en la conversación: si la vista estaba al final, se queda al final. */
+	scrollKey: unknown;
+	/** Las filas de la conversación y, si toca, las sugerencias. */
+	children: ReactNode;
+	composer: { value: string; onChange: (value: string) => void; onSubmit: () => void; placeholder: string; label?: string };
+	footnote: ReactNode;
+}
+
 /**
- * La hoja de Nova. Lleva ella la conversación: los mensajes, el desplazamiento
- * (se pega al final mientras escribe Nova, salvo si has subido a leer), el campo
- * y el fallo. La conversación es de la pestaña: vive aquí, sobrevive a cerrar y
- * abrir la hoja y se pierde al recargar.
+ * La hoja de Nova sin la conversación: cabecera, registro desplazable, campo y
+ * nota al pie. La comparten `NovaSheet` (cada app con su endpoint) y
+ * `NovaChatSheet` (Nova central, components/nova-chat.tsx), así que se ven
+ * idénticas. El desplazamiento se pega al final mientras escribe Nova, salvo si
+ * has subido a leer.
+ */
+export function NovaSheetFrame({ open, onOpenChange, title, description, headerAction, busy, scrollKey, children, composer, footnote }: NovaSheetFrameProps) {
+	const log = useRef<HTMLDivElement | null>(null);
+	const input = useRef<HTMLTextAreaElement | null>(null);
+	// Si la vista está al final. Leer una respuesta larga hacia arriba mientras
+	// llega no debe devolverte abajo con cada token.
+	const pinned = useRef(true);
+
+	useLayoutEffect(() => {
+		const el = log.current;
+		if (el && pinned.current) el.scrollTop = el.scrollHeight;
+	}, [scrollKey, open]);
+
+	return (
+		<Sheet open={open} onOpenChange={onOpenChange}>
+			<SheetContent
+				className="flex h-full w-full flex-col gap-0 p-0 max-sm:rounded-none! sm:max-w-[34rem]"
+				onOpenAutoFocus={(e) => {
+					// Con ratón, al campo directamente. En un teléfono no: el teclado
+					// taparía las sugerencias antes de que nadie las lea.
+					if (window.matchMedia("(pointer: fine)").matches) {
+						e.preventDefault();
+						input.current?.focus();
+					}
+				}}>
+				<SheetHeader className="px-5 sm:px-6">
+					<div className="flex items-center gap-3">
+						<NovaGlyph size="md" />
+						<div className="min-w-0 flex-1">
+							<SheetTitle>{title}</SheetTitle>
+							<SheetDescription className="text-[0.875rem] leading-snug">{description}</SheetDescription>
+						</div>
+						{headerAction}
+					</div>
+				</SheetHeader>
+
+				<div
+					ref={log}
+					role="log"
+					aria-live="polite"
+					aria-busy={busy}
+					aria-label="Conversation with Nova"
+					onScroll={(e) => {
+						const el = e.currentTarget;
+						pinned.current = el.scrollHeight - el.scrollTop - el.clientHeight < 48;
+					}}
+					className="sk-nova-log flex flex-1 flex-col gap-5 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6">
+					{children}
+				</div>
+
+				<div className="border-t border-(--sk-hair) px-5 pb-5 pt-4 sm:px-6">
+					<NovaComposer
+						value={composer.value}
+						onChange={composer.onChange}
+						onSubmit={() => {
+							pinned.current = true;
+							composer.onSubmit();
+						}}
+						busy={busy}
+						placeholder={composer.placeholder}
+						label={composer.label}
+						inputRef={input}
+					/>
+					<p className="sk-small mt-2.5 text-pretty px-1 leading-snug">{footnote}</p>
+				</div>
+			</SheetContent>
+		</Sheet>
+	);
+}
+
+/**
+ * La hoja de Nova con el endpoint de cada app. Lleva ella la conversación: los
+ * mensajes, el campo y el fallo. La conversación es de la pestaña: vive aquí,
+ * sobrevive a cerrar y abrir la hoja y se pierde al recargar.
  */
 export function NovaSheet({
 	open,
@@ -448,22 +539,11 @@ export function NovaSheet({
 	const [turns, setTurns] = useState<Turn[]>(() => [{ role: "assistant", content: greeting }]);
 	const [draft, setDraft] = useState("");
 	const [busy, setBusy] = useState(false);
-	const log = useRef<HTMLDivElement | null>(null);
-	const input = useRef<HTMLTextAreaElement | null>(null);
-	// Si la vista está al final. Leer una respuesta larga hacia arriba mientras
-	// llega no debe devolverte abajo con cada token.
-	const pinned = useRef(true);
-
-	useLayoutEffect(() => {
-		const el = log.current;
-		if (el && pinned.current) el.scrollTop = el.scrollHeight;
-	}, [turns, open]);
 
 	const close = () => onOpenChange(false);
 
 	async function run(base: Turn[], prompt: string) {
 		const history = [...conversation(base), { role: "user" as const, content: prompt }];
-		pinned.current = true;
 		setTurns([...base, { role: "user", content: prompt }, { role: "assistant", content: "" }]);
 		setBusy(true);
 
@@ -508,78 +588,46 @@ export function NovaSheet({
 	const last = turns.length - 1;
 
 	return (
-		<Sheet open={open} onOpenChange={onOpenChange}>
-			<SheetContent
-				className="flex h-full w-full flex-col gap-0 p-0 max-sm:rounded-none! sm:max-w-[34rem]"
-				onOpenAutoFocus={(e) => {
-					// Con ratón, al campo directamente. En un teléfono no: el teclado
-					// taparía las sugerencias antes de que nadie las lea.
-					if (window.matchMedia("(pointer: fine)").matches) {
-						e.preventDefault();
-						input.current?.focus();
-					}
-				}}>
-				<SheetHeader className="px-5 sm:px-6">
-					<div className="flex items-center gap-3">
-						<NovaGlyph size="md" />
-						<div className="min-w-0">
-							<SheetTitle>{title}</SheetTitle>
-							<SheetDescription className="text-[0.875rem] leading-snug">{description}</SheetDescription>
-						</div>
-					</div>
-				</SheetHeader>
+		<NovaSheetFrame
+			open={open}
+			onOpenChange={onOpenChange}
+			title={title}
+			description={description}
+			busy={busy}
+			scrollKey={turns}
+			composer={{
+				value: draft,
+				onChange: setDraft,
+				onSubmit: () => {
+					if (send(draft)) setDraft("");
+				},
+				placeholder,
+				label: inputLabel,
+			}}
+			footnote={footnote}>
+			{turns.map((turn, i) => {
+				const pending = busy && i === last && turn.role === "assistant" && turn.content === "";
+				const streaming = busy && i === last;
+				const done = turn.role === "assistant" && i > 0 && !turn.failed && !streaming && turn.content !== "";
+				return (
+					<NovaMessageRow key={i} role={turn.role} content={turn.content} pending={pending} failed={turn.failed} error={turn.error}>
+						{turn.failed && i === last && !busy ? (
+							<button type="button" className={`${textLinkClass} text-[0.875rem]`} onClick={retry}>
+								<RotateCcw className="size-3.5" strokeWidth={1.75} aria-hidden="true" />
+								Try again
+							</button>
+						) : done && messageActions ? (
+							messageActions(turn, close)
+						) : null}
+					</NovaMessageRow>
+				);
+			})}
 
-				<div
-					ref={log}
-					role="log"
-					aria-live="polite"
-					aria-busy={busy}
-					aria-label="Conversation with Nova"
-					onScroll={(e) => {
-						const el = e.currentTarget;
-						pinned.current = el.scrollHeight - el.scrollTop - el.clientHeight < 48;
-					}}
-					className="sk-nova-log flex flex-1 flex-col gap-5 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6">
-					{turns.map((turn, i) => {
-						const pending = busy && i === last && turn.role === "assistant" && turn.content === "";
-						const streaming = busy && i === last;
-						const done = turn.role === "assistant" && i > 0 && !turn.failed && !streaming && turn.content !== "";
-						return (
-							<NovaMessageRow key={i} role={turn.role} content={turn.content} pending={pending} failed={turn.failed} error={turn.error}>
-								{turn.failed && i === last && !busy ? (
-									<button type="button" className={`${textLinkClass} text-[0.875rem]`} onClick={retry}>
-										<RotateCcw className="size-3.5" strokeWidth={1.75} aria-hidden="true" />
-										Try again
-									</button>
-								) : done && messageActions ? (
-									messageActions(turn, close)
-								) : null}
-							</NovaMessageRow>
-						);
-					})}
-
-					{turns.length === 1 && (
-						<div className="sm:pl-11">
-							<NovaSuggestions suggestions={suggestions} scoped={scopedSuggestion} onPick={(p) => send(p)} disabled={busy} />
-						</div>
-					)}
+			{turns.length === 1 && (
+				<div className="sm:pl-11">
+					<NovaSuggestions suggestions={suggestions} scoped={scopedSuggestion} onPick={(p) => send(p)} disabled={busy} />
 				</div>
-
-				<div className="border-t border-(--sk-hair) px-5 pb-5 pt-4 sm:px-6">
-					<NovaComposer
-						value={draft}
-						onChange={setDraft}
-						onSubmit={() => {
-							if (send(draft)) setDraft("");
-						}}
-						busy={busy}
-						placeholder={placeholder}
-						label={inputLabel}
-						inputRef={input}
-					/>
-					<p className="sk-small mt-2.5 text-pretty px-1 leading-snug">{footnote}</p>
-				</div>
-			</SheetContent>
-		</Sheet>
+			)}
+		</NovaSheetFrame>
 	);
 }
