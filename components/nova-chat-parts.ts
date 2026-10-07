@@ -33,6 +33,7 @@ export function chatErrorText(message: string): string | null {
 	if (/closed mid-stream|websocket closed/i.test(message)) return "The connection to Nova dropped. Try again.";
 	if (/too fast/i.test(message)) return "You're asking Nova too fast. Wait a minute and try again.";
 	if (/session expired/i.test(message)) return "Your session expired. Reload the page to keep talking to Nova.";
+	if (/too long for Nova/i.test(message)) return message;
 	return null;
 }
 

@@ -17,6 +17,7 @@ test("los errores conocidos del chat se dicen en una frase", () => {
 	assert.match(chatErrorText("WebSocket closed mid-stream.") ?? "", /connection to Nova dropped/i);
 	assert.match(chatErrorText("You're asking Nova too fast. Wait a minute and try again.") ?? "", /too fast/);
 	assert.match(chatErrorText("Your session expired. Reload the page to keep talking to Nova.") ?? "", /session expired/i);
+	assert.match(chatErrorText("That question is too long for Nova (4,000 characters at most). Shorten it and try again.") ?? "", /too long/);
 	// Lo interno (nombres de producto, dueños, errores del modelo) no llega tal cual.
 	assert.equal(chatErrorText("This conversation has no owner"), null);
 	assert.equal(chatErrorText("Unknown product"), null);
