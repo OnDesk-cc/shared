@@ -2,6 +2,7 @@ import type { PagesFunction, D1Database } from "@cloudflare/workers-types";
 import { verifySessionToken, type SessionClaims, type SsoEnv } from "./sso";
 import { parseCookieValues, ACCESS_TOKEN_COOKIE } from "./cookies";
 import { jsonError } from "./response";
+import { checkWorkspaceAccess } from "./access";
 
 /**
  * El middleware de autenticación y de workspace con el que cada producto satélite
@@ -109,22 +110,10 @@ export function createMiddleware<E extends MiddlewareEnv, Perm extends string>(p
 			const workspaceId = url.searchParams.get("workspace_id");
 			if (!workspaceId) return jsonError("workspace_id is required");
 
-			const row = await env.DB.prepare(
-				`SELECT wm.role, we.status
-				   FROM workspace_members wm
-				   LEFT JOIN workspace_entitlements we ON we.workspace_id = wm.workspace_id
-				  WHERE wm.workspace_id = ? AND wm.user_id = ?
-				  LIMIT 1`,
-			)
-				.bind(workspaceId, payload.sub)
-				.first<{ role: string; status: string | null }>();
+			const access = await checkWorkspaceAccess(env.DB, workspaceId, payload.sub, productName);
+			if (!access.ok) return jsonError(access.message, access.status);
 
-			if (!row) return jsonError("Forbidden", 403);
-			if (row.status === null || !["active", "trialing", "past_due"].includes(row.status)) {
-				return jsonError(`This workspace does not have an active ${productName} subscription`, 402);
-			}
-
-			return handler({ request, env, params, payload, waitUntil, workspaceId, workspaceRole: row.role });
+			return handler({ request, env, params, payload, waitUntil, workspaceId, workspaceRole: access.role });
 		});
 	}
 

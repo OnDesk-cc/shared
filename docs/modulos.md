@@ -42,6 +42,10 @@ sitio.
 | `jwt` | firma HS256 y tickets con audiencia |
 | `email` | `createEmailer(brand)` y los helpers de plantilla |
 | `api` | el núcleo de la API con token bearer (`/api/v1` de cada producto) |
+| **`nova-tools`** | **`createNovaTools` + `defineTool`: las herramientas que un producto publica a Nova central** (token RS256 por llamada, membresía de `access`, parámetros de `json-schema`) |
+| `access` | `checkWorkspaceAccess`: membresía + derecho vivo en una consulta (la usan `middleware` y `nova-tools`) |
+| `rs256` | verificación RS256 contra un JWKS remoto (el de Nova) |
+| `json-schema` | el subconjunto de JSON Schema de los parámetros de herramientas y su validador |
 
 ### `createMiddleware` en una frase
 
@@ -71,7 +75,7 @@ archivo nuevo es importable sin tocar `package.json`.
 <!-- BEGIN generated:modules -->
 <!-- No edites aquí: lo reescribe `npm run docs`. -->
 
-Módulos de las carpetas publicadas (59), con la primera línea de su comentario de cabecera.
+Módulos de las carpetas publicadas (67), con la primera línea de su comentario de cabecera.
 
 | Archivo | Qué hace |
 | --- | --- |
@@ -126,13 +130,21 @@ Módulos de las carpetas publicadas (59), con la primera línea de su comentario
 | [`ui/tabs.tsx`](../ui/tabs.tsx) | Las pestañas son el riel de páginas del mundo: los destinos en negrita sobre un filete fino, el actual en tinta con la barra de 3px en el color de la línea que se viaja. |
 | [`ui/textarea.tsx`](../ui/textarea.tsx) | El campo de varias líneas, con el trazo del mundo; lo mide su `rows`. |
 | [`ui/tooltip.tsx`](../ui/tooltip.tsx) | La nota al pie de un control: tinta sobre papel, en el corte condensado, sin flecha ni radio. |
+| [`worker/access.test.ts`](../worker/access.test.ts) | — |
+| [`worker/access.ts`](../worker/access.ts) | La pregunta «¿es miembro de este workspace y tiene un derecho vivo para este producto?», en una sola consulta (2026-10-07). |
 | [`worker/api.ts`](../worker/api.ts) | El lado de la Developer Platform en un producto: rutas a las que llama una aplicación de terceros con un bearer token, en nombre de una persona. |
 | [`worker/cookies.ts`](../worker/cookies.ts) | Lectura de cookies, y nada más. |
 | [`worker/email.ts`](../worker/email.ts) | Email transaccional para las notificaciones de un producto. |
+| [`worker/json-schema.test.ts`](../worker/json-schema.test.ts) | — |
+| [`worker/json-schema.ts`](../worker/json-schema.ts) | El subconjunto de JSON Schema con el que se describen los parámetros de una herramienta de Nova, y su validador (2026-10-07, Nova central). |
 | [`worker/jwt.ts`](../worker/jwt.ts) | Firma HS256 y verificación con audiencia, sobre Web Crypto. |
 | [`worker/middleware.ts`](../worker/middleware.ts) | El middleware de autenticación y de workspace con el que cada producto satélite envuelve sus rutas. |
 | [`worker/mirror.ts`](../worker/mirror.ts) | El espejo del estado de OnDesk — las escrituras que cada producto hace de forma idéntica. |
+| [`worker/nova-tools.test.ts`](../worker/nova-tools.test.ts) | Una sola clave para todo el archivo: la caché del JWKS vive entre pruebas y sólo se refresca a la fuerza una vez por minuto. |
+| [`worker/nova-tools.ts`](../worker/nova-tools.ts) | Las herramientas que un producto le publica a Nova central (2026-10-07, fase 1). |
 | [`worker/response.ts`](../worker/response.ts) | Las tres respuestas JSON que devuelve cualquier handler de Pages Functions. |
+| [`worker/rs256.test.ts`](../worker/rs256.test.ts) | — |
+| [`worker/rs256.ts`](../worker/rs256.ts) | Verificación RS256 contra un JWKS remoto, con caché por URL en el isolate (2026-10-07, Nova central). |
 | [`worker/sso.ts`](../worker/sso.ts) | Verificación de los tokens de plataforma del control plane de OnDesk. |
 
 <!-- END generated:modules -->
@@ -168,5 +180,6 @@ _Sin cron propio._
 | `npm run docs` | `node scripts/gen-docs.mjs` |
 | `npm run docs:check` | `node scripts/gen-docs.mjs --check` |
 | `npm run docs:gaps` | `node scripts/gen-docs.mjs --gaps` |
+| `npm run test` | `tsx --test "worker/**/*.test.ts"` |
 
 <!-- END generated:config -->
