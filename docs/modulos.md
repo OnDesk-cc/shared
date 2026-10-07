@@ -71,20 +71,24 @@ archivo nuevo es importable sin tocar `package.json`.
 <!-- BEGIN generated:modules -->
 <!-- No edites aquí: lo reescribe `npm run docs`. -->
 
-Módulos de las carpetas publicadas (53), con la primera línea de su comentario de cabecera.
+Módulos de las carpetas publicadas (57), con la primera línea de su comentario de cabecera.
 
 | Archivo | Qué hace |
 | --- | --- |
 | [`calls/ring-tone.tsx`](../calls/ring-tone.tsx) | Los dos tonos de llamada. |
 | [`calls/ringer-lease.ts`](../calls/ringer-lease.ts) | Un solo tono de llamada por navegador, por muchas pestañas de OnDesk que haya abiertas. |
+| [`components/callout.tsx`](../components/callout.tsx) | El aviso (2026-10-06): lo que una pantalla tiene que decir antes de lo demás o al lado de ello — que una acción queda auditada, que nadie más puede ver un proyecto… |
 | [`components/confirm-delete-modal.tsx`](../components/confirm-delete-modal.tsx) | «¿Seguro?» antes de un borrado, igual en los seis productos. |
 | [`components/console-kit.tsx`](../components/console-kit.tsx) | Las piezas de los paneles, en el mundo «Clear Sky» (2026-10-04). |
 | [`components/console.tsx`](../components/console.tsx) | Las piezas de página que las seis apps ya usaban (`PageHeader`, `StatGrid`, `StatTile`, `PanelHeader`, `EmptyState`, `ConsoleTag`), en el mundo «Clear Sky» desde el… |
+| [`components/data-table.tsx`](../components/data-table.tsx) | La tabla de una página (2026-10-06): auditoría, avisos, listas de elementos. |
 | [`components/form-modal.tsx`](../components/form-modal.tsx) | El envoltorio de cualquier formulario en diálogo: título, descripción y hueco. |
 | [`components/map.tsx`](../components/map.tsx) | Las piezas pequeñas del mapa que llevan los seis productos: la banda de seis líneas y el cierre de seis tramos. |
 | [`components/nova.tsx`](../components/nova.tsx) | Nova, la hoja del asistente, una sola para los seis productos (2026-10-06). |
 | [`components/product-shell.tsx`](../components/product-shell.tsx) | El marco de un producto en el mundo «Clear Sky» (2026-10-04): la forma de la consola de ondesk, para que pasar de la consola a una app, o de una app a otra, se sienta… |
+| [`components/segmented.tsx`](../components/segmented.tsx) | El conmutador (2026-10-06): dos a cinco maneras de ver lo mismo (Board \| List, All \| Unread, Reply \| Internal note, los días de una semana). |
 | [`components/sky.tsx`](../components/sky.tsx) | La marca y la baldosa de app del mundo «Clear Sky», para los seis productos. |
+| [`components/tag.tsx`](../components/tag.tsx) | La píldora de un dato (2026-10-06): el tipo de un elemento, un permiso, un estado, una prioridad. |
 | [`components/theme-provider.tsx`](../components/theme-provider.tsx) | El mundo del mapa se lee a la luz del día: no hay tema oscuro en el sitio, en la puerta, en las consolas ni en los seis productos (decidido el 2026-09-29). |
 | [`components/topbar.tsx`](../components/topbar.tsx) | Las piezas de la barra superior de un producto (2026-10-06): el buscador, la campana, la ayuda y el botón de glifo sobre el que van. |
 | [`hooks/map.ts`](../hooks/map.ts) | Los hooks de las piezas de consola (`components/console-kit.tsx`), iguales que en `ondesk/src/features/frontend/hooks.ts`: el reloj del horario, el aviso que se apaga… |
@@ -98,7 +102,7 @@ Módulos de las carpetas publicadas (53), con la primera línea de su comentario
 | [`presence/status.ts`](../presence/status.ts) | El vocabulario de presencia. |
 | [`ui/alert-dialog.tsx`](../ui/alert-dialog.tsx) | El diálogo de consecuencias: el mismo papel que `Dialog`, pero no se cierra al pulsar fuera y el foco empieza en «Cancel», el lado que no hace nada. |
 | [`ui/avatar.tsx`](../ui/avatar.tsx) | La cara de alguien es su monograma: su foto, o sus iniciales en el corte condensado, dentro de un cuadrado con el trazo del mundo. |
-| [`ui/badge.tsx`](../ui/badge.tsx) | El sello: un estado impreso en una caja con el trazo del mundo. |
+| [`ui/badge.tsx`](../ui/badge.tsx) | El `Badge` de shadcn es la píldora de `Tag` (`components/tag.tsx`) desde el 2026-10-06: la misma clase `.sk-tag`, sin borde, con la palabra en la voz del cielo. |
 | [`ui/button.tsx`](../ui/button.tsx) | El botón. |
 | [`ui/card.tsx`](../ui/card.tsx) | La tarjeta del mundo «Clear Sky» (2026-10-04): blanca, radio de 18px, la elevación en sombra y nunca en borde. |
 | [`ui/checkbox.tsx`](../ui/checkbox.tsx) | La casilla del mundo: un cuadrado con el trazo de 3px que se llena de tinta. |
@@ -116,7 +120,7 @@ Módulos de las carpetas publicadas (53), con la primera línea de su comentario
 | [`ui/skeleton.tsx`](../ui/skeleton.tsx) | El hueco de carga: la forma de lo que viene, en la única tinta clara, quieto. |
 | [`ui/sonner.tsx`](../ui/sonner.tsx) | Las notificaciones: un billete de papel con el trazo del mundo, sin sombra ni radio (el estilo va en `styles/site.css`, `[data-sonner-toast]`). |
 | [`ui/switch.tsx`](../ui/switch.tsx) | El interruptor: una vía cuadrada con el trazo del mundo y un mando de tinta que la cruza; encendido, la vía se entinta y el mando pasa a papel. |
-| [`ui/table.tsx`](../ui/table.tsx) | Una lista es una tabla de tarifas (`.fare`, en `styles/site.css`): el corte condensado con cifras tabulares, las cabeceras como rótulos de andén cerradas por el filete… |
+| [`ui/table.tsx`](../ui/table.tsx) | Una lista es una tabla (`.fare`): en el cielo, filetes finos y la cabecera en voz pequeña (el bloque de consolas de `styles/sky.css`). |
 | [`ui/tabs.tsx`](../ui/tabs.tsx) | Las pestañas son el riel de páginas del mundo: los destinos en negrita sobre un filete fino, el actual en tinta con la barra de 3px en el color de la línea que se viaja. |
 | [`ui/textarea.tsx`](../ui/textarea.tsx) | El campo de varias líneas, con el trazo del mundo; lo mide su `rows`. |
 | [`ui/tooltip.tsx`](../ui/tooltip.tsx) | La nota al pie de un control: tinta sobre papel, en el corte condensado, sin flecha ni radio. |

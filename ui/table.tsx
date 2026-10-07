@@ -1,8 +1,10 @@
 /**
- * Una lista es una tabla de tarifas (`.fare`, en `styles/site.css`): el corte
- * condensado con cifras tabulares, las cabeceras como rótulos de andén cerradas
- * por el filete grueso, un filete fino bajo cada fila y el grueso al final. Una
- * fila que es un enlace se tinta al pasar y no se levanta.
+ * Una lista es una tabla (`.fare`): en el cielo, filetes finos y la cabecera en
+ * voz pequeña (el bloque de consolas de `styles/sky.css`). Una fila que es un
+ * enlace o un botón (`interactive`, o cualquiera con `onClick`) toma la niebla
+ * al pasar y no se levanta; la elegida (`data-state="selected"`,
+ * `data-selected`) se queda en esa niebla. Para una tabla de página entera con
+ * su vacío y su paginador, `DataTable` de `components/data-table`.
  */
 import * as React from "react"
 
@@ -47,18 +49,27 @@ function TableFooter({ className, ...props }: React.ComponentProps<"tfoot">) {
   return (
     <tfoot
       data-slot="table-footer"
-      className={cn("font-bold", className)}
+      className={cn("font-medium", className)}
       {...props}
     />
   )
 }
 
-function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
+function TableRow({
+  className,
+  interactive,
+  ...props
+}: React.ComponentProps<"tr"> & {
+  /** La fila lleva a algún sitio: cursor de mano y niebla al pasar. Por defecto, si tiene `onClick`. */
+  interactive?: boolean
+}) {
+  const link = interactive ?? Boolean(props.onClick)
   return (
     <tr
       data-slot="table-row"
       className={cn(
-        "is-link data-[state=selected]:bg-(--paper-2)",
+        link && "is-link cursor-pointer focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-(--sk-accent)",
+        "data-[state=selected]:bg-(--sk-ground) data-[selected=true]:bg-(--sk-ground)",
         className
       )}
       {...props}
@@ -99,7 +110,7 @@ function TableCaption({
   return (
     <caption
       data-slot="table-caption"
-      className={cn("mt-4 text-[0.95rem] text-(--ink-2)", className)}
+      className={cn("mt-4 text-[0.875rem] text-(--sk-ink-2)", className)}
       {...props}
     />
   )

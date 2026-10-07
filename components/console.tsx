@@ -25,11 +25,17 @@
  *                  de cada app: shared no conoce sus rutas)
  *   RowContent     lo de dentro de una fila: icono, título, línea y final
  *
- * Sin antetítulos: `tag` sólo se imprime, pequeño y debajo, si dice algo que el
- * título no dice ya, y la numeración («02 — TICKETS») se limpia si llega.
+ * Y, desde el 2026-10-06 (v1.12.0), `Panel variant="flush"` para tablas y
+ * listas de canto a canto, `StatTile` con `trend` (la flecha y el cambio frente
+ * al periodo anterior) y `EmptyState` que se basta sola (`boxed`) cuando no hay
+ * un panel alrededor. La fila elegida de una lista es `rowClass` con
+ * `aria-current` (o `data-selected`): fondo de niebla y título en tinta.
+ *
+ * Sin antetítulos: `PageHeader` ya no imprime `tag` (salía «Audit» bajo «Audit
+ * log», «My Tasks» bajo «My tasks»); sólo `meta`, el dato vivo, va debajo.
  */
 import { useId, type ReactNode, type ElementType } from "react";
-import { ArrowRight } from "lucide-react";
+import { ArrowDownRight, ArrowRight, ArrowUpRight } from "lucide-react";
 import { Section } from "./console-kit";
 
 /** Un rótulo pequeño, en tinta terciaria. */
@@ -37,29 +43,22 @@ export function ConsoleTag({ children, className = "" }: { children: ReactNode; 
 	return <span className={`text-[0.8125rem] font-medium text-(--sk-ink-3) ${className}`}>{children}</span>;
 }
 
-/** «01 — Overview» → «Overview»: la numeración de sección es un adorno. */
-function stripOrdinal(tag: string): string {
-	return tag.replace(/^\s*\d{1,2}\s*[—–-]\s*/, "").trim();
-}
-
 /** El titular de una página: el título, su frase, el dato vivo y su única acción. */
 export function PageHeader({
-	tag,
 	title,
 	description,
 	actions,
 	meta,
 }: {
-	/** El nombre corto de la sección; se imprime sólo si difiere del título. */
+	/** Ya no se imprime (v1.12.0); se acepta para no romper a quien aún lo pase. */
 	tag?: string;
 	title: ReactNode;
 	description?: ReactNode;
 	actions?: ReactNode;
-	/** El dato vivo de la página («14 open · 3 waiting»); manda sobre `tag`. */
+	/** El dato vivo de la página («14 open · 3 waiting»), pequeño y debajo. */
 	meta?: ReactNode;
 }) {
-	const tagText = tag ? stripOrdinal(tag) : "";
-	const note = meta ?? (tagText && (typeof title !== "string" || tagText.toLowerCase() !== title.toLowerCase()) ? tagText : null);
+	const note = meta;
 	return (
 		<header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4 pt-2">
 			<div className="min-w-0 max-w-3xl">
@@ -77,43 +76,74 @@ export function StatGrid({ children, className = "" }: { children: ReactNode; cl
 	return <div className={`grid gap-4 ${className}`}>{children}</div>;
 }
 
+/** El cambio de una cifra frente al periodo anterior. */
+export interface StatTrend {
+	/** Lo que se lee: «51.1% vs previous 30 days». */
+	value: string;
+	direction: "up" | "down" | "flat";
+	/** `false` lo pinta en rojo: el cambio va en la mala dirección. Sin él, tinta secundaria. */
+	good?: boolean;
+}
+
+const TREND_WORD = { up: "Up", down: "Down", flat: "No change" } as const;
+
 /**
  * Una cifra en su tarjeta, como las del inicio de la consola de ondesk: el
- * rótulo, su icono en un círculo de niebla, la cifra tabular y una nota. `tone`
- * sólo distingue lo que se paró (`alert`/`destructive`, en rojo en la cifra y
- * en el círculo) y lo que pide mirarse (`warning`, sólo el círculo); una cifra
- * buena o mala se dice con la nota, no con un color.
+ * rótulo, su icono en un círculo, la cifra tabular, el cambio frente al periodo
+ * anterior (`trend`) y una nota. `tone` sólo distingue lo que se paró
+ * (`alert`/`destructive`, en rojo en la cifra y en el círculo), lo que pide
+ * mirarse (`warning`, sólo el círculo) y la cifra que es tuya (`accent`, el
+ * círculo con el tinte del acento). El cambio va en tinta y sólo se vuelve rojo
+ * si va en la mala dirección; nunca verde: una cifra buena no necesita color.
  */
 export function StatTile({
 	label,
 	value,
 	hint,
+	trend,
 	icon: Icon,
 	tone = "default",
 }: {
 	label: string;
 	value: ReactNode;
 	hint?: ReactNode;
+	trend?: StatTrend;
 	icon?: ElementType;
 	tone?: "default" | "accent" | "warning" | "destructive" | "alert";
 }) {
 	const alert = tone === "destructive" || tone === "alert";
-	const ring = alert ? "bg-[#fbeceb] text-[#b3261e]" : tone === "warning" ? "bg-[#fdf1e1] text-[#a35f00]" : "bg-(--sk-ground) text-(--sk-ink-2)";
+	const ring = alert
+		? "bg-[#fbeceb] text-[#b3261e]"
+		: tone === "warning"
+			? "bg-[#fdf1e1] text-[#a35f00]"
+			: tone === "accent"
+				? "bg-(--accent-soft) text-(--sk-accent)"
+				: "bg-(--sk-ground) text-(--sk-ink-2)";
+	const TrendIcon = trend ? (trend.direction === "up" ? ArrowUpRight : trend.direction === "down" ? ArrowDownRight : ArrowRight) : null;
 	return (
 		<div className="flex min-w-0 flex-col rounded-[18px] bg-white p-5 shadow-(--sk-shadow-1)">
 			<div className="flex items-start justify-between gap-3">
-				<p className="text-[0.8125rem] font-medium text-(--sk-ink-2)">{label}</p>
+				<p className="min-w-0 text-[0.8125rem] font-medium text-(--sk-ink-2)">{label}</p>
 				{Icon && (
 					<span className={`inline-flex size-8 shrink-0 items-center justify-center rounded-full ${ring}`} aria-hidden="true">
 						<Icon className="size-4" strokeWidth={1.75} />
 					</span>
 				)}
 			</div>
-			<p
-				className={`text-[2rem] font-medium leading-none tracking-[-0.03em] tabular-nums ${Icon ? "mt-2" : "mt-3"} ${alert ? "text-[#b3261e]" : "text-(--sk-ink)"}`}>
+			{/* un `div` y no un `p`: la cifra puede llegar como un `Skeleton` mientras carga */}
+			<div
+				className={`text-[2rem] font-medium leading-none tracking-[-0.03em] tabular-nums [overflow-wrap:anywhere] ${Icon ? "mt-2" : "mt-3"} ${alert ? "text-[#b3261e]" : "text-(--sk-ink)"}`}>
 				{value}
-			</p>
-			{hint && <p className="mt-2 text-[0.8125rem] leading-snug text-(--sk-ink-3)">{hint}</p>}
+			</div>
+			{trend && TrendIcon && (
+				<p
+					className={`mt-2 flex items-start gap-1 text-[0.8125rem] font-medium leading-snug tabular-nums ${trend.good === false ? "text-[#b3261e]" : "text-(--sk-ink-2)"}`}>
+					<TrendIcon className="mt-px size-3.5 shrink-0" strokeWidth={2} aria-hidden="true" />
+					<span className="sr-only">{TREND_WORD[trend.direction]} </span>
+					<span className="min-w-0">{trend.value}</span>
+				</p>
+			)}
+			{hint && <p className={`${trend ? "mt-1" : "mt-2"} text-[0.8125rem] leading-snug text-(--sk-ink-3)`}>{hint}</p>}
 		</div>
 	);
 }
@@ -126,27 +156,33 @@ export function StatTile({
  * («3 open · 1 overdue», «last 7 days») y su única acción a la derecha, que es
  * un enlace con `textLinkClass`. `id` sólo hace falta si alguien enlaza a la
  * sección con un ancla.
+ *
+ * `variant="flush"` quita el relleno de lo de dentro: una tabla (`ui/table`) o
+ * una `RowList` van de canto a canto y su primera columna se alinea con el
+ * título. Sin `title` no hay cabecera (una tabla que es toda la página).
  */
 export function Panel({
 	id,
 	title,
 	meta,
 	action,
+	variant = "default",
 	className = "",
 	children,
 }: {
 	id?: string;
-	title: ReactNode;
+	title?: ReactNode;
 	meta?: ReactNode;
 	action?: ReactNode;
+	variant?: "default" | "flush";
 	/** Para colocarla en una rejilla: `lg:col-span-7`. */
 	className?: string;
 	children: ReactNode;
 }) {
 	const fallback = useId().replace(/:/g, "");
 	const section = (
-		<Section id={id ?? `panel-${fallback}`} title={title} meta={meta} action={action}>
-			{children}
+		<Section id={id ?? `panel-${fallback}`} title={title} meta={meta} action={action} flush={variant === "flush"}>
+			{variant === "flush" ? <div className="sk-flush-body">{children}</div> : children}
 		</Section>
 	);
 	return className ? <div className={`min-w-0 [&>section]:h-full ${className}`}>{section}</div> : section;
@@ -242,8 +278,15 @@ export function RowList({ children, label }: { children: ReactNode; label?: stri
 	);
 }
 
-/** La fila que es un enlace o un botón: cursor de mano, fondo de niebla al pasar, foco visible. */
+/**
+ * La fila que es un enlace o un botón: cursor de mano, fondo de niebla al pasar,
+ * foco visible. La elegida (el proyecto abierto en el panel de al lado) lleva
+ * `aria-current="true"` (o `data-selected="true"`): fondo de niebla, título en
+ * tinta, y su icono sobre blanco.
+ */
 export const rowClass = "sk-row";
+/** La misma fila, más baja: para las listas de una columna lateral (proyectos, colecciones, equipos). */
+export const rowCompactClass = "sk-row sk-row--compact";
 /** Una fila que no lleva a ninguna parte: el mismo ritmo, sin fondo ni cursor. */
 export const rowStaticClass = "sk-row sk-row--static";
 
@@ -280,7 +323,8 @@ export function RowContent({
 				<span className="sk-row-title">{title}</span>
 				{sub && <span className="sk-row-sub">{sub}</span>}
 			</span>
-			{end && <span className="sk-row-end">{end}</span>}
+			{/* un 0 es un dato: no se cuela suelto fuera de su hueco */}
+			{end !== undefined && end !== null && end !== false && <span className="sk-row-end">{end}</span>}
 		</>
 	);
 }
@@ -299,24 +343,31 @@ export function PanelHeader({ label, right, className = "" }: { label: string; r
 /**
  * Lo que dice un bloque cuando no hay nada en él: una frase que nombra el hueco
  * y una nota que dice cómo se llenará. Sin icono decorativo; `icon` se acepta
- * sólo por compatibilidad. Dentro de una tarjeta toma su relleno.
+ * sólo por compatibilidad. Dentro de un `Panel` o una tarjeta no lleva caja (el
+ * relleno es el de la tarjeta); suelta en la página, `boxed` le pone la tarjeta
+ * blanca. Nunca dentro de un `<div className="border">`.
  */
 export function EmptyState({
 	title,
 	description,
 	action,
+	boxed = false,
 	className = "",
 }: {
 	icon?: ElementType;
-	title: string;
-	description?: string;
+	title: ReactNode;
+	description?: ReactNode;
 	action?: ReactNode;
+	/** La tarjeta blanca alrededor, para cuando no hay un panel que la ponga. */
+	boxed?: boolean;
 	className?: string;
 }) {
 	return (
-		<div data-slot="empty-state" className={`flex flex-col items-start justify-center gap-1 py-8 in-data-[slot=card]:px-5 ${className}`}>
-			<p className="text-[0.9375rem] font-medium leading-snug text-(--sk-ink)">{title}</p>
-			{description && <p className="max-w-[60ch] text-[0.875rem] leading-relaxed text-(--sk-ink-3)">{description}</p>}
+		<div
+			data-slot="empty-state"
+			className={`flex flex-col items-start justify-center gap-1 py-8 in-data-[slot=card]:px-5 ${boxed ? "sk-card px-5 sm:px-7" : ""} ${className}`}>
+			<p className="text-[0.9375rem] font-medium leading-snug text-(--sk-ink) [overflow-wrap:anywhere]">{title}</p>
+			{description && <p className="max-w-[60ch] text-[0.875rem] leading-relaxed text-(--sk-ink-3) [overflow-wrap:anywhere]">{description}</p>}
 			{action && <div className="mt-3">{action}</div>}
 		</div>
 	);

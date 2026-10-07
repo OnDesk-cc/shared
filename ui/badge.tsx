@@ -1,27 +1,28 @@
 /**
- * El sello: un estado impreso en una caja con el trazo del mundo. Sólido para
- * lo que está en marcha, en contorno para lo que espera o es un hecho, en rojo
- * para lo que se paró. Las variantes de shadcn se traducen así:
+ * El `Badge` de shadcn es la píldora de `Tag` (`components/tag.tsx`) desde el
+ * 2026-10-06: la misma clase `.sk-tag`, sin borde, con la palabra en la voz del
+ * cielo. Las variantes de shadcn se traducen a un tono:
  *
- *   default / outline / ghost / link   contorno
- *   secondary                          sólido (lo que está en marcha)
- *   destructive                        rojo de error
+ *   default / secondary / outline / ghost / link   neutral
+ *   destructive                                     danger
  *
- * Un color de estado (verde para «resuelto», ámbar para «pendiente») no existe
- * en el mundo: el estado es la palabra.
+ * `secondary` era una píldora de tinta sólida que tapaba el texto de al lado
+ * (los filtros de tickets de Pulse); ahora es neutra como las demás. Para un
+ * tono distinto, `tone` manda sobre la variante.
  */
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { Slot } from "radix-ui"
 
 import { cn } from "../lib/utils"
+import type { TagTone } from "../components/tag"
 
-const badgeVariants = cva("stamp [&>svg]:size-3 [&>svg]:pointer-events-none", {
+const badgeVariants = cva("sk-tag", {
   variants: {
     variant: {
       default: "",
-      secondary: "stamp--solid",
-      destructive: "stamp--alert",
+      secondary: "",
+      destructive: "",
       outline: "",
       ghost: "",
       link: "",
@@ -32,19 +33,32 @@ const badgeVariants = cva("stamp [&>svg]:size-3 [&>svg]:pointer-events-none", {
   },
 })
 
+const VARIANT_TONE: Record<string, TagTone> = {
+  default: "neutral",
+  secondary: "neutral",
+  destructive: "danger",
+  outline: "neutral",
+  ghost: "neutral",
+  link: "neutral",
+}
+
 function Badge({
   className,
   variant = "default",
+  tone,
+  size = "sm",
   asChild = false,
   ...props
 }: React.ComponentProps<"span"> &
-  VariantProps<typeof badgeVariants> & { asChild?: boolean }) {
+  VariantProps<typeof badgeVariants> & { asChild?: boolean; tone?: TagTone; size?: "sm" | "md" }) {
   const Comp = asChild ? Slot.Root : "span"
 
   return (
     <Comp
       data-slot="badge"
       data-variant={variant}
+      data-tone={tone ?? VARIANT_TONE[variant ?? "default"]}
+      data-size={size}
       className={cn(badgeVariants({ variant }), className)}
       {...props}
     />

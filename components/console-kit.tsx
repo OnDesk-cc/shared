@@ -25,9 +25,11 @@ import {
 	type SelectHTMLAttributes,
 	type TextareaHTMLAttributes,
 } from "react";
-import { Check as CheckIcon, ChevronDown, CircleAlert, Copy, ExternalLink, MoreHorizontal, X, type LucideIcon } from "lucide-react";
+import { Check as CheckIcon, ChevronDown, Copy, ExternalLink, MoreHorizontal, X, type LucideIcon } from "lucide-react";
 import { useCopy } from "../lib/use-copy";
 import { useDismiss } from "../hooks/map";
+import { Callout } from "./callout";
+import { Tag } from "./tag";
 
 const ERROR_TEXT = "text-[#b3261e]";
 
@@ -37,34 +39,65 @@ const ERROR_TEXT = "text-[#b3261e]";
  * Una sección del panel: una tarjeta blanca con su título, el dato vivo a la
  * derecha (en voz pequeña) y su única acción. `scroll-mt` deja sitio a la barra
  * superior y a la tira «en esta página» cuando se llega por un ancla.
+ *
+ * Con `flush` lo de dentro va de canto a canto (una tabla, una lista de filas):
+ * la cabecera conserva su relleno y el CSS `.sk-flush` alinea la primera y la
+ * última columna con el título. Sin título, ni cabecera.
  */
 export function Section({
 	id,
 	title,
 	meta,
 	action,
+	flush = false,
 	children,
 }: {
 	id: string;
-	title: ReactNode;
+	title?: ReactNode;
 	/** El dato vivo de la sección: «12 attributed · 4 earning». */
 	meta?: ReactNode;
 	/** El único control que cambia lo que enseña la sección («Change», un enlace a la regla). */
 	action?: ReactNode;
+	flush?: boolean;
 	children: ReactNode;
 }) {
+	const head = title || meta || action;
+	if (flush) {
+		return (
+			<section id={id} className="sk-card sk-flush scroll-mt-36" aria-labelledby={title ? `${id}-title` : undefined}>
+				{head && (
+					<div className="sk-flush-head flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+						<div className="min-w-0">
+							{title && (
+								<h2 id={`${id}-title`} className="sk-h3 max-w-3xl text-[1.125rem] sm:text-[1.25rem]">
+									{title}
+								</h2>
+							)}
+							{meta && <p className={`sk-small ${title ? "mt-1" : ""}`}>{meta}</p>}
+						</div>
+						{action && <div className="flex flex-wrap items-center gap-2">{action}</div>}
+					</div>
+				)}
+				{children}
+			</section>
+		);
+	}
 	return (
-		<section id={id} className="sk-card scroll-mt-36 p-5 sm:p-7" aria-labelledby={`${id}-title`}>
-			<div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
-				<div className="min-w-0">
-					<h2 id={`${id}-title`} className="sk-h3 max-w-3xl text-[1.125rem] sm:text-[1.25rem]">
-						{title}
-					</h2>
-					{meta && <p className="sk-small mt-1">{meta}</p>}
+		<section id={id} className="sk-card scroll-mt-36 p-5 sm:p-7" aria-labelledby={title ? `${id}-title` : undefined}>
+			{head && (
+				<div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+					<div className="min-w-0">
+						{title && (
+							<h2 id={`${id}-title`} className="sk-h3 max-w-3xl text-[1.125rem] sm:text-[1.25rem]">
+								{title}
+							</h2>
+						)}
+						{meta && <p className={`sk-small ${title ? "mt-1" : ""}`}>{meta}</p>}
+					</div>
+					{action && <div className="flex flex-wrap items-center gap-2">{action}</div>}
 				</div>
-				{action && <div className="flex flex-wrap items-center gap-2">{action}</div>}
-			</div>
-			<div className="mt-5">{children}</div>
+			)}
+			<div className={head ? "mt-5" : undefined}>{children}</div>
 		</section>
 	);
 }
@@ -336,10 +369,12 @@ export function Breakable({ text }: { text: string }) {
 	);
 }
 
-/** Un estado con su palabra: tinta para lo que está en marcha, niebla para lo demás, rojo apagado para lo que se paró. */
+/**
+ * Un estado con su palabra: tinta para lo que está en marcha, niebla para lo
+ * demás, rojo apagado para lo que se paró. Desde el 2026-10-06 es un `Tag`.
+ */
 export function Stamp({ tone = "outline", children }: { tone?: "solid" | "outline" | "alert"; children: ReactNode }) {
-	const cls = tone === "solid" ? "stamp stamp--solid" : tone === "alert" ? "stamp stamp--alert" : "stamp";
-	return <span className={cls}>{children}</span>;
+	return <Tag tone={tone === "solid" ? "ink" : tone === "alert" ? "danger" : "neutral"}>{children}</Tag>;
 }
 
 // ─── campos ──────────────────────────────────────────────────────────────────
@@ -542,25 +577,23 @@ export function Check({
 
 // ─── avisos ──────────────────────────────────────────────────────────────────
 
-/** El error con el que volvió el servidor, con sus propias palabras. */
+/** El error con el que volvió el servidor, con sus propias palabras: un `Callout` en rojo. */
 export function Alert({ error, children }: { error?: Error | null; children?: ReactNode }) {
 	const text = children ?? error?.message;
 	if (!text) return null;
 	return (
-		<div role="alert" className="sk-alert sk-alert--error">
-			<CircleAlert className="mt-0.5 size-4 shrink-0" strokeWidth={2} aria-hidden="true" />
-			<p className="min-w-0">{text}</p>
-		</div>
+		<Callout tone="danger" role="alert">
+			{text}
+		</Callout>
 	);
 }
 
-/** Una nota: la letra pequeña que acompaña a una sección, sobre niebla. */
+/** Una nota: la letra pequeña que acompaña a una sección, un `Callout` sin glifo. */
 export function Note({ title, children }: { title?: string; children: ReactNode }) {
 	return (
-		<div className="rounded-[12px] bg-(--sk-ground) px-4 py-3">
-			{title && <p className="mb-0.5 text-[0.8125rem] font-medium text-(--sk-ink)">{title}</p>}
-			<p className="max-w-[68ch] text-[0.875rem] leading-snug text-(--sk-ink-2)">{children}</p>
-		</div>
+		<Callout tone="info" icon={false} title={title}>
+			{children}
+		</Callout>
 	);
 }
 

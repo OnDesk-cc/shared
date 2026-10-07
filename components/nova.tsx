@@ -32,8 +32,53 @@ export interface NovaSuggestion {
 	icon?: ElementType;
 }
 
-/** Una vuelta de la conversación tal como se pinta: un fallo se ve, pero no se le vuelve a mandar al modelo. */
-type Turn = NovaMessage & { failed?: boolean };
+/**
+ * Una vuelta de la conversación tal como se pinta: un fallo se ve, pero no se le
+ * vuelve a mandar al modelo. Si el fallo llega a mitad de respuesta, `content`
+ * conserva lo que ya había llegado y `error` va debajo.
+ */
+type Turn = NovaMessage & { failed?: boolean; error?: string };
+
+// ─── el fallo, dicho en una frase ────────────────────────────────────────────
+
+const UNREACHABLE = "Couldn't reach Nova. Check your connection and try again.";
+const DOWN = "Nova couldn't be reached right now.";
+const NO_ANSWER = "Nova didn't answer that one. Try asking again.";
+
+/**
+ * Lo que la hoja dice cuando algo falla, en una frase propia y nunca el cuerpo
+ * crudo de la respuesta: el HTML de un 502 de la red de entrega, el JSON de un
+ * error de la API (`{"error":"…"}` → ese campo) o el «Failed to fetch» de un
+ * `fetch` sin red.
+ */
+export function novaErrorMessage(err: unknown): string {
+	if (err instanceof DOMException && err.name === "AbortError") return "The answer was cut off. Try asking again.";
+	const raw = err instanceof Error ? err.message : typeof err === "string" ? err : "";
+	const text = raw.trim();
+	if (!text) return NO_ANSWER;
+	// Chrome, Safari y Firefox dicen tres cosas distintas para «no hay red».
+	if (/failed to fetch|load failed|networkerror|network request failed/i.test(text)) return UNREACHABLE;
+	if (/<!doctype|<html|<\/?(head|body|title|h1|center)\b/i.test(text)) return DOWN;
+	const brace = text.indexOf("{");
+	if (brace !== -1) {
+		try {
+			const json = JSON.parse(text.slice(brace)) as { error?: unknown; message?: unknown };
+			const field = typeof json.error === "string" ? json.error : (json.error as { message?: unknown } | undefined)?.message ?? json.message;
+			if (typeof field === "string" && field.trim()) return sentence(field.trim());
+		} catch {
+			/* no era JSON */
+		}
+		return DOWN;
+	}
+	// Un mensaje largo es el cuerpo de algo, no una frase para una persona.
+	if (text.length > 200) return DOWN;
+	return sentence(text);
+}
+
+function sentence(text: string): string {
+	const first = text.charAt(0).toUpperCase() + text.slice(1);
+	return /[.!?…]$/.test(first) ? first : `${first}.`;
+}
 
 // ─── el texto del modelo ─────────────────────────────────────────────────────
 
@@ -156,20 +201,24 @@ function NovaGlyph({ size = "sm", failed = false }: { size?: "sm" | "md"; failed
  * Una vuelta de la conversación. Lo que dice Nova es una fila con su glifo y el
  * texto a la medida de lectura; lo que dices tú, una píldora de niebla a la
  * derecha. `pending` es el hueco antes del primer token: una palabra que se
- * ilumina de lado a lado, quieta si se pide menos movimiento. `children` va
- * debajo del texto de Nova (insertar en la respuesta, reintentar).
+ * ilumina de lado a lado, quieta si se pide menos movimiento. `error` es el
+ * fallo que cortó una respuesta a medias: el texto que llegó se queda y el fallo
+ * va debajo, en rojo. `children` va debajo de todo (insertar en la respuesta,
+ * reintentar).
  */
 export function NovaMessageRow({
 	role,
 	content,
 	pending = false,
 	failed = false,
+	error,
 	children,
 }: {
 	role: NovaMessage["role"];
 	content: string;
 	pending?: boolean;
 	failed?: boolean;
+	error?: string;
 	children?: ReactNode;
 }) {
 	if (role === "user") {
@@ -182,16 +231,26 @@ export function NovaMessageRow({
 		);
 	}
 
+	// Con una respuesta a medias el glifo sigue siendo el de Nova: lo que hay
+	// encima del fallo es de Nova y se lee como tal.
+	const partial = failed && Boolean(error);
 	return (
 		<div className="flex gap-3">
-			<NovaGlyph failed={failed} />
+			<NovaGlyph failed={failed && !partial} />
 			<div className="min-w-0 flex-1 pt-[0.3125rem]">
 				{pending ? (
 					<p className="sk-nova-writing text-[0.9375rem] leading-relaxed">Writing…</p>
 				) : (
-					<div className={`max-w-[62ch] text-[0.9375rem] leading-relaxed [overflow-wrap:anywhere] ${failed ? "text-(--sk-ink-2)" : "text-(--sk-ink)"}`}>
+					<div
+						className={`max-w-[62ch] text-[0.9375rem] leading-relaxed [overflow-wrap:anywhere] ${failed && !partial ? "text-(--sk-ink-2)" : "text-(--sk-ink)"}`}>
 						<NovaMarkup text={content} />
 					</div>
+				)}
+				{error && (
+					<p className="mt-2.5 flex max-w-[62ch] items-start gap-1.5 text-[0.875rem] leading-snug text-[#a1221a]">
+						<CircleAlert className="mt-0.5 size-3.5 shrink-0" strokeWidth={2} aria-hidden="true" />
+						{error}
+					</p>
 				)}
 				{children && <div className="mt-2.5 flex flex-wrap items-center gap-2">{children}</div>}
 			</div>
@@ -298,6 +357,8 @@ export function NovaSuggestions({
 						<button
 							type="button"
 							disabled={disabled}
+							// la pregunta entera, que la fila corta con puntos suspensivos
+							title={s.prompt}
 							onClick={() => onPick(s.prompt)}
 							className="flex w-full items-center gap-3 rounded-[12px] px-2.5 py-2 text-left transition-colors duration-150 hover:bg-(--sk-ground) focus-visible:bg-(--sk-ground) focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-(--sk-accent) disabled:opacity-50">
 							<span
@@ -404,16 +465,17 @@ export function NovaSheet({
 				return next;
 			});
 
+		let accumulated = "";
 		try {
-			let accumulated = "";
 			await stream(history, (token) => {
 				accumulated += token;
 				settle({ role: "assistant", content: accumulated });
 			});
-			if (!accumulated.trim()) settle({ role: "assistant", content: "Nova didn't answer that one. Try asking again.", failed: true });
+			if (!accumulated.trim()) settle({ role: "assistant", content: NO_ANSWER, failed: true });
 		} catch (err) {
-			const detail = err instanceof Error ? err.message : "Unknown error";
-			settle({ role: "assistant", content: `Something went wrong: ${detail}`, failed: true });
+			const message = novaErrorMessage(err);
+			// Lo que ya había llegado se queda; el fallo va debajo.
+			settle(accumulated.trim() ? { role: "assistant", content: accumulated, failed: true, error: message } : { role: "assistant", content: message, failed: true });
 		} finally {
 			setBusy(false);
 		}
@@ -474,7 +536,7 @@ export function NovaSheet({
 						const streaming = busy && i === last;
 						const done = turn.role === "assistant" && i > 0 && !turn.failed && !streaming && turn.content !== "";
 						return (
-							<NovaMessageRow key={i} role={turn.role} content={turn.content} pending={pending} failed={turn.failed}>
+							<NovaMessageRow key={i} role={turn.role} content={turn.content} pending={pending} failed={turn.failed} error={turn.error}>
 								{turn.failed && i === last && !busy ? (
 									<button type="button" className={`${textLinkClass} text-[0.875rem]`} onClick={retry}>
 										<RotateCcw className="size-3.5" strokeWidth={1.75} aria-hidden="true" />
