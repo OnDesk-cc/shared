@@ -13,5 +13,7 @@
     "verbatimModuleSyntax": true,
     "skipLibCheck": true
   },
-  "include": ["worker"]
+  "include": ["worker"],
+  // Las pruebas (node:test vía tsx) usan tipos de Node: fuera del typecheck.
+  "exclude": ["**/*.test.ts"]
 }

@@ -13,7 +13,8 @@
     "typecheck": "tsc -p tsconfig.ui.json --noEmit && tsc -p tsconfig.worker.json --noEmit",
     "docs": "node scripts/gen-docs.mjs",
     "docs:check": "node scripts/gen-docs.mjs --check",
-    "docs:gaps": "node scripts/gen-docs.mjs --gaps"
+    "docs:gaps": "node scripts/gen-docs.mjs --gaps",
+    "test": "tsx --test \"worker/**/*.test.ts\""
   },
   "peerDependencies": {
     "@tanstack/react-query": "^5.90.21",
@@ -41,6 +42,7 @@
     "react-dom": "^19.2.0",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.5.0",
+    "tsx": "^4.23.15",
     "typescript": "~5.9.3"
   }
 }

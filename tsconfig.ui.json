@@ -20,5 +20,7 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["ui", "lib", "hooks", "calls", "components", "presence"]
+  "include": ["ui", "lib", "hooks", "calls", "components", "presence"],
+  // Las pruebas (node:test vía tsx) usan tipos de Node: fuera del typecheck.
+  "exclude": ["**/*.test.ts"]
 }
