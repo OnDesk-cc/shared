@@ -20,10 +20,12 @@
 import type { D1Database, PagesFunction } from "@cloudflare/workers-types";
 import { bearerToken } from "./sso";
 import { verifyRs256 } from "./rs256";
-import { validateParams, type JsonSchema } from "./json-schema";
+import { validateParams } from "./json-schema";
+import type { NovaManifest, NovaManifestTool, NovaToolClaims, NovaToolErrorCode, NovaToolResponse } from "./nova-contract";
 import type { WorkspaceAccess } from "./access";
 
 export type { JsonSchema } from "./json-schema";
+export type { NovaManifest, NovaManifestTool, NovaToolClaims, NovaToolErrorCode, NovaToolResponse } from "./nova-contract";
 
 export interface NovaToolsEnv {
 	DB: D1Database;
@@ -42,15 +44,7 @@ export interface NovaToolContext<E> {
 	waitUntil: (promise: Promise<unknown>) => void;
 }
 
-export interface NovaToolDef<E, P = Record<string, unknown>> {
-	name: string;
-	/** En inglés: la lee el modelo. */
-	description: string;
-	kind: "read" | "write";
-	destructive?: boolean;
-	/** true: Nova la llama sola al empezar cada turno y nunca se la ofrece al modelo. */
-	auto?: boolean;
-	params: JsonSchema;
+export interface NovaToolDef<E, P = Record<string, unknown>> extends NovaManifestTool {
 	/** Devuelve datos ya proyectados: sólo los campos que Nova puede ver. */
 	run: (ctx: NovaToolContext<E>, params: P) => Promise<unknown>;
 }
@@ -59,20 +53,6 @@ export function defineTool<E, P = Record<string, unknown>>(def: NovaToolDef<E, P
 	return def as unknown as NovaToolDef<E>;
 }
 
-export type NovaManifestTool = Omit<NovaToolDef<unknown>, "run">;
-
-export interface NovaManifest {
-	product: string;
-	version: string;
-	/** Cómo contestar en este producto: lo que antes era «HOW TO ANSWER» en su prompt. */
-	guidance: string;
-	tools: NovaManifestTool[];
-}
-
-export type NovaToolErrorCode = "unauthorized" | "forbidden" | "payment_required" | "not_found" | "invalid_params" | "too_large" | "failed";
-
-export type NovaToolResponse = { ok: true; data: unknown } | { ok: false; code: NovaToolErrorCode; message: string };
-
 /** Lánzala desde `run` para un fallo con nombre («no existe», «no es legible»). */
 export class NovaToolError extends Error {
 	readonly code: NovaToolErrorCode;
@@ -80,20 +60,6 @@ export class NovaToolError extends Error {
 		super(message);
 		this.code = code;
 	}
-}
-
-export interface NovaToolClaims {
-	iss: string;
-	aud: string;
-	sub: string;
-	workspace: string;
-	tool: string;
-	origin: string;
-	resource?: string;
-	jti: string;
-	iat: number;
-	exp: number;
-	[key: string]: unknown;
 }
 
 export const NOVA_MAX_RESULT_CHARS = 32_000;

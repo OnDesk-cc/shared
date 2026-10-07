@@ -43,6 +43,7 @@ sitio.
 | `email` | `createEmailer(brand)` y los helpers de plantilla |
 | `api` | el núcleo de la API con token bearer (`/api/v1` de cada producto) |
 | **`nova-tools`** | **`createNovaTools` + `defineTool`: las herramientas que un producto publica a Nova central** (token RS256 por llamada, membresía de `access`, parámetros de `json-schema`) |
+| `nova-contract` | los tipos del contrato Nova ↔ producto (manifiesto, respuesta, claims), sin dependencias de runtime: los importan los productos y el Worker de Nova |
 | `access` | `checkWorkspaceAccess`: membresía + derecho vivo en una consulta (la usan `middleware` y `nova-tools`) |
 | `rs256` | verificación RS256 contra un JWKS remoto (el de Nova) |
 | `json-schema` | el subconjunto de JSON Schema de los parámetros de herramientas y su validador |
@@ -75,7 +76,7 @@ archivo nuevo es importable sin tocar `package.json`.
 <!-- BEGIN generated:modules -->
 <!-- No edites aquí: lo reescribe `npm run docs`. -->
 
-Módulos de las carpetas publicadas (70), con la primera línea de su comentario de cabecera.
+Módulos de las carpetas publicadas (71), con la primera línea de su comentario de cabecera.
 
 | Archivo | Qué hace |
 | --- | --- |
@@ -143,6 +144,7 @@ Módulos de las carpetas publicadas (70), con la primera línea de su comentario
 | [`worker/jwt.ts`](../worker/jwt.ts) | Firma HS256 y verificación con audiencia, sobre Web Crypto. |
 | [`worker/middleware.ts`](../worker/middleware.ts) | El middleware de autenticación y de workspace con el que cada producto satélite envuelve sus rutas. |
 | [`worker/mirror.ts`](../worker/mirror.ts) | El espejo del estado de OnDesk — las escrituras que cada producto hace de forma idéntica. |
+| [`worker/nova-contract.ts`](../worker/nova-contract.ts) | Los tipos del contrato entre Nova central y las herramientas de un producto (2026-10-07). |
 | [`worker/nova-tools.test.ts`](../worker/nova-tools.test.ts) | Una sola clave para todo el archivo: la caché del JWKS vive entre pruebas y sólo se refresca a la fuerza una vez por minuto. |
 | [`worker/nova-tools.ts`](../worker/nova-tools.ts) | Las herramientas que un producto le publica a Nova central (2026-10-07, fase 1). |
 | [`worker/response.ts`](../worker/response.ts) | Las tres respuestas JSON que devuelve cualquier handler de Pages Functions. |
