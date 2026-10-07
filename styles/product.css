@@ -1342,7 +1342,9 @@ html.site.sk .sk-nova-writing {
    un `overflow` recorte. Mismos colores y orden que `lib/nova-star`. Gira sólo
    al pasar con un puntero fino (en un toque, el hover se queda pegado); abierto
    se queda quieto sobre niebla. Sin `@property` el aro se ve igual, sólo que no
-   gira. Al pulsar, el botón cede un 3 %: la pantalla ha oído el clic. */
+   gira: por eso el `var()` lleva respaldo (sin él, el `background` entero, relleno
+   incluido, cae a su valor inicial). Lo vigila `scripts/nova-ring.test.mjs`. Al
+   pulsar, el botón cede un 3 %: la pantalla ha oído el clic. */
 @property --sk-nova-turn {
 	syntax: "<angle>";
 	inherits: false;
@@ -1352,7 +1354,7 @@ html.site.sk .sk-nova-ring {
 	border: 1.5px solid transparent;
 	background:
 		linear-gradient(var(--sk-nova-fill, #ffffff), var(--sk-nova-fill, #ffffff)) padding-box,
-		conic-gradient(from var(--sk-nova-turn), #ee6c2b, #5aa82e, #17996a, #0b9fb3, #4466f2, #8f55e8, #ee6c2b) border-box;
+		conic-gradient(from var(--sk-nova-turn, 0deg), #ee6c2b, #5aa82e, #17996a, #0b9fb3, #4466f2, #8f55e8, #ee6c2b) border-box;
 	box-shadow:
 		0 1px 2px rgba(17, 38, 72, 0.06),
 		0 6px 16px -10px rgba(17, 38, 72, 0.35);
