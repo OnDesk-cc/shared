@@ -6,6 +6,7 @@
  * app pone sólo lo suyo: qué busca, qué avisa y qué preguntas responde.
  *
  *   TopbarButton       el botón redondo de glifo de la barra
+ *   NovaButton         el que abre Nova: el mismo botón, con su nombre desde sm
  *   NotificationsMenu  la campana con su contador y el panel de avisos
  *   NotificationGlyph  el icono de un aviso en su cuadro, con su tono
  *   TopbarSearch       el campo de la barra y su panel de resultados
@@ -35,6 +36,30 @@ export const TopbarButton = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<H
 			className={`relative inline-flex size-9 shrink-0 items-center justify-center rounded-full text-(--sk-ink-2) transition-colors duration-150 hover:bg-[rgba(14,27,46,0.05)] hover:text-(--sk-ink) aria-expanded:bg-[rgba(14,27,46,0.06)] aria-expanded:text-(--sk-ink) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--sk-accent) ${className}`}
 			{...rest}>
 			{children}
+		</button>
+	);
+});
+
+/**
+ * El botón que abre Nova (`NovaSheet`, en `components/nova`): de la familia de
+ * `TopbarButton` — el mismo alto, el mismo radio, el mismo fondo al pasar —, con
+ * la chispa en el acento de la plataforma para que el asistente se encuentre sin
+ * buscarlo, y el nombre a la vista desde sm. En un teléfono queda el glifo solo y
+ * el nombre sigue ahí para el lector de pantalla. La app pasa `aria-expanded`.
+ */
+export const NovaButton = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLButtonElement>>(function NovaButton(
+	{ className = "", ...rest },
+	ref,
+) {
+	return (
+		<button
+			ref={ref}
+			type="button"
+			aria-haspopup="dialog"
+			className={`relative inline-flex h-9 min-w-9 shrink-0 items-center justify-center gap-2 rounded-full text-[0.875rem] font-medium text-(--sk-ink-2) transition-colors duration-150 hover:bg-[rgba(14,27,46,0.05)] hover:text-(--sk-ink) aria-expanded:bg-[rgba(14,27,46,0.06)] aria-expanded:text-(--sk-ink) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--sk-accent) sm:pl-2.5 sm:pr-3.5 ${className}`}
+			{...rest}>
+			<Sparkles className="size-[1.125rem] text-(--sk-accent)" strokeWidth={1.75} aria-hidden="true" />
+			<span className="sr-only sm:not-sr-only">Nova</span>
 		</button>
 	);
 });

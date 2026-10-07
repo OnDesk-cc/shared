@@ -71,7 +71,7 @@ archivo nuevo es importable sin tocar `package.json`.
 <!-- BEGIN generated:modules -->
 <!-- No edites aquí: lo reescribe `npm run docs`. -->
 
-Módulos de las carpetas publicadas (51), con la primera línea de su comentario de cabecera.
+Módulos de las carpetas publicadas (53), con la primera línea de su comentario de cabecera.
 
 | Archivo | Qué hace |
 | --- | --- |
@@ -82,9 +82,11 @@ Módulos de las carpetas publicadas (51), con la primera línea de su comentario
 | [`components/console.tsx`](../components/console.tsx) | Las piezas de página que las seis apps ya usaban (`PageHeader`, `StatGrid`, `StatTile`, `PanelHeader`, `EmptyState`, `ConsoleTag`), en el mundo «Clear Sky» desde el… |
 | [`components/form-modal.tsx`](../components/form-modal.tsx) | El envoltorio de cualquier formulario en diálogo: título, descripción y hueco. |
 | [`components/map.tsx`](../components/map.tsx) | Las piezas pequeñas del mapa que llevan los seis productos: la banda de seis líneas y el cierre de seis tramos. |
+| [`components/nova.tsx`](../components/nova.tsx) | Nova, la hoja del asistente, una sola para los seis productos (2026-10-06). |
 | [`components/product-shell.tsx`](../components/product-shell.tsx) | El marco de un producto en el mundo «Clear Sky» (2026-10-04): la forma de la consola de ondesk, para que pasar de la consola a una app, o de una app a otra, se sienta… |
 | [`components/sky.tsx`](../components/sky.tsx) | La marca y la baldosa de app del mundo «Clear Sky», para los seis productos. |
 | [`components/theme-provider.tsx`](../components/theme-provider.tsx) | El mundo del mapa se lee a la luz del día: no hay tema oscuro en el sitio, en la puerta, en las consolas ni en los seis productos (decidido el 2026-09-29). |
+| [`components/topbar.tsx`](../components/topbar.tsx) | Las piezas de la barra superior de un producto (2026-10-06): el buscador, la campana, la ayuda y el botón de glifo sobre el que van. |
 | [`hooks/map.ts`](../hooks/map.ts) | Los hooks de las piezas de consola (`components/console-kit.tsx`), iguales que en `ondesk/src/features/frontend/hooks.ts`: el reloj del horario, el aviso que se apaga… |
 | [`lib/crud-api.ts`](../lib/crud-api.ts) | El cliente CRUD que se repetía en cada feature, escrito una vez. |
 | [`lib/crud-hooks.ts`](../lib/crud-hooks.ts) | Los hooks de React Query que van encima de `crud-api.ts`. |

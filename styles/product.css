@@ -1226,7 +1226,118 @@ html.site.sk .sk-row-end {
 	color: var(--sk-ink-3);
 }
 
+/* ── Nova (`NovaSheet`, `NovaComposer`) ─────────────────────────────────────
+   El campo es la píldora del buscador de la barra, con la misma respuesta al
+   pasar y al enfocar; como crece con el texto, el radio es de 22px y no de
+   píldora, y el botón de enviar se queda abajo a la derecha. El anillo de foco
+   lo lleva el campo entero, no el textarea de dentro. */
+html.site.sk .sk-composer {
+	display: flex;
+	align-items: flex-end;
+	gap: 8px;
+	padding: 6px 6px 6px 16px;
+	border-radius: 22px;
+	background: var(--sk-surface);
+	box-shadow: inset 0 0 0 1px var(--sk-hair-2);
+	transition: box-shadow 150ms ease;
+}
+html.site.sk .sk-composer:hover {
+	box-shadow: inset 0 0 0 1px rgba(14, 27, 46, 0.22);
+}
+html.site.sk .sk-composer:focus-within {
+	box-shadow:
+		inset 0 0 0 1.5px var(--sk-accent),
+		0 0 0 4px rgba(47, 107, 224, 0.12);
+}
+html.site.sk .sk-composer textarea {
+	flex: 1;
+	min-width: 0;
+	min-height: 36px;
+	/* cinco líneas; a partir de ahí se desplaza */
+	max-height: 152px;
+	padding: 7px 0;
+	border: 0;
+	background: transparent;
+	resize: none;
+	font: inherit;
+	font-size: 0.9375rem;
+	line-height: 1.45;
+	color: var(--sk-ink);
+	caret-color: var(--sk-accent);
+	scrollbar-width: thin;
+	scrollbar-color: var(--sk-haze) transparent;
+}
+html.site.sk .sk-composer textarea::placeholder {
+	color: var(--sk-ink-3);
+}
+html.site.sk .sk-composer textarea:focus,
+html.site.sk .sk-composer textarea:focus-visible {
+	outline: none;
+}
+html.site.sk .sk-composer-send {
+	display: inline-flex;
+	width: 36px;
+	height: 36px;
+	flex-shrink: 0;
+	align-items: center;
+	justify-content: center;
+	border: 0;
+	border-radius: 999px;
+	background: var(--sk-accent);
+	color: #ffffff;
+	cursor: pointer;
+	transition:
+		background-color 150ms ease,
+		transform 160ms var(--sk-ease-out);
+}
+html.site.sk .sk-composer-send:active:not(:disabled) {
+	transform: scale(0.95);
+}
+html.site.sk .sk-composer-send:disabled {
+	background: var(--sk-haze);
+	color: var(--sk-ink-3);
+	cursor: default;
+}
+html.site.sk .sk-composer-send:focus-visible {
+	outline: 2px solid var(--sk-accent);
+	outline-offset: 2px;
+}
+
+/* La conversación: la barra de desplazamiento en el tono del cielo. */
+html.site.sk .sk-nova-log {
+	scrollbar-width: thin;
+	scrollbar-color: var(--sk-haze) transparent;
+}
+
+/* Mientras Nova piensa: la palabra «Writing…» con una luz que la cruza despacio
+   de lado a lado. Ni rebota ni late; con menos movimiento es sólo la palabra. */
+html.site.sk .sk-nova-writing {
+	width: fit-content;
+	color: transparent;
+	background: linear-gradient(90deg, var(--sk-ink-3) 0%, var(--sk-ink-3) 35%, var(--sk-ink) 50%, var(--sk-ink-3) 65%, var(--sk-ink-3) 100%);
+	background-size: 250% 100%;
+	background-clip: text;
+	animation: sk-nova-writing 1.8s linear infinite;
+}
+@keyframes sk-nova-writing {
+	from {
+		background-position: 100% 0;
+	}
+	to {
+		background-position: 0% 0;
+	}
+}
+
 @media (prefers-reduced-motion: reduce) {
+	html.site.sk .sk-nova-writing {
+		animation: none;
+		background: none;
+		color: var(--sk-ink-3);
+	}
+	html.site.sk .sk-composer,
+	html.site.sk .sk-composer-send {
+		transition: none;
+	}
 	html.site.sk .sk-row {
 		transition: none;
 	}
