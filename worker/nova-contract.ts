@@ -14,10 +14,20 @@ export interface NovaManifestTool {
 	name: string;
 	/** En inglés: la lee el modelo. */
 	description: string;
-	kind: "read" | "write";
+	/**
+	 * read/write: corren como el usuario del token. index: sólo para el indexador
+	 * de Nova (`sub: "nova:indexer"`, `workspace: "*"`); nunca se le ofrece al modelo.
+	 */
+	kind: "read" | "write" | "index";
 	destructive?: boolean;
 	/** true: Nova la llama sola al empezar cada turno y nunca se la ofrece al modelo. */
 	auto?: boolean;
+	/**
+	 * true: herramienta de búsqueda semántica. Nova le añade `candidates` (de su
+	 * índice, worker/nova-search.ts) a lo que pida el modelo, y el producto
+	 * re-comprueba cada uno. El modelo no ve ese parámetro.
+	 */
+	retrieval?: boolean;
 	params: JsonSchema;
 }
 
@@ -45,4 +55,24 @@ export interface NovaToolClaims {
 	iat: number;
 	exp: number;
 	[key: string]: unknown;
+}
+
+/** Un acierto del índice de Nova: qué objeto, qué trozo de su texto y cuánto se parece. */
+export interface NovaSearchCandidate {
+	kind: string;
+	id: string;
+	chunk: number;
+	score: number;
+}
+
+/** Una entrada del feed de un producto para el índice: el texto actual, o que ya no está. */
+export type NovaIndexEntry =
+	| { op: "upsert"; kind: string; id: string; workspace_id: string; text: string }
+	| { op: "delete"; kind: string; id: string; workspace_id: string };
+
+export interface NovaIndexFeed {
+	entries: NovaIndexEntry[];
+	/** Hasta dónde se ha entregado: la siguiente llamada pasa éste como `after`. */
+	next_after: number;
+	has_more: boolean;
 }

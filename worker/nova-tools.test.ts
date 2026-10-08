@@ -67,13 +67,20 @@ const huge = defineTool<Env>({
 	params: { type: "object", properties: { size: { type: "integer" } } },
 	run: async (_ctx, params) => ({ blob: "x".repeat(Number(params.size ?? 70_000)) }),
 });
+const feed = defineTool<Env>({
+	name: "orbit.index_feed",
+	description: "Feed",
+	kind: "index",
+	params: { type: "object", additionalProperties: false, properties: { after: { type: "integer", minimum: 0 } } },
+	run: async (ctx) => ({ user: ctx.userId, workspace: ctx.workspaceId, big: "x".repeat(100_000) }),
+});
 
 let access: { ok: true; role: string } | { ok: false; status: 402 | 403; message: string } = { ok: true, role: "member" };
 const nova = createNovaTools<Env>({
 	product: "orbit",
 	version: "test",
 	guidance: "Be brief.",
-	tools: [echo, missing, huge],
+	tools: [echo, missing, huge, feed],
 	resolveAccess: async () => access,
 });
 
@@ -90,7 +97,7 @@ async function invoke(name: string, body: unknown, auth?: string): Promise<{ sta
 test("el manifiesto no lleva `run` y sí guía y versión", async () => {
 	assert.equal(nova.manifest.product, "orbit");
 	assert.equal(nova.manifest.guidance, "Be brief.");
-	assert.deepEqual(nova.manifest.tools.map((t) => t.name), ["orbit.echo", "orbit.missing", "orbit.huge"]);
+	assert.deepEqual(nova.manifest.tools.map((t) => t.name), ["orbit.echo", "orbit.missing", "orbit.huge", "orbit.index_feed"]);
 	assert.equal("run" in nova.manifest.tools[0], false);
 });
 
@@ -157,4 +164,21 @@ test("una respuesta demasiado grande → 413 too_large", async () => {
 	const { status, json } = await invoke("orbit.huge", {}, await token({ tool: "orbit.huge" }));
 	assert.equal(status, 413);
 	assert.equal(json.code, "too_large");
+});
+
+test("una herramienta index sólo la llama el indexador, sin pasar por la membresía, y su respuesta no tiene el tope del modelo", async () => {
+	access = { ok: false, status: 403, message: "Forbidden" };
+	const ok = await invoke("orbit.index_feed", { after: 0 }, await token({ tool: "orbit.index_feed", sub: "nova:indexer", workspace: "*" }));
+	assert.equal(ok.status, 200);
+	assert.equal((ok.json.data as { user: string }).user, "nova:indexer");
+	access = { ok: true, role: "member" };
+});
+
+test("un usuario no puede llamar a una herramienta index, ni el indexador a una de usuario", async () => {
+	const asUser = await invoke("orbit.index_feed", { after: 0 }, await token({ tool: "orbit.index_feed" }));
+	assert.equal(asUser.status, 403);
+	const indexerOnRead = await invoke("orbit.echo", { word: "hi" }, await token({ sub: "nova:indexer", workspace: "*" }));
+	assert.equal(indexerOnRead.status, 403);
+	const wrongWorkspace = await invoke("orbit.index_feed", { after: 0 }, await token({ tool: "orbit.index_feed", sub: "nova:indexer", workspace: "ws1" }));
+	assert.equal(wrongWorkspace.status, 403);
 });

@@ -14,8 +14,11 @@
  * pide la sesión de la app, y con los filtros SQL de siempre dentro de `run`:
  * Nova nunca ve más de lo que esa persona vería.
  *
- * Fase 1: sólo lectura. Un `sub` que empieza por `nova:` (una ejecución
- * automática, fase 4) se rechaza aquí, antes de llegar a ninguna herramienta.
+ * Fase 1: sólo lectura. Un `sub` que empieza por `nova:` se rechaza, salvo el
+ * indexador de Nova (`nova:indexer`, `workspace: "*"`) en una herramienta de
+ * kind `index` (el feed de la búsqueda, fase 1b): ésa no corre como ningún
+ * usuario, no pasa por la membresía y su respuesta no va al modelo, así que no
+ * tiene el tope de NOVA_MAX_RESULT_CHARS sino el de NOVA_MAX_INDEX_RESULT_CHARS.
  */
 import type { D1Database, PagesFunction } from "@cloudflare/workers-types";
 import { bearerToken } from "./sso";
@@ -23,6 +26,7 @@ import { verifyRs256 } from "./rs256";
 import { validateParams } from "./json-schema";
 import type { NovaManifest, NovaManifestTool, NovaToolClaims, NovaToolErrorCode, NovaToolResponse } from "./nova-contract";
 import type { WorkspaceAccess } from "./access";
+import { NOVA_INDEXER_SUBJECT } from "./nova-search";
 
 export type { JsonSchema } from "./json-schema";
 export type { NovaManifest, NovaManifestTool, NovaToolClaims, NovaToolErrorCode, NovaToolResponse } from "./nova-contract";
@@ -68,6 +72,9 @@ export class NovaToolError extends Error {
  * producto recorta además lo suyo (hilos, documentos, miembros) para no llegar.
  */
 export const NOVA_MAX_RESULT_CHARS = 64_000;
+
+/** Tope de la respuesta de una herramienta `index` (un feed con 50 documentos de 24 000 caracteres). */
+export const NOVA_MAX_INDEX_RESULT_CHARS = 2_000_000;
 
 export function novaIssuer(env: { NOVA_ISSUER?: string }): string {
 	return (env.NOVA_ISSUER ?? "https://nova.ondesk.cc").replace(/\/$/, "");
@@ -125,12 +132,15 @@ export function createNovaTools<E extends NovaToolsEnv>(opts: {
 		) {
 			return fail("unauthorized", "Invalid Nova token");
 		}
-		if (claims.sub.startsWith("nova:")) return fail("forbidden", "Automatic runs are not enabled yet");
-
 		const tool = byName.get(name);
 		if (!tool) return fail("not_found", `No tool named ${name}`);
 
-		const access = await opts.resolveAccess(env, claims.workspace, claims.sub);
+		const indexer = claims.sub === NOVA_INDEXER_SUBJECT && claims.workspace === "*";
+		if (tool.kind === "index" ? !indexer : claims.sub.startsWith("nova:")) {
+			return fail("forbidden", tool.kind === "index" ? "Index tools are for Nova's indexer only" : "Automatic runs are not enabled yet");
+		}
+
+		const access = tool.kind === "index" ? ({ ok: true, role: "system" } as const) : await opts.resolveAccess(env, claims.workspace, claims.sub);
 		if (!access.ok) return fail(access.status === 402 ? "payment_required" : "forbidden", access.message);
 
 		let body: unknown;
@@ -156,7 +166,8 @@ export function createNovaTools<E extends NovaToolsEnv>(opts: {
 
 		const ok: NovaToolResponse = { ok: true, data };
 		const serialized = JSON.stringify(ok);
-		if (serialized.length > NOVA_MAX_RESULT_CHARS) return fail("too_large", "The result is too large; narrow the query");
+		const cap = tool.kind === "index" ? NOVA_MAX_INDEX_RESULT_CHARS : NOVA_MAX_RESULT_CHARS;
+		if (serialized.length > cap) return fail("too_large", "The result is too large; narrow the query");
 		return new Response(serialized, { headers: { "Content-Type": "application/json" } });
 	};
 
