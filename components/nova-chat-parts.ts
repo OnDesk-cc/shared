@@ -37,7 +37,11 @@ export function chatErrorText(message: string): string | null {
 	return null;
 }
 
-/** Dónde guarda la pestaña la conversación en curso de un producto y un workspace. */
-export function conversationKey(product: NovaProduct, workspaceId: string): string {
-	return `nova:conversation:${product}:${workspaceId}`;
+/**
+ * Dónde guarda la pestaña la conversación en curso de un producto y un
+ * workspace. `scope` separa una conversación atada a un objeto (el asistente de
+ * un ticket: `ticket:<id>`) de la de la barra superior y de la de otro ticket.
+ */
+export function conversationKey(product: NovaProduct, workspaceId: string, scope?: string): string {
+	return `nova:conversation:${product}:${workspaceId}${scope ? `:${scope}` : ""}`;
 }

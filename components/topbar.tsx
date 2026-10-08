@@ -42,7 +42,7 @@ export const TopbarButton = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<H
 });
 
 /**
- * El botón que abre Nova (`NovaSheet`, en `components/nova`): una píldora blanca
+ * El botón que abre Nova (`NovaChatSheet`, en `components/nova-chat`): una píldora blanca
  * con el aro de las seis luces y la estrella de Nova, lo único con color en una
  * barra de glifos grises, para que el asistente se encuentre sin buscarlo. El
  * texto va en tinta sobre blanco, así que el contraste no depende del aro. En

@@ -25,7 +25,7 @@ sitio.
 | `ui/` | navegador | primitivos de shadcn/ui (`button`, `dialog`, `sidebar`…) más `sonner`, tematizado por `components/theme-provider` |
 | `lib/` | navegador | `cn()`; `crud-api` / `crud-hooks` — el cliente genérico de list/create/update/delete y sus hooks de TanStack Query; `initials` |
 | `hooks/` | navegador | `useIsMobile()` |
-| `components/` | navegador | `theme-provider` (el que escribe la clase `dark`, montado por todas las apps), `confirm-delete-modal`, `form-modal`, `console`, `topbar`, y Nova: `nova` (la hoja y su marco), `nova-chat` (la hoja sobre Nova central), `nova-mark` |
+| `components/` | navegador | `theme-provider` (el que escribe la clase `dark`, montado por todas las apps), `confirm-delete-modal`, `form-modal`, `console`, `topbar`, y Nova: `nova` (el marco, las filas, el campo y las sugerencias), `nova-chat` (la hoja, sobre Nova central; la única desde v1.17.0), `nova-mark` |
 | `calls/` | navegador | `ringer-lease` — **un solo tono por navegador entre todos los productos**; `ring-tone` — el reproductor |
 | `presence/` | navegador | `status` — el vocabulario de presencia que renderizan los seis (`STATUS_META`, `presenceLabel`, `lastSeenShort`); `presence-dot` |
 | `worker/` | Pages Functions | ver abajo — **es la parte crítica** |
@@ -91,7 +91,7 @@ Módulos de las carpetas publicadas (71), con la primera línea de su comentario
 | [`components/map.tsx`](../components/map.tsx) | Las piezas pequeñas del mapa que llevan los seis productos: la banda de seis líneas y el cierre de seis tramos. |
 | [`components/nova-chat-parts.ts`](../components/nova-chat-parts.ts) | Las piezas sin React de la hoja de Nova central (components/nova-chat.tsx), aparte para poder probarlas con node:test. |
 | [`components/nova-chat.test.ts`](../components/nova-chat.test.ts) | — |
-| [`components/nova-chat.tsx`](../components/nova-chat.tsx) | Nova central en la hoja (2026-10-07, fase 1). |
+| [`components/nova-chat.tsx`](../components/nova-chat.tsx) | Nova central en la hoja (2026-10-07, fase 1): la única hoja de Nova de la plataforma, sobre el marco de components/nova.tsx. |
 | [`components/nova-mark.tsx`](../components/nova-mark.tsx) | La marca de Nova (2026-10-06): una estrella de cuatro puntas rellena con los seis colores de las apps, porque Nova es la que ve las seis, y un brillo blanco en el centro. |
 | [`components/nova.tsx`](../components/nova.tsx) | Nova, la hoja del asistente, una sola para los seis productos (2026-10-06). |
 | [`components/product-shell.tsx`](../components/product-shell.tsx) | El marco de un producto en el mundo «Clear Sky» (2026-10-04): la forma de la consola de ondesk, para que pasar de la consola a una app, o de una app a otra, se sienta… |

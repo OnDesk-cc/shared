@@ -41,3 +41,9 @@ test("conversationKey separa producto y workspace", () => {
 	assert.equal(conversationKey("orbit", "ws_1"), "nova:conversation:orbit:ws_1");
 	assert.notEqual(conversationKey("orbit", "ws_1"), conversationKey("vault", "ws_1"));
 });
+
+test("conversationKey con alcance: una conversación por ticket, aparte de la de la barra", () => {
+	assert.equal(conversationKey("pulse", "ws_1", "ticket:t_9"), "nova:conversation:pulse:ws_1:ticket:t_9");
+	assert.notEqual(conversationKey("pulse", "ws_1", "ticket:t_9"), conversationKey("pulse", "ws_1"));
+	assert.notEqual(conversationKey("pulse", "ws_1", "ticket:t_9"), conversationKey("pulse", "ws_1", "ticket:t_10"));
+});

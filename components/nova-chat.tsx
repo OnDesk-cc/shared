@@ -1,13 +1,16 @@
 /**
- * Nova central en la hoja (2026-10-07, fase 1). La misma hoja que `NovaSheet`
- * (mismo marco, mismas filas, mismo campo), pero la conversación ya no es de la
- * pestaña: vive en un Durable Object de nova.ondesk.cc (`NovaChat`), se guarda,
- * sobrevive a recargar y se puede borrar desde /account.
+ * Nova central en la hoja (2026-10-07, fase 1): la única hoja de Nova de la
+ * plataforma, sobre el marco de components/nova.tsx. La conversación vive en un
+ * Durable Object de nova.ondesk.cc (`NovaChat`), se guarda, sobrevive a
+ * recargar y se puede borrar desde /account.
  *
  * El navegador abre un WebSocket con `useAgent` a `{workspaceId}~{conversación}`;
  * la cookie de sesión de .ondesk.cc viaja sola, y Nova sólo deja abrir una
  * conversación a quien la empezó. La conversación en curso se recuerda por
- * producto y workspace en sessionStorage; «New chat» empieza otra.
+ * producto, workspace y, si lo hay, alcance (`scope`: el asistente de un ticket
+ * lleva la suya por ticket) en sessionStorage; «New chat» empieza otra.
+ * `messageActions` pone acciones bajo cada respuesta terminada (el «Insert into
+ * reply» del ticket).
  *
  * No conecta nada hasta que alguien abre la hoja por primera vez: montada en la
  * barra de cada app, abrir un WebSocket por cada página vista sería pagar por
@@ -23,13 +26,15 @@ import { chatErrorText, classifyHistoryStatus, conversationKey, messageText, typ
 
 export { messageText, conversationKey, type NovaProduct } from "./nova-chat-parts";
 
-export interface NovaChatSheetProps extends Omit<NovaSheetProps, "stream" | "messageActions"> {
+export interface NovaChatSheetProps extends NovaSheetProps {
 	/** `nova.ondesk.cc`, o `localhost:8787` en local: sin protocolo. */
 	novaHost: string;
 	workspaceId: string;
 	product: NovaProduct;
 	/** Lo que el usuario tiene abierto: `{ channel_id }`, `{ file_id }`, `{ ticket_id }`… */
 	place?: Record<string, string>;
+	/** Una conversación aparte, atada a un objeto: `ticket:<id>`. Sin él, la de la barra superior. */
+	scope?: string;
 }
 
 function storedConversation(key: string): string {
@@ -60,7 +65,7 @@ export function NovaChatSheet(props: NovaChatSheetProps) {
 	// salida). `Suspense` porque `useAgentChat` suspende mientras llega el historial.
 	return (
 		<Suspense fallback={<NovaChatLoading {...props} />}>
-			<NovaChatConversation key={conversationKey(props.product, props.workspaceId)} {...props} />
+			<NovaChatConversation key={conversationKey(props.product, props.workspaceId, props.scope)} {...props} />
 		</Suspense>
 	);
 }
@@ -98,8 +103,10 @@ function NovaChatConversation({
 	workspaceId,
 	product,
 	place,
+	scope,
+	messageActions,
 }: NovaChatSheetProps) {
-	const key = conversationKey(product, workspaceId);
+	const key = conversationKey(product, workspaceId, scope);
 	const [conversationId, setConversationId] = useState(() => storedConversation(key));
 	const [draft, setDraft] = useState("");
 	const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
@@ -188,13 +195,15 @@ function NovaChatConversation({
 			{visible.map((message, i) => {
 				const text = messageText(message);
 				const streaming = busy && i === visible.length - 1 && message.role === "assistant";
+				const done = message.role === "assistant" && !streaming && text.trim() !== "";
 				return (
 					<NovaMessageRow
 						key={message.id}
 						role={message.role === "user" ? "user" : "assistant"}
 						content={text}
-						pending={streaming && text === ""}
-					/>
+						pending={streaming && text === ""}>
+						{done && messageActions ? messageActions({ role: "assistant", content: text }, () => onOpenChange(false)) : null}
+					</NovaMessageRow>
 				);
 			})}
 

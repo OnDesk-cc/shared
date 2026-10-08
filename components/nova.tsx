@@ -4,9 +4,11 @@
  * mapa y las otras cinco en shadcn, con el cuadro del color de cada app, tres
  * puntos que rebotaban y sugerencias en monoespaciada. La forma está aquí; cada
  * app pone sólo lo suyo: el saludo, las sugerencias, la que depende de lo que hay
- * abierto, la función que habla con su endpoint y lo que Nova nunca lee allí.
+ * abierto y lo que Nova nunca lee allí. La conversación la lleva
+ * `NovaChatSheet` (components/nova-chat.tsx), con Nova central: desde el
+ * 2026-10-07 no hay otra hoja ni otro endpoint.
  *
- *   NovaSheet        la hoja entera: conversación, sugerencias y compositor
+ *   NovaSheetFrame   la hoja sin la conversación: cabecera, registro, campo y pie
  *   NovaMessageRow   una fila: lo de Nova con su glifo, lo tuyo en una píldora
  *   NovaComposer     el campo que crece, con Enter para enviar
  *   NovaSuggestions  las preguntas de partida, como filas con icono
@@ -16,10 +18,9 @@
  * aro, los mismos en todas partes, así que Nova no lleva el color de la app en
  * la que está.
  */
-import { useLayoutEffect, useRef, useState, type ElementType, type ReactNode, type Ref } from "react";
-import { ArrowUp, CircleAlert, MessageSquareText, RotateCcw } from "lucide-react";
+import { useLayoutEffect, useRef, type ElementType, type ReactNode, type Ref } from "react";
+import { ArrowUp, CircleAlert, MessageSquareText } from "lucide-react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../ui/sheet";
-import { textLinkClass } from "./console";
 import { NovaMark } from "./nova-mark";
 
 export interface NovaMessage {
@@ -33,13 +34,6 @@ export interface NovaSuggestion {
 	prompt: string;
 	icon?: ElementType;
 }
-
-/**
- * Una vuelta de la conversación tal como se pinta: un fallo se ve, pero no se le
- * vuelve a mandar al modelo. Si el fallo llega a mitad de respuesta, `content`
- * conserva lo que ya había llegado y `error` va debajo.
- */
-type Turn = NovaMessage & { failed?: boolean; error?: string };
 
 // ─── el fallo, dicho en una frase ────────────────────────────────────────────
 
@@ -389,20 +383,7 @@ export function NovaSuggestions({
 
 // ─── la hoja ─────────────────────────────────────────────────────────────────
 
-/** Lo que el modelo ve de la conversación: sin el saludo, sin los fallos y sin la pregunta que los provocó. */
-function conversation(turns: Turn[]): NovaMessage[] {
-	// El saludo es nuestro, no parte de la conversación — devolverlo haría que
-	// Nova contestara a su propia frase de apertura.
-	const said = turns.slice(1);
-	const out: NovaMessage[] = [];
-	said.forEach((turn, i) => {
-		if (turn.failed) return;
-		if (turn.role === "user" && said[i + 1]?.failed) return;
-		out.push({ role: turn.role, content: turn.content });
-	});
-	return out;
-}
-
+/** Lo que cada app le pasa a la hoja; `NovaChatSheetProps` suma lo de Nova central. */
 export interface NovaSheetProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
@@ -417,8 +398,6 @@ export interface NovaSheetProps {
 	placeholder: string;
 	/** Lo que Nova nunca lee en este producto, al pie del campo. */
 	footnote: ReactNode;
-	/** Habla con el endpoint de la app y llama a `onToken` con cada trozo; lanza si falla. */
-	stream: (history: NovaMessage[], onToken: (token: string) => void) => Promise<void>;
 	/** Acciones bajo una respuesta terminada (el «Insert into reply» de un ticket). */
 	messageActions?: (message: NovaMessage, close: () => void) => ReactNode;
 	/** Para el lector de pantalla, en el campo. */
@@ -443,10 +422,9 @@ export interface NovaSheetFrameProps {
 
 /**
  * La hoja de Nova sin la conversación: cabecera, registro desplazable, campo y
- * nota al pie. La comparten `NovaSheet` (cada app con su endpoint) y
- * `NovaChatSheet` (Nova central, components/nova-chat.tsx), así que se ven
- * idénticas. El desplazamiento se pega al final mientras escribe Nova, salvo si
- * has subido a leer.
+ * nota al pie. `NovaChatSheet` (components/nova-chat.tsx) la llena. El
+ * desplazamiento se pega al final mientras escribe Nova, salvo si has subido a
+ * leer.
  */
 export function NovaSheetFrame({ open, onOpenChange, title, description, headerAction, busy, scrollKey, children, composer, footnote }: NovaSheetFrameProps) {
 	const log = useRef<HTMLDivElement | null>(null);
@@ -514,120 +492,5 @@ export function NovaSheetFrame({ open, onOpenChange, title, description, headerA
 				</div>
 			</SheetContent>
 		</Sheet>
-	);
-}
-
-/**
- * La hoja de Nova con el endpoint de cada app. Lleva ella la conversación: los
- * mensajes, el campo y el fallo. La conversación es de la pestaña: vive aquí,
- * sobrevive a cerrar y abrir la hoja y se pierde al recargar.
- */
-export function NovaSheet({
-	open,
-	onOpenChange,
-	title = "Nova",
-	description,
-	greeting,
-	suggestions,
-	scopedSuggestion,
-	placeholder,
-	footnote,
-	stream,
-	messageActions,
-	inputLabel,
-}: NovaSheetProps) {
-	const [turns, setTurns] = useState<Turn[]>(() => [{ role: "assistant", content: greeting }]);
-	const [draft, setDraft] = useState("");
-	const [busy, setBusy] = useState(false);
-
-	const close = () => onOpenChange(false);
-
-	async function run(base: Turn[], prompt: string) {
-		const history = [...conversation(base), { role: "user" as const, content: prompt }];
-		setTurns([...base, { role: "user", content: prompt }, { role: "assistant", content: "" }]);
-		setBusy(true);
-
-		const settle = (turn: Turn) =>
-			setTurns((prev) => {
-				const next = [...prev];
-				next[next.length - 1] = turn;
-				return next;
-			});
-
-		let accumulated = "";
-		try {
-			await stream(history, (token) => {
-				accumulated += token;
-				settle({ role: "assistant", content: accumulated });
-			});
-			if (!accumulated.trim()) settle({ role: "assistant", content: NO_ANSWER, failed: true });
-		} catch (err) {
-			const message = novaErrorMessage(err);
-			// Lo que ya había llegado se queda; el fallo va debajo.
-			settle(accumulated.trim() ? { role: "assistant", content: accumulated, failed: true, error: message } : { role: "assistant", content: message, failed: true });
-		} finally {
-			setBusy(false);
-		}
-	}
-
-	function send(text: string) {
-		const prompt = text.trim();
-		if (!prompt || busy) return false;
-		void run(turns, prompt);
-		return true;
-	}
-
-	/** Vuelve a hacer la última pregunta, quitando antes la pregunta y su fallo. */
-	function retry() {
-		const at = turns.length - 1;
-		const asked = turns[at - 1];
-		if (busy || !turns[at]?.failed || asked?.role !== "user") return;
-		void run(turns.slice(0, at - 1), asked.content);
-	}
-
-	const last = turns.length - 1;
-
-	return (
-		<NovaSheetFrame
-			open={open}
-			onOpenChange={onOpenChange}
-			title={title}
-			description={description}
-			busy={busy}
-			scrollKey={turns}
-			composer={{
-				value: draft,
-				onChange: setDraft,
-				onSubmit: () => {
-					if (send(draft)) setDraft("");
-				},
-				placeholder,
-				label: inputLabel,
-			}}
-			footnote={footnote}>
-			{turns.map((turn, i) => {
-				const pending = busy && i === last && turn.role === "assistant" && turn.content === "";
-				const streaming = busy && i === last;
-				const done = turn.role === "assistant" && i > 0 && !turn.failed && !streaming && turn.content !== "";
-				return (
-					<NovaMessageRow key={i} role={turn.role} content={turn.content} pending={pending} failed={turn.failed} error={turn.error}>
-						{turn.failed && i === last && !busy ? (
-							<button type="button" className={`${textLinkClass} text-[0.875rem]`} onClick={retry}>
-								<RotateCcw className="size-3.5" strokeWidth={1.75} aria-hidden="true" />
-								Try again
-							</button>
-						) : done && messageActions ? (
-							messageActions(turn, close)
-						) : null}
-					</NovaMessageRow>
-				);
-			})}
-
-			{turns.length === 1 && (
-				<div className="sm:pl-11">
-					<NovaSuggestions suggestions={suggestions} scoped={scopedSuggestion} onPick={(p) => send(p)} disabled={busy} />
-				</div>
-			)}
-		</NovaSheetFrame>
 	);
 }
