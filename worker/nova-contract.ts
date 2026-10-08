@@ -4,6 +4,8 @@
  * dos lados — los productos (worker/nova-tools.ts, con los tipos de Pages) y el
  * Worker de Nova (con su propia versión de @cloudflare/workers-types) — y un
  * import de `PagesFunction` aquí haría chocar las dos versiones de `Response`.
+ * También lo importa la hoja (components/nova-chat-parts.ts, fase 2): por eso
+ * aquí sólo hay tipos y constantes, sin nada de los globales del Worker.
  */
 import type { JsonSchema } from "./json-schema";
 
@@ -51,6 +53,12 @@ export interface NovaToolClaims {
 	tool: string;
 	origin: string;
 	resource?: string;
+	/**
+	 * Sólo en una herramienta `write` (fase 2), y obligatorio en ella: `preview`
+	 * enseña lo que haría sin escribir; `commit` escribe. Una `read` o una `index`
+	 * con `mode` se rechaza.
+	 */
+	mode?: "preview" | "commit";
 	jti: string;
 	iat: number;
 	exp: number;
@@ -75,4 +83,38 @@ export interface NovaIndexFeed {
 	/** Hasta dónde se ha entregado: la siguiente llamada pasa éste como `after`. */
 	next_after: number;
 	has_more: boolean;
+}
+
+/** Lo que enseña la tarjeta de aprobación: lo escribe el producto en `preview`. */
+export interface NovaActionPreview {
+	/** Una frase, en inglés como el resto de lo que lee la persona en la hoja: «Create task "Ship v2" in Launch». */
+	summary: string;
+	fields: { label: string; value: string }[];
+}
+
+/** El saldo de créditos de una persona: el menor de sus tres límites (fondo, su tope, el del producto). */
+export interface NovaUsage {
+	remaining: number;
+	limit: number;
+	/** Cuál de los tres es el que manda. */
+	scope: "workspace" | "user" | "product";
+	/** ISO, el día 1 del mes siguiente a las 00:00 UTC. */
+	renews_at: string;
+}
+
+/**
+ * La parte de datos del mensaje con la que Nova le pasa a la hoja la tarjeta de
+ * una acción. Va con `id` = `toolCallId`, se guarda con el mensaje y nunca llega
+ * al modelo. La escribe nova/src/chat-agent.ts y la lee
+ * components/nova-chat-parts.ts.
+ */
+export const NOVA_PREVIEW_PART = "data-nova-preview" as const;
+
+export interface NovaPreviewData {
+	toolCallId: string;
+	product: string;
+	/** El nombre real de la herramienta: `orbit.delete_task`. */
+	tool: string;
+	destructive: boolean;
+	preview: NovaActionPreview;
 }

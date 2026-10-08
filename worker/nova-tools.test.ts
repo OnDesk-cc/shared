@@ -1,7 +1,8 @@
 // Pruebas del contrato de herramientas de Nova del lado del producto: `npm test`.
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { createNovaTools, defineTool, NovaToolError, type NovaToolsEnv } from "./nova-tools.ts";
+import { createNovaTools, defineAction, defineTool, NovaToolError, type NovaToolsEnv } from "./nova-tools.ts";
+import type { NovaActionPreview } from "./nova-contract.ts";
 
 const realFetch = globalThis.fetch;
 const ISSUER = "https://nova.test";
@@ -72,7 +73,51 @@ const feed = defineTool<Env>({
 	description: "Feed",
 	kind: "index",
 	params: { type: "object", additionalProperties: false, properties: { after: { type: "integer", minimum: 0 } } },
-	run: async (ctx) => ({ user: ctx.userId, workspace: ctx.workspaceId, big: "x".repeat(100_000) }),
+	run: async (ctx) => ({ user: ctx.userId, workspace: ctx.workspaceId, mode: ctx.mode, big: "x".repeat(100_000) }),
+});
+const whoami = defineTool<Env>({
+	name: "orbit.whoami",
+	description: "Mode",
+	kind: "read",
+	params: { type: "object", properties: {} },
+	run: async (ctx) => ({ mode: ctx.mode }),
+});
+
+// Las acciones (fase 2): cuántas veces se llamó a cada mitad.
+const calls = { preview: 0, commit: 0 };
+const resetCalls = () => {
+	calls.preview = 0;
+	calls.commit = 0;
+};
+const createTask = defineAction<Env, { title: string }>({
+	name: "orbit.create_task",
+	description: "Create a task",
+	params: { type: "object", additionalProperties: false, required: ["title"], properties: { title: { type: "string", maxLength: 40 } } },
+	preview: async (ctx, params) => {
+		calls.preview++;
+		if (params.title === "forbidden") throw new NovaToolError("forbidden", "You cannot create tasks here");
+		return { summary: `Create task "${params.title}"`, fields: [{ label: "Title", value: params.title }, { label: "Mode", value: ctx.mode }] };
+	},
+	commit: async (ctx, params) => {
+		calls.commit++;
+		return { ok: true, link: "https://orbit.test/t/1", title: params.title, mode: ctx.mode, user: ctx.userId };
+	},
+});
+const deleteTask = defineAction<Env>({
+	name: "orbit.delete_task",
+	description: "Delete a task",
+	destructive: true,
+	params: { type: "object", properties: {} },
+	preview: async () => ({ summary: "Delete task", fields: [] }),
+	commit: async () => ({ ok: true }),
+});
+let badShape: unknown = null;
+const badPreview = defineAction<Env>({
+	name: "orbit.bad_preview",
+	description: "Returns whatever badShape holds as its preview",
+	params: { type: "object", properties: {} },
+	preview: async () => badShape as NovaActionPreview,
+	commit: async () => "anything",
 });
 
 let access: { ok: true; role: string } | { ok: false; status: 402 | 403; message: string } = { ok: true, role: "member" };
@@ -80,7 +125,7 @@ const nova = createNovaTools<Env>({
 	product: "orbit",
 	version: "test",
 	guidance: "Be brief.",
-	tools: [echo, missing, huge, feed],
+	tools: [echo, missing, huge, feed, whoami, createTask, deleteTask, badPreview],
 	resolveAccess: async () => access,
 });
 
@@ -97,7 +142,16 @@ async function invoke(name: string, body: unknown, auth?: string): Promise<{ sta
 test("el manifiesto no lleva `run` y sí guía y versión", async () => {
 	assert.equal(nova.manifest.product, "orbit");
 	assert.equal(nova.manifest.guidance, "Be brief.");
-	assert.deepEqual(nova.manifest.tools.map((t) => t.name), ["orbit.echo", "orbit.missing", "orbit.huge", "orbit.index_feed"]);
+	assert.deepEqual(nova.manifest.tools.map((t) => t.name), [
+		"orbit.echo",
+		"orbit.missing",
+		"orbit.huge",
+		"orbit.index_feed",
+		"orbit.whoami",
+		"orbit.create_task",
+		"orbit.delete_task",
+		"orbit.bad_preview",
+	]);
 	assert.equal("run" in nova.manifest.tools[0], false);
 });
 
@@ -181,4 +235,119 @@ test("un usuario no puede llamar a una herramienta index, ni el indexador a una 
 	assert.equal(indexerOnRead.status, 403);
 	const wrongWorkspace = await invoke("orbit.index_feed", { after: 0 }, await token({ tool: "orbit.index_feed", sub: "nova:indexer", workspace: "ws1" }));
 	assert.equal(wrongWorkspace.status, 403);
+});
+
+// ── Acciones (fase 2): `mode` va firmado en el token, nunca en el cuerpo ──
+
+// Un token para la herramienta `tool`, con `mode` sólo si se pasa (`token` lo
+// firma tal cual: cualquier claim de más entra por su `...claims`).
+const actionToken = (tool: string, mode?: string, extra: Record<string, unknown> = {}) =>
+	token({ tool, ...(mode === undefined ? {} : { mode }), ...extra });
+
+test("una acción sale en el manifiesto como write, con destructive y sin preview, commit ni run", () => {
+	const create = nova.manifest.tools.find((t) => t.name === "orbit.create_task")!;
+	const del = nova.manifest.tools.find((t) => t.name === "orbit.delete_task")!;
+	assert.equal(create.kind, "write");
+	assert.equal(create.destructive, false);
+	assert.equal(del.destructive, true);
+	for (const key of ["preview", "commit", "run"]) assert.equal(key in create, false, `el manifiesto lleva ${key}`);
+});
+
+test("una acción sin mode, o con uno desconocido, → 403 y no corre nada", async () => {
+	resetCalls();
+	const none = await invoke("orbit.create_task", { title: "Ship v2" }, await actionToken("orbit.create_task"));
+	assert.equal(none.status, 403);
+	assert.equal(none.json.code, "forbidden");
+	for (const mode of ["read", "write", "COMMIT", ""]) {
+		assert.equal((await invoke("orbit.create_task", { title: "Ship v2" }, await actionToken("orbit.create_task", mode))).status, 403, mode);
+	}
+	assert.deepEqual(calls, { preview: 0, commit: 0 });
+});
+
+test("una lectura o un feed con mode → 403", async () => {
+	assert.equal((await invoke("orbit.echo", { word: "hi" }, await actionToken("orbit.echo", "preview"))).status, 403);
+	assert.equal((await invoke("orbit.echo", { word: "hi" }, await actionToken("orbit.echo", "commit"))).status, 403);
+	const feedWithMode = await invoke("orbit.index_feed", { after: 0 }, await actionToken("orbit.index_feed", "commit", { sub: "nova:indexer", workspace: "*" }));
+	assert.equal(feedWithMode.status, 403);
+});
+
+test("una lectura y un feed corren con ctx.mode = read", async () => {
+	const read = await invoke("orbit.whoami", {}, await actionToken("orbit.whoami"));
+	assert.deepEqual(read.json, { ok: true, data: { mode: "read" } });
+	const feedOk = await invoke("orbit.index_feed", { after: 0 }, await actionToken("orbit.index_feed", undefined, { sub: "nova:indexer", workspace: "*" }));
+	assert.equal((feedOk.json.data as { mode: string }).mode, "read");
+});
+
+test("preview: llama sólo a preview y devuelve la tarjeta", async () => {
+	resetCalls();
+	const { status, json } = await invoke("orbit.create_task", { title: "Ship v2" }, await actionToken("orbit.create_task", "preview"));
+	assert.equal(status, 200);
+	assert.deepEqual(json, {
+		ok: true,
+		data: { summary: 'Create task "Ship v2"', fields: [{ label: "Title", value: "Ship v2" }, { label: "Mode", value: "preview" }] },
+	});
+	assert.deepEqual(calls, { preview: 1, commit: 0 });
+});
+
+test("commit: llama sólo a commit, como ese usuario y con ctx.mode = commit", async () => {
+	resetCalls();
+	const { status, json } = await invoke("orbit.create_task", { title: "Ship v2" }, await actionToken("orbit.create_task", "commit"));
+	assert.equal(status, 200);
+	assert.deepEqual(json, { ok: true, data: { ok: true, link: "https://orbit.test/t/1", title: "Ship v2", mode: "commit", user: "u1" } });
+	assert.deepEqual(calls, { preview: 0, commit: 1 });
+});
+
+test("un preview sin permiso → 403 forbidden con su motivo", async () => {
+	const { status, json } = await invoke("orbit.create_task", { title: "forbidden" }, await actionToken("orbit.create_task", "preview"));
+	assert.equal(status, 403);
+	assert.deepEqual(json, { ok: false, code: "forbidden", message: "You cannot create tasks here" });
+});
+
+test("una preview mal formada → 500 failed; el commit no se mira", async () => {
+	const shapes: unknown[] = [
+		null,
+		"Create task",
+		{ summary: 42, fields: [] },
+		{ summary: "", fields: [] },
+		{ summary: "Create task" },
+		{ summary: "Create task", fields: "Title: x" },
+		{ summary: "Create task", fields: [{ label: "Due", value: 5 }] },
+		{ summary: "Create task", fields: [null] },
+	];
+	for (const shape of shapes) {
+		badShape = shape;
+		const { status, json } = await invoke("orbit.bad_preview", {}, await actionToken("orbit.bad_preview", "preview"));
+		assert.equal(status, 500, JSON.stringify(shape));
+		assert.equal(json.code, "failed");
+	}
+	badShape = { summary: "Fine", fields: [{ label: "A", value: "b" }] };
+	assert.equal((await invoke("orbit.bad_preview", {}, await actionToken("orbit.bad_preview", "preview"))).status, 200);
+	assert.deepEqual((await invoke("orbit.bad_preview", {}, await actionToken("orbit.bad_preview", "commit"))).json, { ok: true, data: "anything" });
+});
+
+test("una ejecución automática (nova:…) sigue rechazada en una acción, en preview y en commit", async () => {
+	resetCalls();
+	for (const mode of ["preview", "commit"]) {
+		const { status, json } = await invoke("orbit.create_task", { title: "Ship v2" }, await actionToken("orbit.create_task", mode, { sub: "nova:ws1" }));
+		assert.equal(status, 403, mode);
+		assert.equal(json.code, "forbidden");
+	}
+	assert.deepEqual(calls, { preview: 0, commit: 0 });
+});
+
+test("parámetros inválidos en una acción → 400 antes de llamar a preview", async () => {
+	resetCalls();
+	assert.equal((await invoke("orbit.create_task", {}, await actionToken("orbit.create_task", "preview"))).status, 400);
+	assert.equal((await invoke("orbit.create_task", { title: "x".repeat(41) }, await actionToken("orbit.create_task", "commit"))).status, 400);
+	assert.deepEqual(calls, { preview: 0, commit: 0 });
+});
+
+test("sin membresía o sin derecho, una acción no corre", async () => {
+	resetCalls();
+	access = { ok: false, status: 402, message: "no sub" };
+	assert.equal((await invoke("orbit.create_task", { title: "Ship v2" }, await actionToken("orbit.create_task", "commit"))).json.code, "payment_required");
+	access = { ok: false, status: 403, message: "Forbidden" };
+	assert.equal((await invoke("orbit.create_task", { title: "Ship v2" }, await actionToken("orbit.create_task", "preview"))).json.code, "forbidden");
+	access = { ok: true, role: "member" };
+	assert.deepEqual(calls, { preview: 0, commit: 0 });
 });

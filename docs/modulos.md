@@ -42,8 +42,8 @@ sitio.
 | `jwt` | firma HS256 y tickets con audiencia |
 | `email` | `createEmailer(brand)` y los helpers de plantilla |
 | `api` | el núcleo de la API con token bearer (`/api/v1` de cada producto) |
-| **`nova-tools`** | **`createNovaTools` + `defineTool`: las herramientas que un producto publica a Nova central** (token RS256 por llamada, membresía de `access`, parámetros de `json-schema`) |
-| `nova-contract` | los tipos del contrato Nova ↔ producto (manifiesto, respuesta, claims, candidatos y feed de la búsqueda), sin dependencias de runtime: los importan los productos y el Worker de Nova |
+| **`nova-tools`** | **`createNovaTools` + `defineTool` + `defineAction`: las herramientas y las acciones que un producto publica a Nova central** (token RS256 por llamada, membresía de `access`, parámetros de `json-schema`). Una acción (fase 2) corre en dos tiempos según el `mode` firmado en el token: `preview` devuelve la tarjeta de aprobación sin escribir y `commit` escribe |
+| `nova-contract` | los tipos del contrato Nova ↔ producto (manifiesto, respuesta, claims con `mode`, candidatos y feed de la búsqueda, la tarjeta de una acción `NovaActionPreview`, el saldo de créditos `NovaUsage` y la parte de datos `data-nova-preview` de la tarjeta, `NovaPreviewData`), sin dependencias de runtime: los importan los productos, el Worker de Nova y la hoja |
 | `nova-search` | la búsqueda semántica de Nova (fase 1b): el corte del texto en trozos (`chunkText`), el extracto, cómo elige un producto los candidatos legibles y cómo pagina su bandeja `nova_outbox` sin perder ningún objeto |
 | `access` | `checkWorkspaceAccess`: membresía + derecho vivo en una consulta (la usan `middleware` y `nova-tools`) |
 | `rs256` | verificación RS256 contra un JWKS remoto (el de Nova) |

@@ -19,17 +19,35 @@
  * kind `index` (el feed de la búsqueda, fase 1b): ésa no corre como ningún
  * usuario, no pasa por la membresía y su respuesta no va al modelo, así que no
  * tiene el tope de NOVA_MAX_RESULT_CHARS sino el de NOVA_MAX_INDEX_RESULT_CHARS.
+ *
+ * Fase 2 (2026-10-08, spec § 2c): acciones. Se declaran con `defineAction` y
+ * salen en el manifiesto como kind `write`. Corren en dos tiempos, y el tiempo lo
+ * fija `mode`, firmado en el token (nunca en el cuerpo):
+ *   - `preview`: valida, comprueba el permiso, traduce ids a nombres y devuelve
+ *     la tarjeta (`NovaActionPreview`) sin escribir nada;
+ *   - `commit`: vuelve a comprobar el permiso y escribe.
+ * Una `write` sin `mode` válido, o una `read`/`index` con `mode`, es 403. Una
+ * preview que no tiene la forma de la tarjeta es 500 `failed`. Lo automático
+ * (`nova:…`) sigue sin poder escribir.
  */
 import type { D1Database, PagesFunction } from "@cloudflare/workers-types";
 import { bearerToken } from "./sso";
 import { verifyRs256 } from "./rs256";
-import { validateParams } from "./json-schema";
-import type { NovaManifest, NovaManifestTool, NovaToolClaims, NovaToolErrorCode, NovaToolResponse } from "./nova-contract";
+import { validateParams, type JsonSchema } from "./json-schema";
+import type { NovaActionPreview, NovaManifest, NovaManifestTool, NovaToolClaims, NovaToolErrorCode, NovaToolResponse } from "./nova-contract";
 import type { WorkspaceAccess } from "./access";
 import { NOVA_INDEXER_SUBJECT } from "./nova-search";
 
 export type { JsonSchema } from "./json-schema";
-export type { NovaManifest, NovaManifestTool, NovaToolClaims, NovaToolErrorCode, NovaToolResponse } from "./nova-contract";
+export type {
+	NovaActionPreview,
+	NovaManifest,
+	NovaManifestTool,
+	NovaToolClaims,
+	NovaToolErrorCode,
+	NovaToolResponse,
+	NovaUsage,
+} from "./nova-contract";
 
 export interface NovaToolsEnv {
 	DB: D1Database;
@@ -45,6 +63,8 @@ export interface NovaToolContext<E> {
 	workspaceRole: string;
 	/** `chat:{conversación}`. */
 	origin: string;
+	/** `read` en las herramientas `read` e `index`; en una acción, el `mode` del token. */
+	mode: "read" | "preview" | "commit";
 	waitUntil: (promise: Promise<unknown>) => void;
 }
 
@@ -64,6 +84,50 @@ export class NovaToolError extends Error {
 		super(message);
 		this.code = code;
 	}
+}
+
+/** Una acción: una herramienta `write` en dos tiempos (ver la cabecera). */
+export interface NovaActionDef<E, P = Record<string, unknown>> {
+	name: string;
+	/** En inglés: la lee el modelo. */
+	description: string;
+	/** Borrar, archivar, cancelar o cerrar: la tarjeta va en rojo, con el verbo en el botón. */
+	destructive?: boolean;
+	params: JsonSchema;
+	/** Valida, comprueba el permiso con `ctx.userId` y traduce ids a nombres. NO escribe. */
+	preview: (ctx: NovaToolContext<E>, params: P) => Promise<NovaActionPreview>;
+	/** Vuelve a comprobar el permiso, escribe y devuelve `{ ok: true, link, … }`. */
+	commit: (ctx: NovaToolContext<E>, params: P) => Promise<unknown>;
+}
+
+export function defineAction<E, P = Record<string, unknown>>(def: NovaActionDef<E, P>): NovaToolDef<E> {
+	// Un objeto nuevo con sólo los campos del manifiesto y `run`: `preview` y
+	// `commit` no pueden acabar en lo que se publica.
+	const tool: NovaToolDef<E, P> = {
+		name: def.name,
+		description: def.description,
+		kind: "write",
+		destructive: def.destructive ?? false,
+		params: def.params,
+		run: async (ctx, params) => {
+			if (ctx.mode === "preview") return def.preview(ctx, params);
+			if (ctx.mode === "commit") return def.commit(ctx, params);
+			throw new NovaToolError("forbidden", "Actions need a preview or commit token");
+		},
+	};
+	return tool as unknown as NovaToolDef<E>;
+}
+
+/** La forma de la tarjeta: una frase y campos de texto. Otra cosa no se enseña. */
+function isActionPreview(value: unknown): value is NovaActionPreview {
+	if (!value || typeof value !== "object") return false;
+	const { summary, fields } = value as { summary?: unknown; fields?: unknown };
+	return (
+		typeof summary === "string" &&
+		summary.trim() !== "" &&
+		Array.isArray(fields) &&
+		fields.every((f) => !!f && typeof f === "object" && typeof (f as { label?: unknown }).label === "string" && typeof (f as { value?: unknown }).value === "string")
+	);
 }
 
 /**
@@ -140,6 +204,13 @@ export function createNovaTools<E extends NovaToolsEnv>(opts: {
 			return fail("forbidden", tool.kind === "index" ? "Index tools are for Nova's indexer only" : "Automatic runs are not enabled yet");
 		}
 
+		// Sólo una acción lleva `mode`, y siempre: así un token de preview nunca escribe.
+		const write = tool.kind === "write";
+		if (write ? claims.mode !== "preview" && claims.mode !== "commit" : claims.mode !== undefined) {
+			return fail("forbidden", write ? "Actions need a preview or commit token" : "Only actions take a mode");
+		}
+		const mode: NovaToolContext<E>["mode"] = write ? (claims.mode as "preview" | "commit") : "read";
+
 		const access = tool.kind === "index" ? ({ ok: true, role: "system" } as const) : await opts.resolveAccess(env, claims.workspace, claims.sub);
 		if (!access.ok) return fail(access.status === 402 ? "payment_required" : "forbidden", access.message);
 
@@ -155,13 +226,17 @@ export function createNovaTools<E extends NovaToolsEnv>(opts: {
 		let data: unknown;
 		try {
 			data = await tool.run(
-				{ env, userId: claims.sub, workspaceId: claims.workspace, workspaceRole: access.role, origin: claims.origin, waitUntil },
+				{ env, userId: claims.sub, workspaceId: claims.workspace, workspaceRole: access.role, origin: claims.origin, mode, waitUntil },
 				body as Record<string, unknown>,
 			);
 		} catch (err) {
 			if (err instanceof NovaToolError) return fail(err.code, err.message);
 			console.error(`Nova tool ${name} failed:`, err);
 			return fail("failed", "The tool failed");
+		}
+		if (mode === "preview" && !isActionPreview(data)) {
+			console.error(`Nova tool ${name} returned a malformed preview`);
+			return fail("failed", "The action preview is malformed");
 		}
 
 		const ok: NovaToolResponse = { ok: true, data };
