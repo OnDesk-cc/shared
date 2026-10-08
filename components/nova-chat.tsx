@@ -12,6 +12,19 @@
  * `messageActions` pone acciones bajo cada respuesta terminada (el «Insert into
  * reply» del ticket).
  *
+ * Fase 2 (2026-10-08):
+ *  - Encima del texto de cada respuesta van sus herramientas
+ *    (components/nova-chat-tools.tsx): la línea de una lectura en curso y la
+ *    tarjeta de cada acción.
+ *  - Aprobar o cancelar llama a `addToolApprovalResponse` del SDK; Nova continúa
+ *    el turno sola.
+ *  - Desde el 80 % usado, una línea encima del campo dice cuántos créditos
+ *    quedan. Sale de lo primero que haya:
+ *    - el último mensaje (`metadata.nova_usage`);
+ *    - `initialUsage`, si el producto lo pasa;
+ *    - lo que la hoja pide al abrirse a `GET /api/me/usage`, siempre con
+ *      `product`, porque sin él el tope por producto no cuenta.
+ *
  * No conecta nada hasta que alguien abre la hoja por primera vez: montada en la
  * barra de cada app, abrir un WebSocket por cada página vista sería pagar por
  * nada.
@@ -20,11 +33,26 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { RotateCcw, SquarePen } from "lucide-react";
 import { useAgent } from "agents/react";
 import { useAgentChat } from "@cloudflare/ai-chat/react";
+import type { NovaUsage } from "../worker/nova-contract";
 import { NovaMessageRow, NovaSheetFrame, NovaSuggestions, novaErrorMessage, type NovaSheetProps } from "./nova";
+import { NovaToolCards } from "./nova-chat-tools";
 import { textLinkClass } from "./console";
-import { chatErrorText, classifyHistoryStatus, conversationKey, messageText, type NovaProduct } from "./nova-chat-parts";
+import {
+	asUsage,
+	chatErrorText,
+	classifyHistoryStatus,
+	collectPreviews,
+	conversationKey,
+	latestUsage,
+	messageText,
+	toolCards,
+	usageLine,
+	usageUrl,
+	type NovaProduct,
+} from "./nova-chat-parts";
 
 export { messageText, conversationKey, type NovaProduct } from "./nova-chat-parts";
+export type { NovaUsage } from "../worker/nova-contract";
 
 export interface NovaChatSheetProps extends NovaSheetProps {
 	/** `nova.ondesk.cc`, o `localhost:8787` en local: sin protocolo. */
@@ -35,6 +63,8 @@ export interface NovaChatSheetProps extends NovaSheetProps {
 	place?: Record<string, string>;
 	/** Una conversación aparte, atada a un objeto: `ticket:<id>`. Sin él, la de la barra superior. */
 	scope?: string;
+	/** El saldo al abrir la hoja. Sin él, la hoja lo pide sola a `GET /api/me/usage`; después manda el de cada respuesta. */
+	initialUsage?: NovaUsage | null;
 }
 
 function storedConversation(key: string): string {
@@ -105,11 +135,31 @@ function NovaChatConversation({
 	place,
 	scope,
 	messageActions,
+	initialUsage,
 }: NovaChatSheetProps) {
 	const key = conversationKey(product, workspaceId, scope);
 	const [conversationId, setConversationId] = useState(() => storedConversation(key));
 	const [draft, setDraft] = useState("");
 	const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
+	// Las aprobaciones ya contestadas desde esta hoja: un doble clic no manda dos.
+	const [answered, setAnswered] = useState<ReadonlySet<string>>(() => new Set());
+	// El saldo al abrir, si el producto no lo pasó: una sola vez por conversación montada.
+	const [openingUsage, setOpeningUsage] = useState<NovaUsage | null>(null);
+	useEffect(() => {
+		if (initialUsage !== undefined) return;
+		let alive = true;
+		fetch(usageUrl(novaHost, workspaceId, product), { credentials: "include" })
+			.then((res) => (res.ok ? res.json() : null))
+			.then((body: unknown) => {
+				if (alive) setOpeningUsage(asUsage(body));
+			})
+			.catch(() => {
+				/* sin saldo al abrir: llega con la primera respuesta */
+			});
+		return () => {
+			alive = false;
+		};
+	}, [initialUsage, novaHost, workspaceId, product]);
 
 	const [sessionExpired, setSessionExpired] = useState(false);
 
@@ -124,7 +174,7 @@ function NovaChatConversation({
 	}
 
 	const agent = useAgent({ agent: "NovaChat", name: `${workspaceId}~${conversationId}`, host: novaHost });
-	const { messages, sendMessage, status, error, regenerate } = useAgentChat({
+	const { messages, sendMessage, status, error, regenerate, addToolApprovalResponse } = useAgentChat({
 		agent,
 		credentials: "include",
 		body: () => ({ product, place: place ?? {}, timezone }),
@@ -150,12 +200,21 @@ function NovaChatConversation({
 	const visible = messages.filter((m) => m.role === "user" || m.role === "assistant");
 	const last = visible[visible.length - 1];
 	const waiting = status === "submitted" && last?.role !== "assistant";
+	const previews = useMemo(() => collectPreviews(messages), [messages]);
+	const usageText = usageLine(latestUsage(messages, initialUsage ?? openingUsage, new Date()));
 
 	function send(text: string): boolean {
 		const prompt = text.trim();
 		if (!prompt || busy) return false;
 		void sendMessage({ text: prompt });
 		return true;
+	}
+
+	function answer(approvalId: string, approved: boolean) {
+		if (busy || answered.has(approvalId)) return;
+		setAnswered((prev) => new Set(prev).add(approvalId));
+		// Nova continúa el turno sola (autoContinueAfterToolResult) y ejecuta cada aprobación una sola vez.
+		void addToolApprovalResponse({ id: approvalId, approved });
 	}
 
 	const errorText = sessionExpired
@@ -189,19 +248,23 @@ function NovaChatConversation({
 				placeholder,
 				label: inputLabel,
 			}}
-			footnote={footnote}>
+			footnote={footnote}
+			notice={usageText}>
 			<NovaMessageRow role="assistant" content={greeting} />
 
 			{visible.map((message, i) => {
 				const text = messageText(message);
-				const streaming = busy && i === visible.length - 1 && message.role === "assistant";
+				const isLast = i === visible.length - 1;
+				const streaming = busy && isLast && message.role === "assistant";
+				const cards = message.role === "assistant" ? toolCards(message, { previews, latest: isLast && !busy, live: streaming }) : [];
 				const done = message.role === "assistant" && !streaming && text.trim() !== "";
 				return (
 					<NovaMessageRow
 						key={message.id}
 						role={message.role === "user" ? "user" : "assistant"}
 						content={text}
-						pending={streaming && text === ""}>
+						pending={streaming && text === "" && cards.length === 0}
+						lead={cards.length > 0 ? <NovaToolCards cards={cards} answered={answered} disabled={busy} onAnswer={answer} /> : undefined}>
 						{done && messageActions ? messageActions({ role: "assistant", content: text }, () => onOpenChange(false)) : null}
 					</NovaMessageRow>
 				);

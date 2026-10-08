@@ -206,8 +206,9 @@ export function NovaGlyph({ size = "sm", failed = false, pending = false }: { si
  * derecha. `pending` es el hueco antes del primer token: una palabra que se
  * ilumina de lado a lado, quieta si se pide menos movimiento. `error` es el
  * fallo que cortó una respuesta a medias: el texto que llegó se queda y el fallo
- * va debajo, en rojo. `children` va debajo de todo (insertar en la respuesta,
- * reintentar).
+ * va debajo, en rojo. `lead` va encima del texto (las herramientas del turno:
+ * components/nova-chat-tools.tsx). `children` va debajo de todo (insertar en la
+ * respuesta, reintentar).
  */
 export function NovaMessageRow({
 	role,
@@ -215,6 +216,7 @@ export function NovaMessageRow({
 	pending = false,
 	failed = false,
 	error,
+	lead,
 	children,
 }: {
 	role: NovaMessage["role"];
@@ -222,6 +224,7 @@ export function NovaMessageRow({
 	pending?: boolean;
 	failed?: boolean;
 	error?: string;
+	lead?: ReactNode;
 	children?: ReactNode;
 }) {
 	if (role === "user") {
@@ -241,9 +244,10 @@ export function NovaMessageRow({
 		<div className="flex gap-3">
 			<NovaGlyph failed={failed && !partial} pending={pending} />
 			<div className="min-w-0 flex-1 pt-[0.3125rem]">
+				{lead && <div className={content.trim() !== "" || pending ? "mb-3" : ""}>{lead}</div>}
 				{pending ? (
 					<p className="sk-nova-writing text-[0.9375rem] leading-relaxed">Writing…</p>
-				) : (
+				) : lead && content.trim() === "" ? null : (
 					<div
 						className={`max-w-[62ch] text-[0.9375rem] leading-relaxed [overflow-wrap:anywhere] ${failed && !partial ? "text-(--sk-ink-2)" : "text-(--sk-ink)"}`}>
 						<NovaMarkup text={content} />
@@ -418,6 +422,8 @@ export interface NovaSheetFrameProps {
 	children: ReactNode;
 	composer: { value: string; onChange: (value: string) => void; onSubmit: () => void; placeholder: string; label?: string };
 	footnote: ReactNode;
+	/** Una línea encima del campo: el saldo de créditos cuando queda poco. */
+	notice?: ReactNode;
 }
 
 /**
@@ -426,7 +432,7 @@ export interface NovaSheetFrameProps {
  * desplazamiento se pega al final mientras escribe Nova, salvo si has subido a
  * leer.
  */
-export function NovaSheetFrame({ open, onOpenChange, title, description, headerAction, busy, scrollKey, children, composer, footnote }: NovaSheetFrameProps) {
+export function NovaSheetFrame({ open, onOpenChange, title, description, headerAction, busy, scrollKey, children, composer, footnote, notice }: NovaSheetFrameProps) {
 	const log = useRef<HTMLDivElement | null>(null);
 	const input = useRef<HTMLTextAreaElement | null>(null);
 	// Si la vista está al final. Leer una respuesta larga hacia arriba mientras
@@ -476,6 +482,11 @@ export function NovaSheetFrame({ open, onOpenChange, title, description, headerA
 				</div>
 
 				<div className="border-t border-(--sk-hair) px-5 pb-5 pt-4 sm:px-6">
+					{notice && (
+						<p className="sk-small mb-2.5 px-1 leading-snug text-(--sk-ink-2)" role="status">
+							{notice}
+						</p>
+					)}
 					<NovaComposer
 						value={composer.value}
 						onChange={composer.onChange}

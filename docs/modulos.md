@@ -25,7 +25,7 @@ sitio.
 | `ui/` | navegador | primitivos de shadcn/ui (`button`, `dialog`, `sidebar`…) más `sonner`, tematizado por `components/theme-provider` |
 | `lib/` | navegador | `cn()`; `crud-api` / `crud-hooks` — el cliente genérico de list/create/update/delete y sus hooks de TanStack Query; `initials` |
 | `hooks/` | navegador | `useIsMobile()` |
-| `components/` | navegador | `theme-provider` (el que escribe la clase `dark`, montado por todas las apps), `confirm-delete-modal`, `form-modal`, `console`, `topbar`, y Nova: `nova` (el marco, las filas, el campo y las sugerencias), `nova-chat` (la hoja, sobre Nova central; la única desde v1.17.0), `nova-mark` |
+| `components/` | navegador | `theme-provider` (el que escribe la clase `dark`, montado por todas las apps), `confirm-delete-modal`, `form-modal`, `console`, `topbar`, y Nova: `nova` (el marco, las filas, el campo y las sugerencias), `nova-chat` (la hoja, sobre Nova central; la única desde v1.17.0), `nova-chat-tools` (la línea de una lectura en curso y la tarjeta de aprobación de una acción, v1.19.0), `nova-mark` |
 | `calls/` | navegador | `ringer-lease` — **un solo tono por navegador entre todos los productos**; `ring-tone` — el reproductor |
 | `presence/` | navegador | `status` — el vocabulario de presencia que renderizan los seis (`STATUS_META`, `presenceLabel`, `lastSeenShort`); `presence-dot` |
 | `worker/` | Pages Functions | ver abajo — **es la parte crítica** |
@@ -77,7 +77,7 @@ archivo nuevo es importable sin tocar `package.json`.
 <!-- BEGIN generated:modules -->
 <!-- No edites aquí: lo reescribe `npm run docs`. -->
 
-Módulos de las carpetas publicadas (73), con la primera línea de su comentario de cabecera.
+Módulos de las carpetas publicadas (74), con la primera línea de su comentario de cabecera.
 
 | Archivo | Qué hace |
 | --- | --- |
@@ -91,6 +91,7 @@ Módulos de las carpetas publicadas (73), con la primera línea de su comentario
 | [`components/form-modal.tsx`](../components/form-modal.tsx) | El envoltorio de cualquier formulario en diálogo: título, descripción y hueco. |
 | [`components/map.tsx`](../components/map.tsx) | Las piezas pequeñas del mapa que llevan los seis productos: la banda de seis líneas y el cierre de seis tramos. |
 | [`components/nova-chat-parts.ts`](../components/nova-chat-parts.ts) | Las piezas sin React de la hoja de Nova central (components/nova-chat.tsx), aparte para poder probarlas con node:test. |
+| [`components/nova-chat-tools.tsx`](../components/nova-chat-tools.tsx) | Las llamadas a herramientas en la hoja de Nova (fase 2, 2026-10-08). |
 | [`components/nova-chat.test.ts`](../components/nova-chat.test.ts) | — |
 | [`components/nova-chat.tsx`](../components/nova-chat.tsx) | Nova central en la hoja (2026-10-07, fase 1): la única hoja de Nova de la plataforma, sobre el marco de components/nova.tsx. |
 | [`components/nova-mark.tsx`](../components/nova-mark.tsx) | La marca de Nova (2026-10-06): una estrella de cuatro puntas rellena con los seis colores de las apps, porque Nova es la que ve las seis, y un brillo blanco en el centro. |
