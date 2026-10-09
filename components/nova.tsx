@@ -8,7 +8,8 @@
  * `NovaChatSheet` (components/nova-chat.tsx), con Nova central: desde el
  * 2026-10-07 no hay otra hoja ni otro endpoint.
  *
- *   NovaSheetFrame   la hoja sin la conversación: cabecera, registro, campo y pie
+ *   NovaThreadFrame  la conversación sin marco: registro, campo y pie (hoja y panel)
+ *   NovaSheetShell   la hoja sin la conversación: el Sheet con su cabecera
  *   NovaMessageRow   una fila: lo de Nova con su glifo, lo tuyo en una píldora
  *   NovaComposer     el campo que crece, con Enter para enviar
  *   NovaSuggestions  las preguntas de partida, como filas con icono
@@ -282,6 +283,7 @@ export function NovaComposer({
 	placeholder,
 	label = "Ask Nova",
 	inputRef,
+	leading,
 }: {
 	value: string;
 	onChange: (value: string) => void;
@@ -291,6 +293,8 @@ export function NovaComposer({
 	/** Para el lector de pantalla. */
 	label?: string;
 	inputRef?: Ref<HTMLTextAreaElement>;
+	/** A la izquierda del texto (la estrella de Nova en el campo de la portada de la consola). */
+	leading?: ReactNode;
 }) {
 	const own = useRef<HTMLTextAreaElement | null>(null);
 	const canSend = value.trim().length > 0 && !busy;
@@ -311,6 +315,7 @@ export function NovaComposer({
 				e.preventDefault();
 				if (canSend) onSubmit();
 			}}>
+			{leading}
 			<textarea
 				ref={(el) => {
 					own.current = el;
@@ -408,33 +413,29 @@ export interface NovaSheetProps {
 	inputLabel?: string;
 }
 
-export interface NovaSheetFrameProps {
-	open: boolean;
-	onOpenChange: (open: boolean) => void;
-	title: string;
-	description: ReactNode;
-	/** A la derecha del título (la «New chat» de Nova central). */
-	headerAction?: ReactNode;
+export interface NovaThreadFrameProps {
 	busy: boolean;
 	/** Cambia con cada cosa nueva en la conversación: si la vista estaba al final, se queda al final. */
 	scrollKey: unknown;
+	/** Cambia cuando la conversación vuelve a verse (abrir la hoja, volver del historial): baja al final. */
+	revealKey?: unknown;
 	/** Las filas de la conversación y, si toca, las sugerencias. */
 	children: ReactNode;
 	composer: { value: string; onChange: (value: string) => void; onSubmit: () => void; placeholder: string; label?: string };
 	footnote: ReactNode;
 	/** Una línea encima del campo: el saldo de créditos cuando queda poco. */
 	notice?: ReactNode;
+	inputRef?: Ref<HTMLTextAreaElement>;
 }
 
 /**
- * La hoja de Nova sin la conversación: cabecera, registro desplazable, campo y
- * nota al pie. `NovaChatSheet` (components/nova-chat.tsx) la llena. El
- * desplazamiento se pega al final mientras escribe Nova, salvo si has subido a
- * leer.
+ * La conversación sin marco: el registro que se desplaza y, debajo, el campo y
+ * la nota al pie. La pinta la hoja (`NovaSheetShell`) y el panel acoplado
+ * (components/nova-panel.tsx). El desplazamiento se pega al final mientras
+ * escribe Nova, salvo si has subido a leer.
  */
-export function NovaSheetFrame({ open, onOpenChange, title, description, headerAction, busy, scrollKey, children, composer, footnote, notice }: NovaSheetFrameProps) {
+export function NovaThreadFrame({ busy, scrollKey, revealKey, children, composer, footnote, notice, inputRef }: NovaThreadFrameProps) {
 	const log = useRef<HTMLDivElement | null>(null);
-	const input = useRef<HTMLTextAreaElement | null>(null);
 	// Si la vista está al final. Leer una respuesta larga hacia arriba mientras
 	// llega no debe devolverte abajo con cada token.
 	const pinned = useRef(true);
@@ -442,18 +443,80 @@ export function NovaSheetFrame({ open, onOpenChange, title, description, headerA
 	useLayoutEffect(() => {
 		const el = log.current;
 		if (el && pinned.current) el.scrollTop = el.scrollHeight;
-	}, [scrollKey, open]);
+	}, [scrollKey, revealKey]);
 
+	return (
+		<>
+			<div
+				ref={log}
+				role="log"
+				aria-live="polite"
+				aria-busy={busy}
+				aria-label="Conversation with Nova"
+				onScroll={(e) => {
+					const el = e.currentTarget;
+					pinned.current = el.scrollHeight - el.scrollTop - el.clientHeight < 48;
+				}}
+				className="sk-nova-log flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6">
+				{children}
+			</div>
+
+			<div className="shrink-0 border-t border-(--sk-hair) px-5 pb-5 pt-4 sm:px-6">
+				{notice && (
+					<p className="sk-small mb-2.5 px-1 leading-snug text-(--sk-ink-2)" role="status">
+						{notice}
+					</p>
+				)}
+				<NovaComposer
+					value={composer.value}
+					onChange={composer.onChange}
+					onSubmit={() => {
+						pinned.current = true;
+						composer.onSubmit();
+					}}
+					busy={busy}
+					placeholder={composer.placeholder}
+					label={composer.label}
+					inputRef={inputRef}
+				/>
+				<p className="sk-small mt-2.5 text-pretty px-1 leading-snug">{footnote}</p>
+			</div>
+		</>
+	);
+}
+
+/**
+ * La hoja de Nova sin la conversación: el `Sheet`, su cabecera con el glifo, el
+ * título, el alcance y una acción a la derecha, y debajo lo que se le dé. Desde
+ * el 2026-10-08 la usa el asistente de un ticket de Pulse (`NovaChatSheet`); la
+ * Nova de la barra es el panel acoplado.
+ */
+export function NovaSheetShell({
+	open,
+	onOpenChange,
+	title,
+	description,
+	headerAction,
+	onAutoFocus,
+	children,
+}: {
+	open: boolean;
+	onOpenChange: (open: boolean) => void;
+	title: string;
+	description: ReactNode;
+	headerAction?: ReactNode;
+	/** Con ratón, al abrir: enfocar el campo. En un teléfono no se llama (el teclado taparía las sugerencias). */
+	onAutoFocus?: () => void;
+	children: ReactNode;
+}) {
 	return (
 		<Sheet open={open} onOpenChange={onOpenChange}>
 			<SheetContent
 				className="flex h-full w-full flex-col gap-0 p-0 max-sm:rounded-none! sm:max-w-[34rem]"
 				onOpenAutoFocus={(e) => {
-					// Con ratón, al campo directamente. En un teléfono no: el teclado
-					// taparía las sugerencias antes de que nadie las lea.
-					if (window.matchMedia("(pointer: fine)").matches) {
+					if (onAutoFocus && window.matchMedia("(pointer: fine)").matches) {
 						e.preventDefault();
-						input.current?.focus();
+						onAutoFocus();
 					}
 				}}>
 				<SheetHeader className="px-5 sm:px-6">
@@ -466,41 +529,7 @@ export function NovaSheetFrame({ open, onOpenChange, title, description, headerA
 						{headerAction}
 					</div>
 				</SheetHeader>
-
-				<div
-					ref={log}
-					role="log"
-					aria-live="polite"
-					aria-busy={busy}
-					aria-label="Conversation with Nova"
-					onScroll={(e) => {
-						const el = e.currentTarget;
-						pinned.current = el.scrollHeight - el.scrollTop - el.clientHeight < 48;
-					}}
-					className="sk-nova-log flex flex-1 flex-col gap-5 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6">
-					{children}
-				</div>
-
-				<div className="border-t border-(--sk-hair) px-5 pb-5 pt-4 sm:px-6">
-					{notice && (
-						<p className="sk-small mb-2.5 px-1 leading-snug text-(--sk-ink-2)" role="status">
-							{notice}
-						</p>
-					)}
-					<NovaComposer
-						value={composer.value}
-						onChange={composer.onChange}
-						onSubmit={() => {
-							pinned.current = true;
-							composer.onSubmit();
-						}}
-						busy={busy}
-						placeholder={composer.placeholder}
-						label={composer.label}
-						inputRef={input}
-					/>
-					<p className="sk-small mt-2.5 text-pretty px-1 leading-snug">{footnote}</p>
-				</div>
+				{children}
 			</SheetContent>
 		</Sheet>
 	);
