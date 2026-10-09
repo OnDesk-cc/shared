@@ -19,6 +19,7 @@
  * kind `index` (el feed de la búsqueda, fase 1b): ésa no corre como ningún
  * usuario, no pasa por la membresía y su respuesta no va al modelo, así que no
  * tiene el tope de NOVA_MAX_RESULT_CHARS sino el de NOVA_MAX_INDEX_RESULT_CHARS.
+ * Desde la fase 4 (abajo), también un agente.
  *
  * Fase 2 (2026-10-08, spec § 2c): acciones. Se declaran con `defineAction` y
  * salen en el manifiesto como kind `write`. Corren en dos tiempos, y el tiempo lo
@@ -27,13 +28,35 @@
  *     la tarjeta (`NovaActionPreview`) sin escribir nada;
  *   - `commit`: vuelve a comprobar el permiso y escribe.
  * Una `write` sin `mode` válido, o una `read`/`index` con `mode`, es 403. Una
- * preview que no tiene la forma de la tarjeta es 500 `failed`. Lo automático
- * (`nova:…`) sigue sin poder escribir.
+ * preview que no tiene la forma de la tarjeta es 500 `failed`.
+ *
+ * Fase 4 (2026-10-09, spec § 2e): lo automático. Un agente de Nova
+ * (`sub: "nova:agent:<id>"`, worker/nova-contract.ts) contesta tickets sin una
+ * persona delante. Las reglas, en este orden:
+ *   1. El indexador, igual: `nova:indexer` con `workspace: "*"`, sólo en kind
+ *      `index` y con cualquier `feed` (la búsqueda o la bandeja de eventos).
+ *   2. Un agente:
+ *      - sólo herramientas con `automatic: true`, y nunca una `destructive`
+ *        aunque esté marcada (403);
+ *      - siempre con `resource` (`<product>:<kind>:<id>`, de este mismo
+ *        producto) y con un workspace de verdad, no `"*"` (403);
+ *      - en una `write`, `mode` sigue siendo obligatorio;
+ *      - `key`, si viene, de 1 a 200 caracteres (400);
+ *      - no pasa por `resolveAccess`, porque no es un miembro: el límite es el
+ *        recurso. `ctx.workspaceRole` es `"agent"` y `ctx.agentId` su id.
+ *        Ojo: el rol de tenencia de una persona también puede ser `agent`;
+ *        lo que distingue a un agente de Nova es `ctx.agentId !== null`.
+ *   3. Cualquier otro `sub` que empieza por `nova:` → 403, como antes.
+ *   4. Las personas, como antes (`ctx.agentId` null).
+ * Dentro de `run`, `requireResource(ctx, kind, id)` rechaza con 403 cualquier
+ * objeto que no sea el del recurso: el ticket lo elige Nova, nunca el modelo ni
+ * el correo del cliente. `offer: false` no cambia nada aquí: sólo lo lee Nova.
  */
 import type { D1Database, PagesFunction } from "@cloudflare/workers-types";
 import { bearerToken } from "./sso";
 import { verifyRs256 } from "./rs256";
 import { validateParams, type JsonSchema } from "./json-schema";
+import { parseAgentSubject, parseResource } from "./nova-contract";
 import type { NovaActionPreview, NovaManifest, NovaManifestTool, NovaToolClaims, NovaToolErrorCode, NovaToolResponse } from "./nova-contract";
 import type { WorkspaceAccess } from "./access";
 import { NOVA_INDEXER_SUBJECT } from "./nova-search";
@@ -41,6 +64,11 @@ import { NOVA_INDEXER_SUBJECT } from "./nova-search";
 export type { JsonSchema } from "./json-schema";
 export type {
 	NovaActionPreview,
+	NovaDraftApproval,
+	NovaDraftProposal,
+	NovaEvent,
+	NovaEventsFeed,
+	NovaEventType,
 	NovaManifest,
 	NovaManifestTool,
 	NovaToolClaims,
@@ -48,6 +76,7 @@ export type {
 	NovaToolResponse,
 	NovaUsage,
 } from "./nova-contract";
+export { agentSubject, NOVA_AGENT_PREFIX, parseAgentSubject, parseResource, ticketResource } from "./nova-contract";
 
 export interface NovaToolsEnv {
 	DB: D1Database;
@@ -57,15 +86,22 @@ export interface NovaToolsEnv {
 
 export interface NovaToolContext<E> {
 	env: E;
+	/** El `sub` entero: el id de la persona, `nova:indexer` o `nova:agent:<id>`. */
 	userId: string;
 	workspaceId: string;
-	/** owner | admin | member, como en `withWorkspace`. */
+	/** owner | admin | member, como en `withWorkspace`; `system` para el indexador y `agent` para un agente de Nova. */
 	workspaceRole: string;
-	/** `chat:{conversación}`. */
+	/** `chat:{conversación}`, o `run:{ejecución}` en lo automático. */
 	origin: string;
 	/** `read` en las herramientas `read` e `index`; en una acción, el `mode` del token. */
 	mode: "read" | "preview" | "commit";
 	waitUntil: (promise: Promise<unknown>) => void;
+	/** El `resource` del token; null si no vino. */
+	resource: string | null;
+	/** El id del agente si `sub` es nova:agent:*, si no null. `userId` sigue siendo el `sub` entero. */
+	agentId: string | null;
+	/** El `key` del token; null si no vino. */
+	key: string | null;
 }
 
 export interface NovaToolDef<E, P = Record<string, unknown>> extends NovaManifestTool {
@@ -86,6 +122,21 @@ export class NovaToolError extends Error {
 	}
 }
 
+/**
+ * En un agente (`ctx.agentId`), lanza `forbidden` si el objeto que toca no es el
+ * de su `resource`: mismo `kind` y mismo `id`. Con una persona no hace nada: a
+ * ella la limitan sus permisos. Llámala en `run` (y en `preview` y `commit`) con
+ * el id real de la fila, después de buscarla. Un contexto armado a mano sin
+ * `agentId` (las pruebas de antes de la fase 4) cuenta como una persona.
+ */
+export function requireResource(ctx: NovaToolContext<unknown>, kind: string, id: string): void {
+	if (!ctx.agentId) return;
+	const target = ctx.resource === null ? null : parseResource(ctx.resource);
+	if (!target || target.kind !== kind || target.id !== id) {
+		throw new NovaToolError("forbidden", "This run can only touch its own ticket");
+	}
+}
+
 /** Una acción: una herramienta `write` en dos tiempos (ver la cabecera). */
 export interface NovaActionDef<E, P = Record<string, unknown>> {
 	name: string;
@@ -93,6 +144,10 @@ export interface NovaActionDef<E, P = Record<string, unknown>> {
 	description: string;
 	/** Borrar, archivar, cancelar o cerrar: la tarjeta va en rojo, con el verbo en el botón. */
 	destructive?: boolean;
+	/** Fase 4: la puede llamar un agente (ver la cabecera). Nunca sirve en una destructiva. */
+	automatic?: boolean;
+	/** Fase 4: false = Nova nunca se la ofrece al modelo. */
+	offer?: boolean;
 	params: JsonSchema;
 	/** Valida, comprueba el permiso con `ctx.userId` y traduce ids a nombres. NO escribe. */
 	preview: (ctx: NovaToolContext<E>, params: P) => Promise<NovaActionPreview>;
@@ -102,12 +157,15 @@ export interface NovaActionDef<E, P = Record<string, unknown>> {
 
 export function defineAction<E, P = Record<string, unknown>>(def: NovaActionDef<E, P>): NovaToolDef<E> {
 	// Un objeto nuevo con sólo los campos del manifiesto y `run`: `preview` y
-	// `commit` no pueden acabar en lo que se publica.
+	// `commit` no pueden acabar en lo que se publica. `automatic` y `offer` sólo
+	// si se pusieron, para que el manifiesto de quien no los usa no cambie.
 	const tool: NovaToolDef<E, P> = {
 		name: def.name,
 		description: def.description,
 		kind: "write",
 		destructive: def.destructive ?? false,
+		...(def.automatic === undefined ? {} : { automatic: def.automatic }),
+		...(def.offer === undefined ? {} : { offer: def.offer }),
 		params: def.params,
 		run: async (ctx, params) => {
 			if (ctx.mode === "preview") return def.preview(ctx, params);
@@ -199,9 +257,19 @@ export function createNovaTools<E extends NovaToolsEnv>(opts: {
 		const tool = byName.get(name);
 		if (!tool) return fail("not_found", `No tool named ${name}`);
 
+		// Las reglas de la cabecera, en su orden: indexador, agente, otro `nova:`, persona.
 		const indexer = claims.sub === NOVA_INDEXER_SUBJECT && claims.workspace === "*";
-		if (tool.kind === "index" ? !indexer : claims.sub.startsWith("nova:")) {
-			return fail("forbidden", tool.kind === "index" ? "Index tools are for Nova's indexer only" : "Automatic runs are not enabled yet");
+		const agentId = parseAgentSubject(claims.sub);
+		if (tool.kind === "index") {
+			if (!indexer) return fail("forbidden", "Index tools are for Nova's indexer only");
+		} else if (agentId !== null) {
+			if (tool.automatic !== true || tool.destructive === true) return fail("forbidden", "This tool is not open to automatic runs");
+			const target = typeof claims.resource === "string" ? parseResource(claims.resource) : null;
+			if (!target || target.product !== opts.product || claims.workspace === "*") {
+				return fail("forbidden", "Automatic runs need a resource in this product");
+			}
+		} else if (claims.sub.startsWith("nova:")) {
+			return fail("forbidden", "Automatic runs are for Nova agents only");
 		}
 
 		// Sólo una acción lleva `mode`, y siempre: así un token de preview nunca escribe.
@@ -211,7 +279,18 @@ export function createNovaTools<E extends NovaToolsEnv>(opts: {
 		}
 		const mode: NovaToolContext<E>["mode"] = write ? (claims.mode as "preview" | "commit") : "read";
 
-		const access = tool.kind === "index" ? ({ ok: true, role: "system" } as const) : await opts.resolveAccess(env, claims.workspace, claims.sub);
+		// La clave de idempotencia de un agente: el producto la guarda tal cual.
+		if (agentId !== null && claims.key !== undefined && (typeof claims.key !== "string" || claims.key.length === 0 || claims.key.length > 200)) {
+			return fail("invalid_params", "key must be 1 to 200 characters");
+		}
+
+		// Un agente no es un miembro: no hay membresía que comprobar (el límite es el recurso).
+		const access =
+			tool.kind === "index"
+				? ({ ok: true, role: "system" } as const)
+				: agentId !== null
+					? ({ ok: true, role: "agent" } as const)
+					: await opts.resolveAccess(env, claims.workspace, claims.sub);
 		if (!access.ok) return fail(access.status === 402 ? "payment_required" : "forbidden", access.message);
 
 		let body: unknown;
@@ -226,7 +305,18 @@ export function createNovaTools<E extends NovaToolsEnv>(opts: {
 		let data: unknown;
 		try {
 			data = await tool.run(
-				{ env, userId: claims.sub, workspaceId: claims.workspace, workspaceRole: access.role, origin: claims.origin, mode, waitUntil },
+				{
+					env,
+					userId: claims.sub,
+					workspaceId: claims.workspace,
+					workspaceRole: access.role,
+					origin: claims.origin,
+					mode,
+					waitUntil,
+					resource: typeof claims.resource === "string" ? claims.resource : null,
+					agentId,
+					key: typeof claims.key === "string" ? claims.key : null,
+				},
 				body as Record<string, unknown>,
 			);
 		} catch (err) {

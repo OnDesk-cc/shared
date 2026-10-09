@@ -1,8 +1,8 @@
 // Pruebas del contrato de herramientas de Nova del lado del producto: `npm test`.
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { createNovaTools, defineAction, defineTool, NovaToolError, type NovaToolsEnv } from "./nova-tools.ts";
-import type { NovaActionPreview } from "./nova-contract.ts";
+import { createNovaTools, defineAction, defineTool, NovaToolError, requireResource, type JsonSchema, type NovaToolContext, type NovaToolsEnv } from "./nova-tools.ts";
+import { agentSubject, ticketResource, type NovaActionPreview } from "./nova-contract.ts";
 
 const realFetch = globalThis.fetch;
 const ISSUER = "https://nova.test";
@@ -175,10 +175,12 @@ test("token para otra herramienta, otro producto u otro emisor → 401", async (
 	assert.equal((await invoke("orbit.echo", { word: "hi" }, await token({ iss: "https://evil.test" }))).status, 401);
 });
 
-test("una ejecución automática (sub nova:…) se rechaza en la fase 1", async () => {
-	const { status, json } = await invoke("orbit.echo", { word: "hi" }, await token({ sub: "nova:ws1" }));
-	assert.equal(status, 403);
-	assert.equal(json.code, "forbidden");
+test("un sub nova:… que no es el indexador ni un agente → 403, como en la fase 1", async () => {
+	for (const sub of ["nova:ws1", "nova:agent:", "nova:agentx:a1"]) {
+		const { status, json } = await invoke("orbit.echo", { word: "hi" }, await token({ sub }));
+		assert.equal(status, 403, sub);
+		assert.equal(json.code, "forbidden");
+	}
 });
 
 test("sin membresía o sin derecho → 403 / 402", async () => {
@@ -350,4 +352,286 @@ test("sin membresía o sin derecho, una acción no corre", async () => {
 	assert.equal((await invoke("orbit.create_task", { title: "Ship v2" }, await actionToken("orbit.create_task", "preview"))).json.code, "forbidden");
 	access = { ok: true, role: "member" };
 	assert.deepEqual(calls, { preview: 0, commit: 0 });
+});
+
+// ── Lo automático (fase 4): un agente de Nova, siempre con su ticket ──
+
+// Un producto `pulse` de prueba: lo que llama un agente lleva `automatic`, y el
+// ticket del parámetro tiene que ser el del recurso (`requireResource`).
+const pulseCalls = { access: 0, preview: 0, commit: 0, destructive: 0 };
+const resetPulseCalls = () => {
+	pulseCalls.access = 0;
+	pulseCalls.preview = 0;
+	pulseCalls.commit = 0;
+	pulseCalls.destructive = 0;
+};
+const seen = (ctx: NovaToolContext<Env>) => ({
+	user: ctx.userId,
+	agent: ctx.agentId,
+	resource: ctx.resource,
+	key: ctx.key,
+	role: ctx.workspaceRole,
+	mode: ctx.mode,
+});
+const ticketParams: JsonSchema = { type: "object", additionalProperties: false, required: ["ticket_id"], properties: { ticket_id: { type: "string", maxLength: 64 } } };
+
+const getTicket = defineTool<Env, { ticket_id: string }>({
+	name: "pulse.get_ticket",
+	description: "Read one ticket",
+	kind: "read",
+	automatic: true,
+	offer: false,
+	params: ticketParams,
+	run: async (ctx, params) => {
+		requireResource(ctx, "ticket", params.ticket_id);
+		return seen(ctx);
+	},
+});
+const listTickets = defineTool<Env>({
+	name: "pulse.list_tickets",
+	description: "List tickets (not for agents)",
+	kind: "read",
+	params: { type: "object", properties: {} },
+	run: async (ctx) => seen(ctx),
+});
+const replyTicket = defineAction<Env, { ticket_id: string; text: string }>({
+	name: "pulse.reply_ticket",
+	description: "Reply to a ticket",
+	automatic: true,
+	params: { type: "object", additionalProperties: false, required: ["ticket_id", "text"], properties: { ticket_id: { type: "string" }, text: { type: "string" } } },
+	preview: async (ctx, params) => {
+		pulseCalls.preview++;
+		requireResource(ctx, "ticket", params.ticket_id);
+		return { summary: "Reply", fields: [{ label: "Agent", value: String(ctx.agentId) }, { label: "Key", value: String(ctx.key) }] };
+	},
+	commit: async (ctx, params) => {
+		pulseCalls.commit++;
+		requireResource(ctx, "ticket", params.ticket_id);
+		return seen(ctx);
+	},
+});
+const assignTicket = defineAction<Env>({
+	name: "pulse.assign_ticket",
+	description: "Assign a ticket (not for agents)",
+	params: { type: "object", properties: {} },
+	preview: async () => ({ summary: "Assign", fields: [] }),
+	commit: async () => ({ ok: true }),
+});
+const closeTicket = defineAction<Env>({
+	name: "pulse.close_ticket",
+	description: "Close a ticket",
+	destructive: true,
+	automatic: true,
+	params: { type: "object", properties: {} },
+	preview: async () => {
+		pulseCalls.destructive++;
+		return { summary: "Close", fields: [] };
+	},
+	commit: async () => {
+		pulseCalls.destructive++;
+		return { ok: true };
+	},
+});
+const events = defineTool<Env>({
+	name: "pulse.events",
+	description: "Event inbox",
+	kind: "index",
+	feed: "events",
+	params: { type: "object", additionalProperties: false, properties: { after: { type: "integer", minimum: 0 } } },
+	run: async (ctx) => ({ events: [], next_after: 0, has_more: false, user: ctx.userId, agent: ctx.agentId }),
+});
+const mailboxes = defineTool<Env>({
+	name: "pulse.mailboxes",
+	description: "Mailboxes for the console",
+	kind: "read",
+	offer: false,
+	params: { type: "object", properties: {} },
+	run: async () => ({ mailboxes: [] }),
+});
+
+const pulse = createNovaTools<Env>({
+	product: "pulse",
+	version: "test",
+	guidance: "Be kind.",
+	tools: [getTicket, listTickets, replyTicket, assignTicket, closeTicket, events, mailboxes],
+	resolveAccess: async () => {
+		pulseCalls.access++;
+		return { ok: true, role: "admin" };
+	},
+});
+
+const AGENT = agentSubject("a1");
+const TICKET = ticketResource("t1");
+
+async function invokePulse(name: string, body: unknown, claims: Record<string, unknown>): Promise<{ status: number; json: Record<string, unknown> }> {
+	const auth = await token({ aud: "pulse", tool: name, ...claims });
+	const request = new Request(`https://pulse.test/api/nova/tools/${name}`, {
+		method: "POST",
+		headers: { "Content-Type": "application/json", Authorization: `Bearer ${auth}` },
+		body: JSON.stringify(body),
+	});
+	const res = (await pulse.onInvoke({ request, env, params: { name }, waitUntil: () => {} } as never)) as unknown as Response;
+	return { status: res.status, json: (await res.json()) as Record<string, unknown> };
+}
+
+test("el manifiesto lleva automatic, offer y feed donde se pusieron, y nada donde no", () => {
+	const byName = new Map(pulse.manifest.tools.map((t) => [t.name, t]));
+	assert.equal(byName.get("pulse.get_ticket")!.automatic, true);
+	assert.equal(byName.get("pulse.get_ticket")!.offer, false);
+	assert.equal(byName.get("pulse.mailboxes")!.offer, false);
+	assert.equal("automatic" in byName.get("pulse.mailboxes")!, false);
+	assert.equal(byName.get("pulse.events")!.feed, "events");
+	for (const name of ["pulse.list_tickets", "pulse.assign_ticket"]) {
+		for (const key of ["automatic", "offer", "feed"]) assert.equal(key in byName.get(name)!, false, `${name} lleva ${key}`);
+	}
+	assert.equal("automatic" in nova.manifest.tools[0], false, "una herramienta de antes no cambia");
+});
+
+test("defineAction copia automatic y offer al manifiesto, y nunca preview ni commit", () => {
+	const reply = pulse.manifest.tools.find((t) => t.name === "pulse.reply_ticket")!;
+	assert.equal(reply.kind, "write");
+	assert.equal(reply.automatic, true);
+	assert.equal("offer" in reply, false);
+	const hidden = defineAction<Env>({
+		name: "pulse.hidden",
+		description: "Hidden",
+		automatic: false,
+		offer: false,
+		params: { type: "object", properties: {} },
+		preview: async () => ({ summary: "x", fields: [] }),
+		commit: async () => ({ ok: true }),
+	});
+	const published = createNovaTools<Env>({ product: "pulse", version: "t", guidance: "", tools: [hidden], resolveAccess: async () => ({ ok: true, role: "admin" }) }).manifest.tools[0];
+	assert.deepEqual(published, { name: "pulse.hidden", description: "Hidden", kind: "write", destructive: false, automatic: false, offer: false, params: { type: "object", properties: {} } });
+	for (const key of ["preview", "commit", "run"]) assert.equal(key in published, false, `el manifiesto lleva ${key}`);
+});
+
+test("un agente lee una herramienta automatic con su ticket: rol agent, sin resolveAccess", async () => {
+	resetPulseCalls();
+	const { status, json } = await invokePulse("pulse.get_ticket", { ticket_id: "t1" }, { sub: AGENT, resource: TICKET, origin: "run:r1" });
+	assert.equal(status, 200);
+	assert.deepEqual(json, { ok: true, data: { user: "nova:agent:a1", agent: "a1", resource: "pulse:ticket:t1", key: null, role: "agent", mode: "read" } });
+	assert.equal(pulseCalls.access, 0);
+});
+
+test("un agente escribe en dos tiempos con su ticket y su key", async () => {
+	resetPulseCalls();
+	const preview = await invokePulse("pulse.reply_ticket", { ticket_id: "t1", text: "Hi" }, { sub: AGENT, resource: TICKET, mode: "preview", key: "r1:reply" });
+	assert.equal(preview.status, 200);
+	assert.deepEqual(preview.json, { ok: true, data: { summary: "Reply", fields: [{ label: "Agent", value: "a1" }, { label: "Key", value: "r1:reply" }] } });
+	const commit = await invokePulse("pulse.reply_ticket", { ticket_id: "t1", text: "Hi" }, { sub: AGENT, resource: TICKET, mode: "commit", key: "r1:reply" });
+	assert.equal(commit.status, 200);
+	assert.deepEqual(commit.json, { ok: true, data: { user: "nova:agent:a1", agent: "a1", resource: "pulse:ticket:t1", key: "r1:reply", role: "agent", mode: "commit" } });
+	assert.deepEqual(pulseCalls, { access: 0, preview: 1, commit: 1, destructive: 0 });
+});
+
+test("un agente en una escritura sin mode → 403, como una persona", async () => {
+	resetPulseCalls();
+	const { status } = await invokePulse("pulse.reply_ticket", { ticket_id: "t1", text: "Hi" }, { sub: AGENT, resource: TICKET, key: "r1:reply" });
+	assert.equal(status, 403);
+	assert.deepEqual(pulseCalls, { access: 0, preview: 0, commit: 0, destructive: 0 });
+});
+
+test("un agente no llama una herramienta sin automatic, ni lectura ni escritura", async () => {
+	resetPulseCalls();
+	for (const [name, mode] of [["pulse.list_tickets", undefined], ["pulse.mailboxes", undefined], ["pulse.assign_ticket", "commit"]] as const) {
+		const { status, json } = await invokePulse(name, {}, { sub: AGENT, resource: TICKET, ...(mode ? { mode, key: "r1:x" } : {}) });
+		assert.equal(status, 403, name);
+		assert.equal(json.code, "forbidden");
+	}
+	assert.equal(pulseCalls.access, 0);
+});
+
+test("una destructiva nunca, aunque esté marcada automatic", async () => {
+	resetPulseCalls();
+	for (const mode of ["preview", "commit"]) {
+		const { status, json } = await invokePulse("pulse.close_ticket", {}, { sub: AGENT, resource: TICKET, mode, key: "r1:close" });
+		assert.equal(status, 403, mode);
+		assert.equal(json.code, "forbidden");
+	}
+	assert.deepEqual(pulseCalls, { access: 0, preview: 0, commit: 0, destructive: 0 });
+});
+
+test("un agente sin resource, con uno inválido, de otro producto o con workspace * → 403", async () => {
+	resetPulseCalls();
+	const cases: Record<string, unknown>[] = [
+		{},
+		{ resource: "" },
+		{ resource: 42 },
+		{ resource: "pulse:ticket" },
+		{ resource: "pulse:ticket:" },
+		{ resource: "ticket:t1" },
+		{ resource: "pulse:ticket:t1:x" },
+		{ resource: "orbit:task:t1" },
+		{ resource: TICKET, workspace: "*" },
+	];
+	for (const extra of cases) {
+		const { status, json } = await invokePulse("pulse.get_ticket", { ticket_id: "t1" }, { sub: AGENT, ...extra });
+		assert.equal(status, 403, JSON.stringify(extra));
+		assert.equal(json.code, "forbidden");
+	}
+	assert.equal(pulseCalls.access, 0);
+});
+
+test("la key de un agente: hasta 200 caracteres; más, o algo que no es texto → 400 sin escribir", async () => {
+	resetPulseCalls();
+	const ok = await invokePulse("pulse.reply_ticket", { ticket_id: "t1", text: "Hi" }, { sub: AGENT, resource: TICKET, mode: "commit", key: "k".repeat(200) });
+	assert.equal(ok.status, 200);
+	for (const key of ["k".repeat(201), "", 7, ["r1"]]) {
+		const { status, json } = await invokePulse("pulse.reply_ticket", { ticket_id: "t1", text: "Hi" }, { sub: AGENT, resource: TICKET, mode: "commit", key });
+		assert.equal(status, 400, JSON.stringify(key));
+		assert.equal(json.code, "invalid_params");
+	}
+	assert.equal(pulseCalls.commit, 1);
+});
+
+test("requireResource: un agente no toca otro ticket aunque el modelo lo pida", async () => {
+	resetPulseCalls();
+	const read = await invokePulse("pulse.get_ticket", { ticket_id: "t2" }, { sub: AGENT, resource: TICKET });
+	assert.equal(read.status, 403);
+	assert.deepEqual(read.json, { ok: false, code: "forbidden", message: "This run can only touch its own ticket" });
+	const write = await invokePulse("pulse.reply_ticket", { ticket_id: "t12", text: "Refund" }, { sub: AGENT, resource: TICKET, mode: "commit", key: "r1:reply" });
+	assert.equal(write.status, 403);
+	assert.equal(write.json.code, "forbidden");
+	// El kind también cuenta: un recurso `pulse:contact:t1` no abre el ticket t1.
+	const otherKind = await invokePulse("pulse.get_ticket", { ticket_id: "t1" }, { sub: AGENT, resource: "pulse:contact:t1" });
+	assert.equal(otherKind.status, 403);
+});
+
+test("requireResource con una persona no hace nada; con un agente compara kind e id", () => {
+	const base = { env, userId: "u1", workspaceId: "ws1", workspaceRole: "admin", origin: "chat:c1", mode: "read" as const, waitUntil: () => {} };
+	assert.doesNotThrow(() => requireResource({ ...base, resource: null, agentId: null, key: null }, "ticket", "t9"));
+	assert.doesNotThrow(() => requireResource({ ...base, resource: "pulse:ticket:t1", agentId: null, key: null }, "ticket", "t9"));
+	// Un contexto de antes de la fase 4, armado a mano en una prueba, sin agentId: es una persona.
+	assert.doesNotThrow(() => requireResource(base as never, "ticket", "t9"));
+	const agent = { ...base, userId: AGENT, workspaceRole: "agent", resource: TICKET, agentId: "a1", key: null };
+	assert.doesNotThrow(() => requireResource(agent, "ticket", "t1"));
+	for (const [kind, id] of [["ticket", "t2"], ["contact", "t1"], ["ticket", ""]]) {
+		assert.throws(
+			() => requireResource(agent, kind, id),
+			(err: unknown) => err instanceof NovaToolError && err.code === "forbidden" && err.message === "This run can only touch its own ticket",
+			`${kind}:${id}`,
+		);
+	}
+	assert.throws(() => requireResource({ ...agent, resource: null }, "ticket", "t1"), NovaToolError);
+	assert.throws(() => requireResource({ ...agent, resource: "garbage" }, "ticket", "t1"), NovaToolError);
+});
+
+test("una persona, como hoy: resolveAccess, agentId null, y resource y key si vinieron", async () => {
+	resetPulseCalls();
+	const plain = await invokePulse("pulse.list_tickets", {}, {});
+	assert.deepEqual(plain.json, { ok: true, data: { user: "u1", agent: null, resource: null, key: null, role: "admin", mode: "read" } });
+	const other = await invokePulse("pulse.get_ticket", { ticket_id: "t2" }, { resource: TICKET });
+	assert.deepEqual(other.json, { ok: true, data: { user: "u1", agent: null, resource: "pulse:ticket:t1", key: null, role: "admin", mode: "read" } });
+	assert.equal(pulseCalls.access, 2);
+});
+
+test("el indexador lee la bandeja de eventos (feed events); un agente no", async () => {
+	resetPulseCalls();
+	const ok = await invokePulse("pulse.events", { after: 0 }, { sub: "nova:indexer", workspace: "*" });
+	assert.equal(ok.status, 200);
+	assert.deepEqual(ok.json, { ok: true, data: { events: [], next_after: 0, has_more: false, user: "nova:indexer", agent: null } });
+	const asAgent = await invokePulse("pulse.events", { after: 0 }, { sub: AGENT, resource: TICKET });
+	assert.equal(asAgent.status, 403);
+	assert.equal(pulseCalls.access, 0);
 });

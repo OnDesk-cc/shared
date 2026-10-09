@@ -42,8 +42,8 @@ sitio.
 | `jwt` | firma HS256 y tickets con audiencia |
 | `email` | `createEmailer(brand)` y los helpers de plantilla |
 | `api` | el núcleo de la API con token bearer (`/api/v1` de cada producto) |
-| **`nova-tools`** | **`createNovaTools` + `defineTool` + `defineAction`: las herramientas y las acciones que un producto publica a Nova central** (token RS256 por llamada, membresía de `access`, parámetros de `json-schema`). Una acción (fase 2) corre en dos tiempos según el `mode` firmado en el token: `preview` devuelve la tarjeta de aprobación sin escribir y `commit` escribe |
-| `nova-contract` | los tipos del contrato Nova ↔ producto (manifiesto, respuesta, claims con `mode`, candidatos y feed de la búsqueda, la tarjeta de una acción `NovaActionPreview`, el saldo de créditos `NovaUsage` y la parte de datos `data-nova-preview` de la tarjeta, `NovaPreviewData`), sin dependencias de runtime: los importan los productos, el Worker de Nova y la hoja |
+| **`nova-tools`** | **`createNovaTools` + `defineTool` + `defineAction`: las herramientas y las acciones que un producto publica a Nova central** (token RS256 por llamada, membresía de `access`, parámetros de `json-schema`). Una acción (fase 2) corre en dos tiempos según el `mode` firmado en el token: `preview` devuelve la tarjeta de aprobación sin escribir y `commit` escribe. Desde v1.21.0 (fase 4) la llama también un agente de Nova (`sub` `nova:agent:<id>`): sólo herramientas `automatic`, nunca una destructiva, siempre con `resource` y sin pasar por la membresía; `requireResource` le cierra cualquier otro objeto |
+| `nova-contract` | los tipos del contrato Nova ↔ producto (manifiesto con `automatic`, `offer` y `feed`, respuesta, claims con `mode` y `key`, candidatos y feed de la búsqueda, la tarjeta de una acción `NovaActionPreview`, el saldo de créditos `NovaUsage`, la parte de datos `data-nova-preview` de la tarjeta, `NovaPreviewData`, y desde v1.21.0 la bandeja de eventos de Pulse `NovaEvent`/`NovaEventsFeed` y el borrador `NovaDraftProposal`/`NovaDraftApproval`) y las funciones puras de la identidad de un agente (`agentSubject`, `parseAgentSubject`, `ticketResource`, `parseResource`), sin dependencias de runtime: los importan los productos, el Worker de Nova y la hoja |
 | `nova-search` | la búsqueda semántica de Nova (fase 1b): el corte del texto en trozos (`chunkText`), el extracto, cómo elige un producto los candidatos legibles y cómo pagina su bandeja `nova_outbox` sin perder ningún objeto |
 | `access` | `checkWorkspaceAccess`: membresía + derecho vivo en una consulta (la usan `middleware` y `nova-tools`) |
 | `rs256` | verificación RS256 contra un JWKS remoto (el de Nova) |
@@ -77,7 +77,7 @@ archivo nuevo es importable sin tocar `package.json`.
 <!-- BEGIN generated:modules -->
 <!-- No edites aquí: lo reescribe `npm run docs`. -->
 
-Módulos de las carpetas publicadas (79), con la primera línea de su comentario de cabecera.
+Módulos de las carpetas publicadas (80), con la primera línea de su comentario de cabecera.
 
 | Archivo | Qué hace |
 | --- | --- |
@@ -151,6 +151,7 @@ Módulos de las carpetas publicadas (79), con la primera línea de su comentario
 | [`worker/jwt.ts`](../worker/jwt.ts) | Firma HS256 y verificación con audiencia, sobre Web Crypto. |
 | [`worker/middleware.ts`](../worker/middleware.ts) | El middleware de autenticación y de workspace con el que cada producto satélite envuelve sus rutas. |
 | [`worker/mirror.ts`](../worker/mirror.ts) | El espejo del estado de OnDesk — las escrituras que cada producto hace de forma idéntica. |
+| [`worker/nova-contract.test.ts`](../worker/nova-contract.test.ts) | — |
 | [`worker/nova-contract.ts`](../worker/nova-contract.ts) | Los tipos del contrato entre Nova central y las herramientas de un producto (2026-10-07). |
 | [`worker/nova-search.test.ts`](../worker/nova-search.test.ts) | — |
 | [`worker/nova-search.ts`](../worker/nova-search.ts) | La búsqueda semántica de Nova central (fase 1b, 2026-10-07). |
