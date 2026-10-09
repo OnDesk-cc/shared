@@ -282,7 +282,7 @@ html.nova-dock-dragging * {
 	animation: none;
 }
 
-/* La hoja de Nova por debajo de 1024px (`NovaDockHost`). Radix la porta a
+/* La hoja de Nova por debajo de 1280px (`NovaDockHost`). Radix la porta a
    <body>: en los productos `.sk` está en <html> y la penumbra la da `.scrim` de
    product.css; en la consola de ondesk ni hay `.sk` encima ni se carga
    product.css. Por eso la hoja lleva su propia clase `sk` (tokens y letra) y

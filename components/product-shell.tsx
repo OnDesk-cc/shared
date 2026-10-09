@@ -10,7 +10,7 @@
  * - Arriba, la barra: el buscador y las acciones (Nova, ayuda, avisos, la
  *   cuenta). Se vuelve vidrio cuando la página se desplaza.
  * - En el centro, la página sobre el suelo del cielo.
- * - A la derecha, desde 1024px, la columna de Nova (`nova`), cuando está
+ * - A la derecha, desde 1280px, la columna de Nova (`nova`), cuando está
  *   abierta: se puede ensanchar y se recuerda en todas las apps
  *   (components/nova-dock.tsx).
  *
@@ -80,7 +80,7 @@ export function ProductFrame({
 	ondeskHref: string;
 	/** La página acota su columna al viewport y gestiona su propio scroll (una conversación). */
 	bounded?: boolean;
-	/** La columna de Nova (`<NovaDockColumn />` de components/nova-dock), a la derecha desde 1024px. */
+	/** La columna de Nova (`<NovaDockColumn />` de components/nova-dock), a la derecha desde 1280px. */
 	nova?: ReactNode;
 	children: ReactNode;
 }) {

@@ -4,7 +4,7 @@
  *   NovaDockProvider  el estado: abierta, ancho, la conversación en curso de cada
  *                     workspace y una pregunta pendiente. Lo lee de la cookie
  *                     `nova_dock` al montar (antes de pintar: sin parpadeo) y la
- *                     escribe en cada cambio. Por debajo de 1024px abrir y cerrar
+ *                     escribe en cada cambio. Por debajo de 1280px abrir y cerrar
  *                     es de la hoja y no toca la cookie: la preferencia es de
  *                     escritorio.
  *   useNovaDock       lo de arriba, para el botón, el menú de ayuda, el panel y el
@@ -17,7 +17,7 @@
  *   NovaDockHost      donde se monta el panel, UNA vez, en algo que no se desmonta
  *                     (la shell de cada app, la raíz de ondesk). En escritorio lo
  *                     pinta por portal en un <div> propio que la columna engancha;
- *                     por debajo de 1024px, en una hoja.
+ *                     por debajo de 1280px, en una hoja.
  *   NovaDockButton    el botón Nova de la barra, como interruptor.
  *
  * El ancho se arrastra con el puntero capturado y se escribe directo en el
@@ -68,7 +68,7 @@ export interface DockAsk {
 }
 
 export interface NovaDockApi {
-	/** Abierta ahora: la columna en escritorio, la hoja por debajo de 1024px. */
+	/** Abierta ahora: la columna en escritorio, la hoja por debajo de 1280px. */
 	open: boolean;
 	isDesktop: boolean;
 	/** El ancho guardado; la columna lo ajusta a la ventana que haya. */
@@ -233,7 +233,7 @@ export function useNovaDock(): NovaDockApi {
 	return api;
 }
 
-/** La columna de Nova a la derecha del marco, desde 1024px y con el panel abierto; si no, nada. */
+/** La columna de Nova a la derecha del marco, desde 1280px y con el panel abierto; si no, nada. */
 export function NovaDockColumn() {
 	const dock = useNovaDock();
 	const viewport = useSyncExternalStore(

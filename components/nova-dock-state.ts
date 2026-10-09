@@ -8,7 +8,7 @@
  *                        que pasar de Pulse a Atlas o a la consola la deje igual;
  *                        fuera de ese dominio, en localStorage.
  *   dockWidthBounds      cuánto puede medir el panel con la ventana que hay: la
- *                        página cede hasta 32rem y después el panel, hasta 22rem.
+ *                        página cede hasta 40rem y después el panel, hasta 22rem.
  *   groupConversations   el historial en Today / Previous 7 days / Earlier, por el
  *                        día de quien lee (no por UTC).
  *
@@ -23,11 +23,16 @@ export const DOCK_MIN_WIDTH = 352; // 22rem
 export const DOCK_MAX_WIDTH = 768; // 48rem
 export const DOCK_KEY_STEP = 16;
 export const DOCK_MAX_WORKSPACES = 20;
-/** Desde aquí, columna; por debajo, la hoja a pantalla completa. */
-export const DOCK_DESKTOP_QUERY = "(min-width: 1024px)";
+/**
+ * Desde aquí, columna; por debajo, la hoja. 1280 y no 1024: con la barra lateral
+ * (16rem), el panel en su mínimo (22rem) y la página en el suyo (40rem) no cabe
+ * menos, y las portadas de las apps (rejillas de cuatro tarjetas por `lg:`, que
+ * miran la ventana y no su hueco) se rompían a 1100px con el panel abierto.
+ */
+export const DOCK_DESKTOP_QUERY = "(min-width: 1280px)";
 
 const SIDEBAR_WIDTH = 256; // 16rem, la barra lateral de los marcos
-const PAGE_MIN_WIDTH = 512; // 32rem
+const PAGE_MIN_WIDTH = 640; // 40rem
 const WORKSPACE_ID = /^[A-Za-z0-9_-]{1,64}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
@@ -80,7 +85,7 @@ export function rememberConversation(prefs: DockPrefs, workspaceId: string, conv
 	return { ...prefs, conv: keepLast([...prefs.conv.filter(([ws]) => ws !== workspaceId), [workspaceId, conversationId]]) };
 }
 
-/** El ancho que cabe: 22rem siempre; como mucho 48rem, la mitad de la ventana, o lo que deje 32rem a la página. */
+/** El ancho que cabe: 22rem siempre; como mucho 48rem, la mitad de la ventana, o lo que deje 40rem a la página. */
 export function dockWidthBounds(viewport: number): { min: number; max: number } {
 	const room = Math.min(DOCK_MAX_WIDTH, Math.floor(viewport * 0.5), viewport - SIDEBAR_WIDTH - PAGE_MIN_WIDTH);
 	return { min: DOCK_MIN_WIDTH, max: Math.max(DOCK_MIN_WIDTH, room) };

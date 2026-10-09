@@ -10,7 +10,7 @@
  *
  * La conversación sigue montada mientras se mira el historial: volver no
  * reconecta. La monta `NovaDockHost`: en escritorio vive en la columna y por
- * debajo de 1024px en la hoja; el contenido es el mismo.
+ * debajo de 1280px en la hoja; el contenido es el mismo.
  */
 import { Suspense, useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
 import { ArrowLeft, History, SquarePen, X } from "lucide-react";

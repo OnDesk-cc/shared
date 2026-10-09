@@ -3,6 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
 	DOCK_DEFAULT_WIDTH,
+	DOCK_DESKTOP_QUERY,
 	DOCK_MAX_WIDTH,
 	DOCK_MAX_WORKSPACES,
 	DOCK_MIN_WIDTH,
@@ -62,10 +63,12 @@ test("rememberConversation: la más reciente al final, 20 workspaces como mucho,
 	assert.equal(p.conv.at(-1)?.[0], `ws_${DOCK_MAX_WORKSPACES + 4}`);
 });
 
-test("dockWidthBounds/clampWidth: el panel cede antes que la página, pero nunca baja de 22rem", () => {
+test("dockWidthBounds/clampWidth: la página guarda 40rem y el panel cede, pero nunca baja de 22rem", () => {
 	assert.deepEqual(dockWidthBounds(1920), { min: 352, max: 768 });
-	assert.deepEqual(dockWidthBounds(1280), { min: 352, max: 512 });
+	assert.deepEqual(dockWidthBounds(1440), { min: 352, max: 544 });
+	assert.deepEqual(dockWidthBounds(1280), { min: 352, max: 384 });
 	assert.deepEqual(dockWidthBounds(1024), { min: 352, max: 352 });
+	assert.equal(DOCK_DESKTOP_QUERY, "(min-width: 1280px)");
 	assert.equal(clampWidth(700, 1100), 352);
 	assert.equal(clampWidth(400.4, 1920), 400);
 	assert.equal(clampWidth(100, 1920), 352);
