@@ -48,7 +48,9 @@ export const TopbarButton = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<H
  * texto va en tinta sobre blanco, así que el contraste no depende del aro. En
  * `md` (la barra) por debajo de sm queda la estrella sola en su círculo y el
  * nombre sigue para el lector de pantalla; `sm` (dentro de una pantalla) lleva
- * siempre su etiqueta. La app pasa `aria-expanded`.
+ * siempre su etiqueta. La app pasa `aria-expanded`. Como interruptor del panel
+ * acoplado (`NovaDockButton`, components/nova-dock) lleva `aria-pressed` y no
+ * abre un diálogo; en el ticket de Pulse sigue abriendo la hoja.
  */
 export const NovaButton = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLButtonElement> & { size?: "md" | "sm" }>(function NovaButton(
 	{ className = "", size = "md", children = "Nova", ...rest },
@@ -59,7 +61,7 @@ export const NovaButton = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTM
 		<button
 			ref={ref}
 			type="button"
-			aria-haspopup="dialog"
+			aria-haspopup={rest["aria-pressed"] === undefined ? "dialog" : undefined}
 			className={`sk-nova-ring relative inline-flex shrink-0 items-center justify-center gap-2 rounded-full font-medium text-(--sk-ink) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--sk-accent) ${
 				md ? "h-9 min-w-9 text-[0.875rem] sm:pl-2.5 sm:pr-3.5" : "h-8 pl-2 pr-3 text-[0.8125rem]"
 			} ${className}`}
