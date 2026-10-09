@@ -1,0 +1,324 @@
+/*
+ * Nova en los seis productos y en la consola de OnDesk (2026-10-08).
+ *
+ * Antes vivía en `product.css`, con selectores atados a `<html>`. La consola de
+ * ondesk pone `site sk` en un <div> (main.tsx) y no carga `product.css`, así que
+ * aquí todo va colgado de `.sk`, que casa en los dos sitios. Los productos lo
+ * reciben por el `@import` de arriba de `product.css`; ondesk lo importa solo.
+ *
+ * Lo vigila `scripts/nova-ring.test.mjs`.
+ */
+
+/* ── Nova (`NovaSheet`, `NovaComposer`) ─────────────────────────────────────
+   El campo es la píldora del buscador de la barra, con la misma respuesta al
+   pasar y al enfocar; como crece con el texto, el radio es de 22px y no de
+   píldora, y el botón de enviar se queda abajo a la derecha. El anillo de foco
+   lo lleva el campo entero, no el textarea de dentro. */
+.sk .sk-composer {
+	display: flex;
+	align-items: flex-end;
+	gap: 8px;
+	padding: 6px 6px 6px 16px;
+	border-radius: 22px;
+	background: var(--sk-surface);
+	box-shadow: inset 0 0 0 1px var(--sk-hair-2);
+	transition: box-shadow 150ms ease;
+}
+.sk .sk-composer:hover {
+	box-shadow: inset 0 0 0 1px rgba(14, 27, 46, 0.22);
+}
+.sk .sk-composer:focus-within {
+	box-shadow:
+		inset 0 0 0 1.5px var(--sk-accent),
+		0 0 0 4px rgba(47, 107, 224, 0.12);
+}
+.sk .sk-composer textarea {
+	flex: 1;
+	min-width: 0;
+	min-height: 36px;
+	/* cinco líneas; a partir de ahí se desplaza */
+	max-height: 152px;
+	padding: 7px 0;
+	border: 0;
+	background: transparent;
+	resize: none;
+	font: inherit;
+	font-size: 0.9375rem;
+	line-height: 1.45;
+	color: var(--sk-ink);
+	caret-color: var(--sk-accent);
+	scrollbar-width: thin;
+	scrollbar-color: var(--sk-haze) transparent;
+}
+.sk .sk-composer textarea::placeholder {
+	color: var(--sk-ink-3);
+}
+.sk .sk-composer textarea:focus,
+.sk .sk-composer textarea:focus-visible {
+	outline: none;
+}
+.sk .sk-composer-send {
+	display: inline-flex;
+	width: 36px;
+	height: 36px;
+	flex-shrink: 0;
+	align-items: center;
+	justify-content: center;
+	border: 0;
+	border-radius: 999px;
+	background: var(--sk-accent);
+	color: #ffffff;
+	cursor: pointer;
+	transition:
+		background-color 150ms ease,
+		transform 160ms var(--sk-ease-out);
+}
+.sk .sk-composer-send:active:not(:disabled) {
+	transform: scale(0.95);
+}
+.sk .sk-composer-send:disabled {
+	background: var(--sk-haze);
+	color: var(--sk-ink-3);
+	cursor: default;
+}
+.sk .sk-composer-send:focus-visible {
+	outline: 2px solid var(--sk-accent);
+	outline-offset: 2px;
+}
+
+/* La conversación: la barra de desplazamiento en el tono del cielo. */
+.sk .sk-nova-log {
+	scrollbar-width: thin;
+	scrollbar-color: var(--sk-haze) transparent;
+}
+
+/* Mientras Nova piensa: la palabra «Writing…» con una luz que la cruza despacio
+   de lado a lado. Ni rebota ni late; con menos movimiento es sólo la palabra. */
+.sk .sk-nova-writing {
+	width: fit-content;
+	color: transparent;
+	background: linear-gradient(90deg, var(--sk-ink-3) 0%, var(--sk-ink-3) 35%, var(--sk-ink) 50%, var(--sk-ink-3) 65%, var(--sk-ink-3) 100%);
+	background-size: 250% 100%;
+	background-clip: text;
+	animation: sk-nova-writing 1.8s linear infinite;
+}
+@keyframes sk-nova-writing {
+	from {
+		background-position: 100% 0;
+	}
+	to {
+		background-position: 0% 0;
+	}
+}
+
+/* La tarjeta de una acción (components/nova-chat-tools.tsx, 2026-10-08): aparece
+   en mitad de una respuesta que se está escribiendo, así que entra en 200 ms en
+   vez de saltar. Con menos movimiento, sólo el fundido. */
+.sk .sk-nova-card {
+	transition:
+		opacity 200ms cubic-bezier(0.23, 1, 0.32, 1),
+		transform 200ms cubic-bezier(0.23, 1, 0.32, 1);
+	@starting-style {
+		opacity: 0;
+		transform: translateY(4px);
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.sk .sk-nova-card {
+		transition: opacity 200ms ease;
+		@starting-style {
+			opacity: 0;
+			transform: none;
+		}
+	}
+}
+
+/* ── Nova: el aro de las seis luces y el brillo de la estrella (2026-10-06) ──
+   El aro son dos fondos: el relleno en `padding-box` y el degradado cónico de
+   las apps en `border-box`, con el borde transparente; sin pseudoelementos que
+   un `overflow` recorte. Mismos colores y orden que `lib/nova-star`. Gira sólo
+   al pasar con un puntero fino (en un toque, el hover se queda pegado); abierto
+   se queda quieto sobre niebla. Sin `@property` el aro se ve igual, sólo que no
+   gira: por eso el `var()` lleva respaldo (sin él, el `background` entero, relleno
+   incluido, cae a su valor inicial). Lo vigila `scripts/nova-ring.test.mjs`. Al
+   pulsar, el botón cede un 3 %: la pantalla ha oído el clic. */
+@property --sk-nova-turn {
+	syntax: "<angle>";
+	inherits: false;
+	initial-value: 0deg;
+}
+.sk .sk-nova-ring {
+	border: 1.5px solid transparent;
+	background:
+		linear-gradient(var(--sk-nova-fill, #ffffff), var(--sk-nova-fill, #ffffff)) padding-box,
+		conic-gradient(from var(--sk-nova-turn, 0deg), #ee6c2b, #5aa82e, #17996a, #0b9fb3, #4466f2, #8f55e8, #ee6c2b) border-box;
+	box-shadow:
+		0 1px 2px rgba(17, 38, 72, 0.06),
+		0 6px 16px -10px rgba(17, 38, 72, 0.35);
+}
+.sk .sk-nova-ring--thin {
+	border-width: 1px;
+	box-shadow: none;
+}
+.sk button.sk-nova-ring {
+	transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.sk button.sk-nova-ring:active {
+	transform: scale(0.97);
+}
+.sk .sk-nova-glow {
+	transition: opacity 200ms ease;
+}
+@media (hover: hover) and (pointer: fine) {
+	.sk button.sk-nova-ring:hover {
+		--sk-nova-fill: #f7f9fc;
+		animation: sk-nova-turn 6s linear infinite;
+	}
+	.sk button.sk-nova-ring:hover .sk-nova-glow {
+		opacity: 1;
+	}
+}
+.sk button.sk-nova-ring[aria-expanded="true"] {
+	--sk-nova-fill: var(--sk-mist);
+	animation: none;
+}
+@keyframes sk-nova-turn {
+	to {
+		--sk-nova-turn: 360deg;
+	}
+}
+/* Mientras Nova escribe, el brillo de su estrella late despacio. */
+.sk .sk-nova-pulse .sk-nova-glow {
+	animation: sk-nova-pulse 1.6s ease-in-out infinite;
+}
+@keyframes sk-nova-pulse {
+	0%,
+	100% {
+		opacity: 0.55;
+	}
+	50% {
+		opacity: 1;
+	}
+}
+
+/* ── El panel acoplado (components/nova-dock.tsx, 2026-10-08) ───────────────
+   Una columna blanca a la derecha, gemela de la barra lateral: pegada arriba y
+   del alto de la pantalla. Se separa de la página con UNA línea (Clear Sky:
+   sombra o línea, nunca las dos), y esa línea es el asa. Al abrirla con la
+   mano, lo de dentro entra 12px desde la derecha en 200 ms; al cerrar no hay
+   animación (la salida, más rápida que la entrada); si ya estaba abierta al
+   cargar la página, aparece sin más. */
+.sk .nova-dock {
+	position: sticky;
+	top: 0;
+	display: flex;
+	height: 100dvh;
+	min-width: 0;
+	flex-direction: column;
+	background: var(--sk-surface);
+	border-left: 1px solid var(--sk-hair);
+}
+.sk .nova-dock-body {
+	display: flex;
+	min-height: 0;
+	flex: 1;
+	flex-direction: column;
+}
+.sk .nova-dock[data-animate] .nova-dock-body {
+	transition:
+		opacity 200ms var(--sk-ease-out),
+		transform 200ms var(--sk-ease-out);
+	@starting-style {
+		opacity: 0;
+		transform: translateX(12px);
+	}
+}
+
+/* El asa: 8px de agarre centrados sobre la línea; con un puntero fino, al pasar
+   o al arrastrar, la línea pasa a una franja de 2px del acento. */
+.sk .nova-dock-handle {
+	position: absolute;
+	inset-block: 0;
+	left: -4px;
+	z-index: 1;
+	width: 8px;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	cursor: col-resize;
+	touch-action: none;
+}
+.sk .nova-dock-handle::after {
+	content: "";
+	position: absolute;
+	inset-block: 0;
+	left: 3px;
+	width: 2px;
+	background: transparent;
+	transition: background-color 150ms ease;
+}
+@media (hover: hover) and (pointer: fine) {
+	.sk .nova-dock-handle:hover::after {
+		background: var(--sk-accent);
+	}
+}
+.sk .nova-dock-handle[data-dragging]::after,
+.sk .nova-dock-handle:focus-visible::after {
+	background: var(--sk-accent);
+}
+.sk .nova-dock-handle:focus-visible {
+	outline: none;
+}
+/* Mientras se arrastra, el cursor es el del asa en toda la página y nada se selecciona. */
+html.nova-dock-dragging,
+html.nova-dock-dragging * {
+	cursor: col-resize !important;
+	user-select: none !important;
+}
+
+/* El botón Nova de la barra como interruptor del panel: encendido, sobre niebla y quieto. */
+.sk button.sk-nova-ring[aria-pressed="true"] {
+	--sk-nova-fill: var(--sk-mist);
+	animation: none;
+}
+
+/* La hoja de Nova por debajo de 1024px (`NovaDockHost`). Radix la porta a
+   <body>: en los productos `.sk` está en <html> y la penumbra la da `.scrim` de
+   product.css; en la consola de ondesk ni hay `.sk` encima ni se carga
+   product.css. Por eso la hoja lleva su propia clase `sk` (tokens y letra) y
+   aquí va su penumbra, sólo para ella y sin `.sk` delante. */
+[data-slot="sheet-overlay"]:has(+ .nova-sheet) {
+	position: fixed;
+	inset: 0;
+	z-index: 50;
+	background: rgba(14, 27, 46, 0.35);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.sk .sk-nova-writing {
+		animation: none;
+		background: none;
+		color: var(--sk-ink-3);
+	}
+	.sk button.sk-nova-ring:hover,
+	.sk .sk-nova-pulse .sk-nova-glow {
+		animation: none;
+	}
+	.sk button.sk-nova-ring {
+		transition: none;
+	}
+	.sk .sk-composer,
+	.sk .sk-composer-send {
+		transition: none;
+	}
+	.sk .nova-dock[data-animate] .nova-dock-body {
+		transition: opacity 120ms ease;
+		@starting-style {
+			opacity: 0;
+			transform: none;
+		}
+	}
+	.sk .nova-dock-handle::after {
+		transition: none;
+	}
+}

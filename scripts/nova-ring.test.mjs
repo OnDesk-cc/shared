@@ -7,10 +7,22 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const css = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), "../styles/product.css"), "utf8");
+const css = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), "../styles/nova.css"), "utf8");
 
 test("cada var(--sk-nova-turn) lleva un respaldo de 0deg", () => {
 	const uses = css.match(/var\(--sk-nova-turn[^)]*\)/g) ?? [];
 	assert.ok(uses.length > 0, "el aro usa --sk-nova-turn");
 	for (const use of uses) assert.equal(use, "var(--sk-nova-turn, 0deg)");
+});
+
+test("nova.css casa dentro de .sk tanto en <html> (productos) como en un <div> (consola)", () => {
+	assert.doesNotMatch(css, /html\.site\.sk/);
+	assert.match(css, /\.sk \.sk-composer \{/);
+	assert.match(css, /\.sk \.nova-dock \{/);
+});
+
+test("product.css importa nova.css y ya no repite el aro", () => {
+	const product = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), "../styles/product.css"), "utf8");
+	assert.match(product, /^@import "\.\/nova\.css";/m);
+	assert.doesNotMatch(product, /sk-nova-ring \{/);
 });
