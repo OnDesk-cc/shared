@@ -91,7 +91,10 @@ export function NovaHistory({
 		return (
 			<div className="flex flex-col items-start gap-3 px-6 py-6">
 				<p className="text-[0.9375rem] leading-relaxed text-(--sk-ink-2)">No conversations in this workspace yet.</p>
-				<button type="button" className="ticket ticket--sm" onClick={onAsk}>
+				<button
+					type="button"
+					className="inline-flex h-9 items-center rounded-full px-4 text-[0.875rem] font-medium text-(--sk-ink) shadow-[inset_0_0_0_1px_var(--sk-hair-2)] transition-colors duration-150 hover:bg-(--sk-ground) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--sk-accent)"
+					onClick={onAsk}>
 					Ask Nova
 				</button>
 			</div>

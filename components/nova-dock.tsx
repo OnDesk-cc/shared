@@ -84,8 +84,17 @@ export interface NovaDockApi {
 	ask: DockAsk | null;
 	askNova: (workspaceId: string, text: string) => void;
 	clearAsk: (id: string) => void;
-	/** Sube cada vez que se abre a mano: el panel enfoca el campo cuando cambia. */
+	/** Sube cada vez que se abre a mano: el panel lo mira para intentar el foco. */
 	focusSignal: number;
+	/**
+	 * El foco pendiente de una apertura a mano, una sola vez: true si toca enfocar
+	 * el campo. Volver a montar el panel (navegar en la consola, cruzar los 1280px)
+	 * no lo pide, así que no le roba el foco a la página a la que se llega.
+	 */
+	takeFocus: () => boolean;
+	/** Sube cada vez que la columna engancha el nodo del panel: el registro vuelve al final. */
+	attachCount: number;
+	noteAttach: () => void;
 	/** El botón de la barra, para devolverle el foco con Escape. */
 	buttonRef: RefObject<HTMLButtonElement | null>;
 	/** El nodo que llena `NovaDockHost` y engancha `NovaDockColumn`. */
@@ -139,6 +148,8 @@ export function NovaDockProvider({ children }: { children: ReactNode }) {
 	const [sheetOpen, setSheetOpen] = useState(false);
 	const [animateOpen, setAnimateOpen] = useState(false);
 	const [focusSignal, setFocusSignal] = useState(0);
+	const pendingFocus = useRef(false);
+	const [attachCount, setAttachCount] = useState(0);
 	const [ask, setAsk] = useState<DockAsk | null>(null);
 	const buttonRef = useRef<HTMLButtonElement | null>(null);
 	const [host] = useState<HTMLDivElement | null>(() => {
@@ -169,7 +180,10 @@ export function NovaDockProvider({ children }: { children: ReactNode }) {
 
 	const setOpen = useCallback(
 		(next: boolean) => {
-			if (next) setFocusSignal((n) => n + 1);
+			if (next) {
+				pendingFocus.current = true;
+				setFocusSignal((n) => n + 1);
+			}
 			if (!isDesktop) {
 				setSheetOpen(next);
 				return;
@@ -199,6 +213,12 @@ export function NovaDockProvider({ children }: { children: ReactNode }) {
 		[startNew, setOpen],
 	);
 
+	const takeFocus = useCallback(() => {
+		const pending = pendingFocus.current;
+		pendingFocus.current = false;
+		return pending;
+	}, []);
+	const noteAttach = useCallback(() => setAttachCount((n) => n + 1), []);
 	const clearAsk = useCallback((id: string) => setAsk((a) => (a?.id === id ? null : a)), []);
 	const setWidth = useCallback((px: number) => setPrefs((p) => ({ ...p, width: clampWidth(px, window.innerWidth) })), []);
 
@@ -218,10 +238,13 @@ export function NovaDockProvider({ children }: { children: ReactNode }) {
 			askNova,
 			clearAsk,
 			focusSignal,
+			takeFocus,
+			attachCount,
+			noteAttach,
 			buttonRef,
 			host,
 		}),
-		[open, isDesktop, prefs, animateOpen, setOpen, setWidth, setConversation, startNew, ask, askNova, clearAsk, focusSignal, host],
+		[open, isDesktop, prefs, animateOpen, setOpen, setWidth, setConversation, startNew, ask, askNova, clearAsk, focusSignal, takeFocus, attachCount, noteAttach, host],
 	);
 
 	return <NovaDockContext.Provider value={api}>{children}</NovaDockContext.Provider>;
@@ -246,12 +269,14 @@ export function NovaDockColumn() {
 	const drag = useRef<{ startX: number; startWidth: number; last: number; frame: number } | null>(null);
 	const [dragging, setDragging] = useState(false);
 
+	const { noteAttach } = dock;
 	const { min, max } = dockWidthBounds(viewport);
 	const width = clampWidth(dock.width, viewport);
 
 	// El hueco engancha el nodo del host. Al desmontar sólo lo suelta si sigue
 	// siendo suyo: en la consola la columna de la página nueva puede haberlo
-	// enganchado ya.
+	// enganchado ya. Un registro que sale del documento pierde su scroll, así que
+	// cada enganche se cuenta (`noteAttach`) y el panel vuelve al final.
 	const slot = useCallback(
 		(el: HTMLDivElement | null) => {
 			const host = dock.host;
@@ -259,15 +284,32 @@ export function NovaDockColumn() {
 			if (el) {
 				el.appendChild(host);
 				attached.current = el;
+				noteAttach();
 			} else {
 				if (attached.current && host.parentElement === attached.current) host.remove();
 				attached.current = null;
 			}
 		},
-		[dock.host],
+		[dock.host, noteAttach],
 	);
 
-	if (!dock.isDesktop || !dock.open) return null;
+	// Si la columna se va a mitad de arrastre (cerrar, cruzar los 1280px), el
+	// arrastre se cancela: si no, la página se queda sin selección de texto y con
+	// el cursor del asa hasta recargar.
+	const visible = dock.isDesktop && dock.open;
+	useEffect(() => {
+		if (!visible) return;
+		return () => {
+			const d = drag.current;
+			if (!d) return;
+			if (d.frame) cancelAnimationFrame(d.frame);
+			drag.current = null;
+			setDragging(false);
+			document.documentElement.classList.remove("nova-dock-dragging");
+		};
+	}, [visible]);
+
+	if (!visible) return null;
 
 	function onPointerDown(e: ReactPointerEvent<HTMLDivElement>) {
 		// Un solo puntero: un segundo dedo o botón a media operación no la reinicia.

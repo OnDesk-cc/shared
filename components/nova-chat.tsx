@@ -97,6 +97,8 @@ export interface NovaConversationProps {
 	onTurnEnd?: () => void;
 	inputRef?: Ref<HTMLTextAreaElement>;
 	revealKey?: unknown;
+	/** Ya montada, con el historial y el campo de verdad (el panel pide aquí el foco de una apertura a mano). */
+	onReady?: () => void;
 }
 
 type LoadingProps = Pick<NovaConversationProps, "greeting" | "placeholder" | "footnote" | "inputLabel" | "lead">;
@@ -136,6 +138,7 @@ export function NovaConversation({
 	onTurnEnd,
 	inputRef,
 	revealKey,
+	onReady,
 }: NovaConversationProps) {
 	const [draft, setDraft] = useState("");
 	const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
@@ -191,6 +194,12 @@ export function NovaConversation({
 	const waiting = status === "submitted" && last?.role !== "assistant";
 	const previews = useMemo(() => collectPreviews(messages), [messages]);
 	const usageText = usageLine(latestUsage(messages, initialUsage ?? openingUsage, new Date()));
+
+	// Montada: el campo ya es el de verdad. Sólo la primera vez.
+	const ready = useRef(onReady);
+	useEffect(() => {
+		ready.current?.();
+	}, []);
 
 	// La pregunta del campo de la portada: se manda una vez, en cuanto se puede.
 	const sentAsk = useRef<string | null>(null);

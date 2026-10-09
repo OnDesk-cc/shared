@@ -96,13 +96,22 @@ export function NovaPanel({
 	const started = startedInText(origin, surface);
 	const ask = dock.ask && dock.ask.workspaceId === workspaceId && dock.ask.conversationId === conversationId ? dock.ask : null;
 
-	// Abrir con el ratón enfoca el campo; en un teléfono no (el teclado taparía las sugerencias).
+	// Abrir a mano enfoca el campo, una sola vez (`takeFocus`): volver a montar el
+	// panel (navegar en la consola, cruzar los 1280px) no le roba el foco a la
+	// página. Con la conversación aún cargando no hay campo de verdad: el foco
+	// espera a `onReady`. En un teléfono no se enfoca (el teclado taparía las
+	// sugerencias), pero la petición se gasta igual.
+	const { takeFocus } = dock;
+	const focusIfAsked = useCallback(() => {
+		if (!input.current) return;
+		if (takeFocus() && window.matchMedia("(pointer: fine)").matches) input.current.focus();
+	}, [takeFocus]);
 	useEffect(() => {
-		if (dock.focusSignal === 0 || !window.matchMedia("(pointer: fine)").matches) return;
+		if (dock.focusSignal === 0) return;
 		setView("chat");
-		const frame = requestAnimationFrame(() => input.current?.focus());
+		const frame = requestAnimationFrame(focusIfAsked);
 		return () => cancelAnimationFrame(frame);
-	}, [dock.focusSignal]);
+	}, [dock.focusSignal, focusIfAsked]);
 
 	const startOver = () => {
 		startNew(workspaceId);
@@ -215,7 +224,8 @@ export function NovaPanel({
 							}
 							onTurnEnd={refreshHistory}
 							inputRef={input}
-							revealKey={view}
+							revealKey={`${view}:${dock.attachCount}`}
+							onReady={focusIfAsked}
 						/>
 					</Suspense>
 				) : (
