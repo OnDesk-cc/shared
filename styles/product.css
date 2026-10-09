@@ -1336,6 +1336,28 @@ html.site.sk .sk-nova-writing {
 	}
 }
 
+/* La tarjeta de una acción (components/nova-chat-tools.tsx, 2026-10-08): aparece
+   en mitad de una respuesta que se está escribiendo, así que entra en 200 ms en
+   vez de saltar. Con menos movimiento, sólo el fundido. */
+html.site.sk .sk-nova-card {
+	transition:
+		opacity 200ms cubic-bezier(0.23, 1, 0.32, 1),
+		transform 200ms cubic-bezier(0.23, 1, 0.32, 1);
+	@starting-style {
+		opacity: 0;
+		transform: translateY(4px);
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	html.site.sk .sk-nova-card {
+		transition: opacity 200ms ease;
+		@starting-style {
+			opacity: 0;
+			transform: none;
+		}
+	}
+}
+
 /* ── Nova: el aro de las seis luces y el brillo de la estrella (2026-10-06) ──
    El aro son dos fondos: el relleno en `padding-box` y el degradado cónico de
    las apps en `border-box`, con el borde transparente; sin pseudoelementos que

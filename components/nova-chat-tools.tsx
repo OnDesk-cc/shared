@@ -66,7 +66,7 @@ export function NovaActionCard({ card, disabled, onAnswer }: { card: ActionCard;
 	const quiet = card.status === "cancelled" || card.status === "expired";
 
 	return (
-		<section aria-label={`${verb} in ${productName}`} className={`max-w-[62ch] rounded-[16px] bg-(--sk-surface) p-4 ${ring} ${quiet ? "opacity-75" : ""}`}>
+		<section aria-label={`${verb} in ${productName}`} className={`sk-nova-card max-w-[62ch] rounded-[16px] bg-(--sk-surface) p-4 ${ring} ${quiet ? "opacity-75" : ""}`}>
 			<div className="flex flex-wrap items-center gap-1.5">
 				<Tag>{productName}</Tag>
 				{tag && <Tag tone={tag.tone}>{tag.label}</Tag>}
