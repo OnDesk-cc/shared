@@ -77,7 +77,7 @@ archivo nuevo es importable sin tocar `package.json`.
 <!-- BEGIN generated:modules -->
 <!-- No edites aquí: lo reescribe `npm run docs`. -->
 
-Módulos de las carpetas publicadas (74), con la primera línea de su comentario de cabecera.
+Módulos de las carpetas publicadas (79), con la primera línea de su comentario de cabecera.
 
 | Archivo | Qué hace |
 | --- | --- |
@@ -93,8 +93,13 @@ Módulos de las carpetas publicadas (74), con la primera línea de su comentario
 | [`components/nova-chat-parts.ts`](../components/nova-chat-parts.ts) | Las piezas sin React de la hoja de Nova central (components/nova-chat.tsx), aparte para poder probarlas con node:test. |
 | [`components/nova-chat-tools.tsx`](../components/nova-chat-tools.tsx) | Las llamadas a herramientas en la hoja de Nova (fase 2, 2026-10-08). |
 | [`components/nova-chat.test.ts`](../components/nova-chat.test.ts) | — |
-| [`components/nova-chat.tsx`](../components/nova-chat.tsx) | Nova central en la hoja (2026-10-07, fase 1): la única hoja de Nova de la plataforma, sobre el marco de components/nova.tsx. |
+| [`components/nova-chat.tsx`](../components/nova-chat.tsx) | Nova central en el navegador (2026-10-07; el panel acoplado, 2026-10-08). |
+| [`components/nova-dock-state.test.ts`](../components/nova-dock-state.test.ts) | — |
+| [`components/nova-dock-state.ts`](../components/nova-dock-state.ts) | Las piezas sin React del panel acoplado de Nova (components/nova-dock.tsx), aparte para probarlas con node:test. |
+| [`components/nova-dock.tsx`](../components/nova-dock.tsx) | El panel acoplado de Nova (2026-10-08). |
+| [`components/nova-history.tsx`](../components/nova-history.tsx) | El historial del panel de Nova (2026-10-08): las conversaciones de esta persona en este workspace, de cualquier app o de la consola, por día. |
 | [`components/nova-mark.tsx`](../components/nova-mark.tsx) | La marca de Nova (2026-10-06): una estrella de cuatro puntas rellena con los seis colores de las apps, porque Nova es la que ve las seis, y un brillo blanco en el centro. |
+| [`components/nova-panel.tsx`](../components/nova-panel.tsx) | El panel de Nova (2026-10-08). |
 | [`components/nova.tsx`](../components/nova.tsx) | Nova, la hoja del asistente, una sola para los seis productos (2026-10-06). |
 | [`components/product-shell.tsx`](../components/product-shell.tsx) | El marco de un producto en el mundo «Clear Sky» (2026-10-04): la forma de la consola de ondesk, para que pasar de la consola a una app, o de una app a otra, se sienta… |
 | [`components/segmented.tsx`](../components/segmented.tsx) | El conmutador (2026-10-06): dos a cinco maneras de ver lo mismo (Board \| List, All \| Unread, Reply \| Internal note, los días de una semana). |

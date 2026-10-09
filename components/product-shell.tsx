@@ -10,6 +10,9 @@
  * - Arriba, la barra: el buscador y las acciones (Nova, ayuda, avisos, la
  *   cuenta). Se vuelve vidrio cuando la página se desplaza.
  * - En el centro, la página sobre el suelo del cielo.
+ * - A la derecha, desde 1024px, la columna de Nova (`nova`), cuando está
+ *   abierta: se puede ensanchar y se recuerda en todas las apps
+ *   (components/nova-dock.tsx).
  *
  * Estas piezas no saben nada del router ni de los contextos de cada app: cada
  * una las cablea en su `shell/workspace-shell.tsx` con sus `Link`, sus hooks y
@@ -48,6 +51,7 @@ export function ProductFrame({
 	drawerExtra,
 	ondeskHref,
 	bounded = false,
+	nova,
 	children,
 }: {
 	app: ProductId;
@@ -76,6 +80,8 @@ export function ProductFrame({
 	ondeskHref: string;
 	/** La página acota su columna al viewport y gestiona su propio scroll (una conversación). */
 	bounded?: boolean;
+	/** La columna de Nova (`<NovaDockColumn />` de components/nova-dock), a la derecha desde 1024px. */
+	nova?: ReactNode;
 	children: ReactNode;
 }) {
 	const [scrolled, setScrolled] = useState(false);
@@ -129,7 +135,8 @@ export function ProductFrame({
 	);
 
 	return (
-		<div className={`relative min-h-dvh lg:grid lg:grid-cols-[16rem_minmax(0,1fr)] ${bounded ? "h-dvh overflow-hidden" : ""}`}>
+		<div
+			className={`relative min-h-dvh lg:grid ${nova ? "lg:grid-cols-[16rem_minmax(0,1fr)_auto]" : "lg:grid-cols-[16rem_minmax(0,1fr)]"} ${bounded ? "h-dvh overflow-hidden" : ""}`}>
 			<div ref={sentinel} className="pointer-events-none absolute inset-x-0 top-0 h-2" aria-hidden="true" />
 
 			{/* ── la barra lateral ── */}
@@ -191,6 +198,9 @@ export function ProductFrame({
 					</>
 				)}
 			</div>
+
+			{/* ── Nova, acoplada a la derecha (components/nova-dock) ── */}
+			{nova}
 
 			{/* ── el cajón del teléfono: la misma barra lateral ── */}
 			{drawerOpen && (
