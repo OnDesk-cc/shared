@@ -21,6 +21,9 @@ import { NOVA_PREVIEW_PART, type NovaActionPreview, type NovaPreviewData, type N
 
 export type NovaProduct = "pulse" | "vault" | "orbit" | "nexus" | "halo" | "atlas";
 
+/** Dónde está la persona: una de las seis apps o la consola de OnDesk (2026-10-08). */
+export type NovaSurface = NovaProduct | "console";
+
 /** El texto de un mensaje: sólo las partes `text`, sin llamadas a herramientas ni pasos. */
 export function messageText(message: UIMessage): string {
 	return message.parts.map((part) => (part.type === "text" ? part.text : "")).join("");
@@ -57,7 +60,7 @@ export function chatErrorText(message: string): string | null {
  * workspace. `scope` separa una conversación atada a un objeto (el asistente de
  * un ticket: `ticket:<id>`) de la de la barra superior y de la de otro ticket.
  */
-export function conversationKey(product: NovaProduct, workspaceId: string, scope?: string): string {
+export function conversationKey(product: NovaSurface, workspaceId: string, scope?: string): string {
 	return `nova:conversation:${product}:${workspaceId}${scope ? `:${scope}` : ""}`;
 }
 
@@ -312,13 +315,17 @@ export function usageLine(usage: NovaUsage | null): string | null {
 	return `You have ${n.toLocaleString("en-US")} ${n === 1 ? "credit" : "credits"} left this month.`;
 }
 
-/**
- * `GET /api/me/usage` de Nova (Task 11), siempre con el producto de la hoja: sin
- * él, el tope por producto no entraría en el saldo que se enseña. `novaHost` va
- * sin protocolo, como en `useAgent`: http sólo en local.
- */
-export function usageUrl(novaHost: string, workspaceId: string, product: NovaProduct): string {
+/** `https://nova.ondesk.cc`; http sólo en local. `novaHost` va sin protocolo, como en `useAgent`. */
+export function novaOrigin(novaHost: string): string {
 	const local = /^(localhost|127\.0\.0\.1)(:\d+)?$/.test(novaHost);
-	const params = new URLSearchParams({ workspace: workspaceId, product });
-	return `${local ? "http" : "https"}://${novaHost}/api/me/usage?${params.toString()}`;
+	return `${local ? "http" : "https"}://${novaHost}`;
+}
+
+/**
+ * `GET /api/me/usage` de Nova, siempre con la superficie del panel: sin ella el
+ * tope por producto no entraría en el saldo que se enseña (la consola no tiene).
+ */
+export function usageUrl(novaHost: string, workspaceId: string, surface: NovaSurface): string {
+	const params = new URLSearchParams({ workspace: workspaceId, product: surface });
+	return `${novaOrigin(novaHost)}/api/me/usage?${params.toString()}`;
 }
