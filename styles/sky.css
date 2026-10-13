@@ -1195,6 +1195,24 @@
 	background: var(--sk-ground);
 }
 @media (max-width: 47.9rem) {
+	/* La regla de celda de arriba (`.site.sk .fare td`) gana en especificidad a
+	   la recomposición de site.css: sin esto cada celda llevaba su relleno de
+	   tabla, el rótulo perdía el hueco a su izquierda y quedaba cortado fuera
+	   («age» de «Last message»). El mismo arreglo que tenía ya OnForge. */
+	.site.sk .fare--reflow td {
+		padding: 0.125rem 0;
+		border: 0;
+	}
+	.site.sk .fare--reflow td[data-label] {
+		padding-left: 8.25rem;
+	}
+	.site.sk .fare--reflow td.cell-title {
+		padding-left: 0;
+		padding-bottom: 0.3rem;
+	}
+	.site.sk .fare--reflow td.cell-actions {
+		padding-top: 0.5rem;
+	}
 	.site.sk .fare--reflow tr {
 		border-bottom: 1px solid var(--sk-hair);
 		padding: 14px 0;

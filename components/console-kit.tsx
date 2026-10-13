@@ -315,8 +315,13 @@ export function WorkspacePlate<T extends { id: string; name: string }>({
 	);
 }
 
-/** La cara de un workspace o de una aplicación: su logo, o sus iniciales en un cuadrado redondeado de niebla. */
+/**
+ * La cara de un workspace o de una aplicación: su logo, o sus iniciales en un
+ * cuadrado redondeado de niebla. Un logo que no carga (borrado del bucket, un
+ * dominio caído) cae a las iniciales en vez de dejar el icono de imagen rota.
+ */
 export function Monogram({ name, logoUrl, size = "md" }: { name: string; logoUrl?: string | null; size?: "xs" | "sm" | "md" | "lg" }) {
+	const [failed, setFailed] = useState<string | null>(null);
 	const box =
 		size === "lg"
 			? "size-14 rounded-[16px] text-[1rem]"
@@ -325,8 +330,8 @@ export function Monogram({ name, logoUrl, size = "md" }: { name: string; logoUrl
 				: size === "xs"
 					? "size-6 rounded-[7px] text-[0.625rem]"
 					: "size-11 rounded-[12px] text-[0.8125rem]";
-	if (logoUrl) {
-		return <img src={logoUrl} alt="" className={`${box} shrink-0 object-cover shadow-(--sk-shadow-1)`} />;
+	if (logoUrl && failed !== logoUrl) {
+		return <img src={logoUrl} alt="" onError={() => setFailed(logoUrl)} className={`${box} shrink-0 object-cover shadow-(--sk-shadow-1)`} />;
 	}
 	return (
 		<span aria-hidden="true" className={`${box} inline-flex shrink-0 items-center justify-center bg-(--sk-haze) font-semibold text-(--sk-ink-2)`}>
