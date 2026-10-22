@@ -180,7 +180,7 @@ export function ProductFrame({
 						<footer className="px-4 pb-6 sm:px-6 lg:px-8">
 							<div className="mx-auto flex w-full max-w-[80rem] flex-wrap items-center justify-between gap-3 border-t border-(--sk-hair) pt-5">
 								<span className="sk-small">
-									© {new Date().getFullYear()} OnDesk {APP_NAME[app]}. Northstar Platforms LLC
+									© {new Date().getFullYear()} OnDesk {APP_NAME[app]}. Northstar Platforms Limited Liability Co.
 								</span>
 								<span className="flex gap-4">
 									<a href={`${ondeskHref}/status`} className="sk-small no-underline hover:text-(--sk-ink)">
@@ -258,7 +258,7 @@ export function BareFrame({
 			<footer className="px-4 pb-6 sm:px-6">
 				<div className="mx-auto flex w-full max-w-[72rem] flex-wrap items-center justify-between gap-3 border-t border-(--sk-hair) pt-5">
 					<span className="sk-small">
-						© {new Date().getFullYear()} OnDesk {APP_NAME[app]}. Northstar Platforms LLC
+						© {new Date().getFullYear()} OnDesk {APP_NAME[app]}. Northstar Platforms Limited Liability Co.
 					</span>
 					<span className="flex gap-4">
 						<a href={`${ondeskHref}/status`} className="sk-small no-underline hover:text-(--sk-ink)">

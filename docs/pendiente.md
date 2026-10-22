@@ -3,14 +3,13 @@
 > El estado de despliegue **no se deduce del repositorio**. Lo marcado
 > **«confirmar»** viene de las notas de trabajo.
 
-_Última revisión: 2026-09-22._
+_Última revisión: 2026-10-21 (comprobado: el repo sigue público; los productos fijan v1.20.0 a v1.22.0, que ya traen las horas de trabajo; `v1.5.0` nunca se etiquetó y ya no hace falta)._
 
 ## Abierto
 
 | Qué | Detalle | Confirmar |
 |---|---|---|
-| **Pasar el repo a privado** | Está marcado como "tratar como privado" pero **sigue siendo público**. Cambiarlo **rompe el CI de los seis a la vez** si no se ha puesto antes el paso del PAT. Ver [uso.md](uso.md#pasarlo-a-privado-rompe-los-seis-a-la-vez) | sí |
-| **`v1.5.0` sin publicar** | Los seis productos **esperan** `v1.5.0` para las horas de trabajo por membresía. Mientras no salga el tag, esa función no puede desplegarse | **sí** |
+| **Pasar el repo a privado** | Está marcado como "tratar como privado" pero **sigue siendo público** (comprobado el 2026-10-21). Cambiarlo **rompe el CI de los seis a la vez** si no se ha puesto antes el paso del PAT. Ver [uso.md](uso.md#pasarlo-a-privado-rompe-los-seis-a-la-vez) | no |
 | **~47k líneas todavía duplicadas** | Del audit de limpieza: se quitaron ~4,4k líneas, pero queda mucho código repetido entre productos que debería estar aquí. Este repo existe para eso y el trabajo está a medias | no |
 
 ## Trampas del terreno

@@ -605,7 +605,7 @@ Every button in a product is a ticket, whether written as `<button class="ticket
 - **Rail row:** `.rail-row` on a 1px Rule with a `.wrap` holding the `page-rail` (`aria-label="Pages"`) and, from 640px, the rail action.
 
 ### Board
-`Board` in `product-shell.tsx`, as described in Layout: plate, swatch and name, tagline (Pulse: "Support that knows who is on your team."; default: "One account, one team list, and one invoice per app."), five links (Overview, the app's main list, "Workspace on OnDesk", Status, Legal) at 80% white and 100% when hovered or current, the 3px white rule, the rights line with "Northstar Platforms LLC" in Condensed.
+`Board` in `product-shell.tsx`, as described in Layout: plate, swatch and name, tagline (Pulse: "Support that knows who is on your team."; default: "One account, one team list, and one invoice per app."), five links (Overview, the app's main list, "Workspace on OnDesk", Status, Legal) at 80% white and 100% when hovered or current, the 3px white rule, the rights line with "Northstar Platforms Limited Liability Co." in Condensed.
 
 ### LineBand, LineStub, AppLine
 `LineBand` in `map.tsx`: six `band-row` spans 4px tall in `PRODUCT_IDS` order, each in its line colour; `focus` adds `band--focus` and lights one row (`is-lit`), the rest fading to 18% over clock/24; `focus={null}` lights all six. `LineStub`: six short 10px round-capped lines ending in 4px `currentColor` bars in a 240 × 142 box. `AppLine`: a 1.25rem swatch and the app's bold name, truncating; how an app is named in a row.
