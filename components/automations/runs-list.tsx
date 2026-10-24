@@ -53,6 +53,7 @@ export function RunsList({
 	return (
 		<div className="flex flex-col gap-4">
 			<Segmented
+				className="self-start"
 				label="Result"
 				size="sm"
 				value={filter}

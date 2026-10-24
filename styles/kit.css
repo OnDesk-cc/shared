@@ -1,0 +1,457 @@
+/*
+ * Las primitivas de consola de @ondesk/shared (`RowList`/`rowClass`, `Tag`,
+ * `Segmented`, `Panel variant="flush"`/`DataTable`, `Callout`, `Pagination`).
+ *
+ * Salieron de product.css el 2026-10-23 para que también las pinte la consola de
+ * ondesk, que monta las automatizaciones de shared: allí el mundo cuelga de un
+ * `<div class="site sk">` y no de `<html>`, así que los selectores son
+ * `.site.sk` (valen en los dos) en vez de colgar de `html`. product.css lo importa;
+ * ondesk, desde src/index.css. Es el mismo camino que siguió nova.css.
+ */
+
+/* ── filas: las listas de los paneles (`RowList` + `rowClass`) ──────────────
+   El ritmo de las tablas de la consola: un filete fino entre filas y el fondo
+   de niebla al pasar, plano como el de `fare tr.is-link`. La lista sobresale
+   12px a cada lado del relleno de la tarjeta, así el texto queda alineado con
+   el título y el fondo al pasar respira. Sin movimiento: una fila se pasa
+   decenas de veces al día, sólo cambia el fondo. */
+.site.sk .sk-rows {
+	display: flex;
+	flex-direction: column;
+	margin-inline: -12px;
+	margin-block: -4px;
+}
+.site.sk .sk-rows > li + li {
+	border-top: 1px solid var(--sk-hair);
+}
+.site.sk .sk-row {
+	display: flex;
+	width: 100%;
+	min-height: 56px;
+	align-items: center;
+	gap: 12px;
+	padding: 10px 12px;
+	border-radius: 12px;
+	color: var(--sk-ink);
+	text-align: left;
+	text-decoration: none;
+	cursor: pointer;
+	transition: background-color 150ms ease;
+}
+.site.sk .sk-row--static {
+	cursor: default;
+}
+@media (hover: hover) and (pointer: fine) {
+	.site.sk .sk-row:not(.sk-row--static):hover {
+		background: var(--sk-ground);
+	}
+}
+.site.sk .sk-row:focus-visible {
+	outline: 2px solid var(--sk-accent);
+	outline-offset: -2px;
+}
+.site.sk .sk-row-icon {
+	display: inline-flex;
+	width: 36px;
+	height: 36px;
+	flex-shrink: 0;
+	align-items: center;
+	justify-content: center;
+	border-radius: 10px;
+	background: var(--sk-ground);
+	color: var(--sk-ink-2);
+}
+.site.sk .sk-row-title {
+	display: block;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 0.9375rem;
+	font-weight: 500;
+	line-height: 1.35;
+	color: var(--sk-ink);
+}
+.site.sk .sk-row-sub {
+	display: block;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	margin-top: 2px;
+	font-size: 0.8125rem;
+	line-height: 1.4;
+	color: var(--sk-ink-3);
+}
+.site.sk .sk-row-end {
+	display: inline-flex;
+	flex-shrink: 0;
+	align-items: center;
+	gap: 8px;
+	font-size: 0.8125rem;
+	font-variant-numeric: tabular-nums;
+	color: var(--sk-ink-3);
+}
+
+/* ── la píldora de un dato (`Tag`, y `Badge`/`Stamp` que la usan) ─────────────
+   Un estado es su palabra y el tono sólo la apoya. Sin borde: el fondo tintado
+   es la forma. Va sin capa, como el resto del mundo, así que los restos de una
+   pantalla vieja (`rounded-none`, `font-mono text-[9px] uppercase`, un borde de
+   color) no la deshacen. El texto de los tonos es un punto más hondo que el
+   glifo del mismo tono (`GLYPH_TONES`) para pasar 4.5:1 sobre su fondo. */
+.site.sk .sk-tag {
+	display: inline-flex;
+	max-width: 100%;
+	flex-shrink: 0;
+	align-items: center;
+	gap: 4px;
+	height: 22px;
+	padding: 0 8px;
+	border: 0;
+	border-radius: 999px;
+	background: var(--sk-mist);
+	color: var(--sk-ink-2);
+	font-family: var(--sk-font);
+	font-size: 0.75rem;
+	font-weight: 500;
+	line-height: 1;
+	letter-spacing: 0;
+	text-transform: none;
+	white-space: nowrap;
+	font-variant-numeric: tabular-nums;
+}
+.site.sk .sk-tag > span {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.site.sk .sk-tag svg {
+	width: 12px;
+	height: 12px;
+	flex-shrink: 0;
+	pointer-events: none;
+}
+.site.sk .sk-tag[data-size="md"] {
+	height: 26px;
+	gap: 6px;
+	padding: 0 10px;
+	font-size: 0.8125rem;
+}
+.site.sk .sk-tag[data-size="md"] svg {
+	width: 14px;
+	height: 14px;
+}
+.site.sk .sk-tag[data-tone="accent"] {
+	background: var(--accent-soft);
+	color: #2457c5;
+}
+.site.sk .sk-tag[data-tone="warning"] {
+	background: #fdf1e1;
+	color: #8a5100;
+}
+.site.sk .sk-tag[data-tone="danger"] {
+	background: #fbeceb;
+	color: #a1221a;
+}
+.site.sk .sk-tag[data-tone="success"] {
+	background: #e6f4ee;
+	color: #17795a;
+}
+.site.sk .sk-tag[data-tone="ink"] {
+	background: var(--sk-ink);
+	color: #ffffff;
+}
+/* una píldora que es un botón (quitar un filtro): responde al pasar */
+.site.sk button.sk-tag {
+	cursor: pointer;
+	transition: filter 150ms ease;
+}
+.site.sk button.sk-tag:hover {
+	filter: brightness(0.96);
+}
+.site.sk button.sk-tag:focus-visible {
+	outline: 2px solid var(--sk-accent);
+	outline-offset: 2px;
+}
+
+/* ── el conmutador (`Segmented`) ──────────────────────────────────────────────
+   La pista de niebla del riel de pestañas con la opción elegida en una pastilla
+   blanca. Sin pastilla que se deslice: se cambia decenas de veces al día, así
+   que sólo cambian el fondo y la tinta, rápido. */
+.site.sk .sk-seg {
+	display: inline-flex;
+	max-width: 100%;
+	flex-shrink: 0;
+	align-items: center;
+	gap: 2px;
+	padding: 3px;
+	border-radius: 999px;
+	background: var(--sk-mist);
+	overflow-x: auto;
+	scrollbar-width: none;
+}
+.site.sk .sk-seg::-webkit-scrollbar {
+	display: none;
+}
+.site.sk .sk-seg > button {
+	display: inline-flex;
+	height: 30px;
+	flex-shrink: 0;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	padding: 0 12px;
+	border: 0;
+	border-radius: 999px;
+	background: transparent;
+	color: var(--sk-ink-2);
+	font-family: var(--sk-font);
+	font-size: 0.8125rem;
+	font-weight: 500;
+	line-height: 1;
+	white-space: nowrap;
+	cursor: pointer;
+	transition:
+		background-color 140ms ease,
+		color 140ms ease,
+		box-shadow 140ms ease;
+}
+.site.sk .sk-seg > button > svg {
+	width: 16px;
+	height: 16px;
+	flex-shrink: 0;
+}
+.site.sk .sk-seg > button:hover:not(:disabled) {
+	color: var(--sk-ink);
+}
+.site.sk .sk-seg > button[data-on] {
+	background: var(--sk-surface);
+	color: var(--sk-ink);
+	box-shadow: var(--sk-shadow-1);
+}
+.site.sk .sk-seg > button:focus-visible {
+	outline: 2px solid var(--sk-accent);
+	outline-offset: 1px;
+}
+.site.sk .sk-seg > button:disabled {
+	opacity: 0.45;
+	cursor: not-allowed;
+}
+.site.sk .sk-seg[data-size="sm"] > button {
+	height: 26px;
+	padding: 0 10px;
+	font-size: 0.75rem;
+}
+.site.sk .sk-seg[data-icon-only] > button {
+	width: 30px;
+	padding: 0;
+}
+.site.sk .sk-seg[data-size="sm"][data-icon-only] > button {
+	width: 26px;
+}
+.site.sk .sk-seg[data-full] {
+	display: flex;
+	width: 100%;
+}
+.site.sk .sk-seg[data-full] > button {
+	flex: 1 1 0;
+	min-width: 0;
+}
+.site.sk .sk-seg > button > .sk-seg-label {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* ── la fila elegida ──────────────────────────────────────────────────────────
+   Una fila de una lista que manda sobre el panel de al lado (el proyecto, la
+   colección, el equipo): fondo de niebla y título en tinta, como la del riel
+   apilado. Nunca un bloque de tinta con una barra de color en el canto. */
+.site.sk .sk-row[aria-current]:not([aria-current="false"]),
+.site.sk .sk-row[data-selected="true"],
+.site.sk .sk-row[aria-selected="true"] {
+	background: var(--sk-ground);
+}
+.site.sk .sk-row[aria-current]:not([aria-current="false"]) .sk-row-title,
+.site.sk .sk-row[data-selected="true"] .sk-row-title,
+.site.sk .sk-row[aria-selected="true"] .sk-row-title {
+	font-weight: 600;
+	color: var(--sk-ink);
+}
+.site.sk .sk-row[aria-current]:not([aria-current="false"]) .sk-row-icon,
+.site.sk .sk-row[data-selected="true"] .sk-row-icon,
+.site.sk .sk-row[aria-selected="true"] .sk-row-icon {
+	background: var(--sk-surface);
+	box-shadow: var(--sk-shadow-1);
+}
+/* una fila más baja, para las listas de una columna lateral */
+.site.sk .sk-row--compact {
+	min-height: 40px;
+	padding-block: 7px;
+}
+
+/* ── el panel sin relleno (`Panel variant="flush"`, `DataTable`) ──────────────
+   Para tablas y listas que van de canto a canto de la tarjeta: la cabecera
+   conserva el relleno y lo de dentro alinea su primera y su última columna con
+   el título. */
+.site.sk .sk-flush {
+	overflow: hidden;
+}
+.site.sk .sk-flush-head {
+	padding: 20px 20px 16px;
+}
+.site.sk .sk-flush-bar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	padding: 0 20px 16px;
+}
+.site.sk .sk-flush > .sk-flush-body:first-child > .sk-flush-bar:first-child {
+	padding-top: 20px;
+}
+.site.sk .sk-flush-foot {
+	padding: 12px 20px;
+	border-top: 1px solid var(--sk-hair);
+}
+.site.sk .sk-flush .fare th:first-child,
+.site.sk .sk-flush .fare td:first-child {
+	padding-left: 20px;
+}
+.site.sk .sk-flush .fare th:last-child,
+.site.sk .sk-flush .fare td:last-child {
+	padding-right: 20px;
+}
+/* Un nombre o una URL sin cortes no se lleva el ancho de las demás columnas. */
+.site.sk .sk-flush .fare td {
+	overflow-wrap: anywhere;
+}
+/* La cabecera de la tabla en una banda de niebla, con su filete encima salvo
+   cuando la tabla es lo primero de la tarjeta. */
+.site.sk .sk-flush .fare thead th {
+	border-top: 1px solid var(--sk-hair);
+	background: var(--sk-ground);
+}
+.site.sk .sk-flush > .sk-flush-body:first-child > [data-slot="table-container"]:first-child .fare thead th {
+	border-top: 0;
+}
+.site.sk .sk-flush .sk-rows {
+	margin: 0;
+}
+.site.sk .sk-flush .sk-rows > li:first-child {
+	border-top: 1px solid var(--sk-hair);
+}
+.site.sk .sk-flush > .sk-flush-body:first-child > .sk-rows:first-child > li:first-child {
+	border-top: 0;
+}
+.site.sk .sk-flush .sk-row {
+	padding-inline: 20px;
+	border-radius: 0;
+}
+.site.sk .sk-flush [data-slot="empty-state"] {
+	padding-inline: 20px;
+}
+@media (min-width: 40rem) {
+	.site.sk .sk-flush-head {
+		padding: 24px 28px 18px;
+	}
+	.site.sk .sk-flush-bar {
+		padding: 0 28px 18px;
+	}
+	.site.sk .sk-flush-foot {
+		padding: 12px 28px;
+	}
+	.site.sk .sk-flush .fare th:first-child,
+	.site.sk .sk-flush .fare td:first-child {
+		padding-left: 28px;
+	}
+	.site.sk .sk-flush .fare th:last-child,
+	.site.sk .sk-flush .fare td:last-child {
+		padding-right: 28px;
+	}
+	.site.sk .sk-flush .sk-row {
+		padding-inline: 28px;
+	}
+	.site.sk .sk-flush [data-slot="empty-state"] {
+		padding-inline: 28px;
+	}
+}
+
+/* ── el aviso (`Callout`) ─────────────────────────────────────────────────────
+   Un fondo tintado con radio de 12px, sin borde y sin filete de color en el
+   canto: el tono lo dice el fondo y el glifo. `band` es la misma pieza de canto
+   a canto (dentro de una hoja, encima de una lista), sin radio. */
+.site.sk .sk-callout {
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+	padding: 12px 14px;
+	border: 0;
+	border-radius: 12px;
+	background: var(--sk-mist);
+	color: var(--sk-ink-2);
+	font-size: 0.875rem;
+	line-height: 1.5;
+}
+.site.sk .sk-callout--band {
+	border-radius: 0;
+	padding-inline: 20px;
+}
+.site.sk .sk-callout-icon {
+	width: 16px;
+	height: 16px;
+	flex-shrink: 0;
+	margin-top: 2px;
+	color: var(--sk-ink-3);
+}
+.site.sk .sk-callout-title {
+	font-weight: 500;
+	color: var(--sk-ink);
+}
+.site.sk .sk-callout[data-tone="accent"] {
+	background: var(--accent-soft);
+	color: #1f3f7a;
+}
+.site.sk .sk-callout[data-tone="accent"] .sk-callout-icon,
+.site.sk .sk-callout[data-tone="accent"] .sk-callout-title {
+	color: #2457c5;
+}
+.site.sk .sk-callout[data-tone="warning"] {
+	background: #fdf1e1;
+	color: #6b3f00;
+}
+.site.sk .sk-callout[data-tone="warning"] .sk-callout-icon,
+.site.sk .sk-callout[data-tone="warning"] .sk-callout-title {
+	color: #8a5100;
+}
+.site.sk .sk-callout[data-tone="danger"] {
+	background: #fbeceb;
+	color: #8f2219;
+}
+.site.sk .sk-callout[data-tone="danger"] .sk-callout-icon,
+.site.sk .sk-callout[data-tone="danger"] .sk-callout-title {
+	color: #a1221a;
+}
+.site.sk .sk-callout a:not(.ticket) {
+	color: inherit;
+	text-decoration: underline;
+	text-underline-offset: 0.2em;
+}
+
+/* ── la paginación (`Pagination`) ────────────────────────────────────────── */
+.site.sk .sk-pager {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px 16px;
+	font-size: 0.8125rem;
+	color: var(--sk-ink-3);
+	font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.site.sk .sk-seg > button,
+	.site.sk button.sk-tag,
+	.site.sk .sk-row {
+		transition: none;
+	}
+}

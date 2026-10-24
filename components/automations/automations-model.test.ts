@@ -6,6 +6,8 @@ import {
 	automationsUrl,
 	conditionFields,
 	defaultParams,
+	joinSentences,
+	hasList,
 	needsValue,
 	paramControl,
 	paramLabel,
@@ -236,4 +238,19 @@ test("paramLabel: legible y sin _email", () => {
 
 test("visibleParams: los del esquema en su orden, sin los que no son texto ni número", () => {
 	assert.deepEqual(visibleParams({ type: "object", properties: { a: { type: "string" }, b: { type: "array" }, c: { type: "integer" }, d: { type: "boolean" } } }), ["a", "c", "d"]);
+});
+
+test("joinSentences: une las frases de una fila sin dobles puntos", () => {
+	assert.equal(
+		joinSentences(["When Ticket created → Create task (Orbit)", "It failed 3 times in a row. Check the last runs, then resume it.", null, "3 runs this week"]),
+		"When Ticket created → Create task (Orbit). It failed 3 times in a row. Check the last runs, then resume it. 3 runs this week",
+	);
+	assert.equal(joinSentences([undefined, ""]), "");
+});
+
+test("hasList: sólo una lista o un enum se pueden devolver a «Pick from the list»", () => {
+	assert.equal(hasList(paramControl("project", { type: "string", "x-options": "orbit.projects" })), true);
+	assert.equal(hasList(paramControl("status", { type: "string", enum: ["todo"] })), true);
+	assert.equal(hasList(paramControl("title", { type: "string" })), false);
+	assert.equal(hasList(paramControl("description", { type: "string", maxLength: 4000 })), false);
 });

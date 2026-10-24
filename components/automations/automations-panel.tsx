@@ -23,7 +23,7 @@ import { EmptyState, LinkArrow, Panel, RowContent, RowList, rowClass, rowStaticC
 import { Callout } from "../callout";
 import { Segmented } from "../segmented";
 import { AutomationsError } from "./automations-api";
-import { flowSentence, PRODUCT_LABELS, statusLine, type AutomationProduct, type Catalog, type ListedFlow } from "./automations-model";
+import { flowSentence, joinSentences, PRODUCT_LABELS, statusLine, type AutomationProduct, type Catalog, type ListedFlow } from "./automations-model";
 import { AutomationEditor } from "./automation-editor";
 import { FlowRoute, StatusTag } from "./flow-parts";
 import { RunsList } from "./runs-list";
@@ -263,7 +263,7 @@ function FlowRows({
 			<RowList label="Automations">
 				{flows.map((flow) => {
 					const status = statusLine(flow);
-					const sub = [flowSentence(catalog, flow), status.detail ?? runsAs(flow, userId, memberName), stats(flow)].filter(Boolean).join(". ");
+					const sub = joinSentences([flowSentence(catalog, flow), status.detail ?? runsAs(flow, userId, memberName), stats(flow)]);
 					const content = <RowContent lead={<FlowRoute catalog={catalog} flow={flow} />} title={flow.name} sub={sub} end={<StatusTag flow={flow} />} />;
 					return (
 						<li key={flow.id} className="flex items-center gap-1 pr-3 sm:pr-5">

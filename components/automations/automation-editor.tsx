@@ -178,8 +178,8 @@ export function AutomationEditor({
 					</ol>
 					{draft.steps.length < MAX_STEPS && (
 						<label className="flex max-w-md flex-col gap-1.5">
-							<span className="sk-label mb-0! inline-flex items-center gap-1.5">
-								<Plus className="size-3.5" strokeWidth={1.75} aria-hidden="true" />
+							<span className="sk-label mb-0!">
+								<Plus className="mr-1.5 inline size-3.5 align-[-2px]" strokeWidth={1.75} aria-hidden="true" />
 								Add a step
 							</span>
 							<select

@@ -279,6 +279,14 @@ export function flowProducts(catalog: Catalog, flow: { trigger_product: Automati
 	return { from: flow.trigger_product, to };
 }
 
+/** Las frases de la línea pequeña de una fila, con «. » entre ellas y sin el punto final de cada una (una ya lo trae). */
+export function joinSentences(parts: (string | null | undefined)[]): string {
+	return parts
+		.filter((p): p is string => !!p)
+		.map((p) => p.replace(/\.+$/, ""))
+		.join(". ");
+}
+
 const PAUSED: Record<PausedReason, { tone: ToneWord; detail: string }> = {
 	manual: { tone: "neutral", detail: "Someone paused it." },
 	failing: { tone: "danger", detail: "It failed 3 times in a row. Check the last runs, then resume it." },
@@ -392,6 +400,11 @@ export function paramControl(key: string, schema: JsonSchema): "options" | "enum
 	if (schema.enum?.length) return "enum";
 	if (LONG_PARAMS.has(key) || (schema.maxLength ?? 0) > 1000) return "long";
 	return "text";
+}
+
+/** Si el control tiene una lista a la que volver desde «Use a variable…» (los de texto no). */
+export function hasList(control: ReturnType<typeof paramControl>): boolean {
+	return control === "options" || control === "enum";
 }
 
 /** Los parámetros que el editor enseña, en el orden del esquema: nunca listas ni objetos (los internos de las apps). */

@@ -18,7 +18,7 @@ import { ArrowDown, ArrowUp, Trash2 } from "lucide-react";
 import type { JsonSchema } from "../../worker/json-schema";
 import { FieldShell } from "../console-kit";
 import { AppTile } from "../sky";
-import { paramControl, paramLabel, PRODUCT_LABELS, visibleParams, type CatalogAction, type FlowStep, type Variable } from "./automations-model";
+import { hasList, paramControl, paramLabel, PRODUCT_LABELS, visibleParams, type CatalogAction, type FlowStep, type Variable } from "./automations-model";
 import { TemplateField } from "./template-field";
 import { useFlowOptions } from "./use-automations";
 
@@ -154,7 +154,7 @@ function ParamField({
 					error={error}
 					required={required}
 				/>
-				{asVariable && (
+				{asVariable && hasList(control) && (
 					<button type="button" className="sk-small -mt-1 mb-2 font-medium text-(--sk-accent) hover:underline" onClick={() => (onChange(""), setAsVariable(false))}>
 						Pick from the list
 					</button>
