@@ -322,6 +322,9 @@ const REASONS: Record<string, string> = {
 	rate_limited: "Skipped: the workspace ran 5,000 automations today.",
 	paused: "Skipped: the automation was paused.",
 	deleted: "Skipped: the automation was deleted.",
+	changed: "Skipped: the automation was changed and no longer applies to this event.",
+	conditions: "Skipped: the item no longer met the conditions.",
+	internal: "Something went wrong on our side and it couldn't run. Check in the app whether any step was done.",
 	unknown_outcome: "The app stopped answering mid-step. Check in the app whether it was done; it won't be retried.",
 };
 

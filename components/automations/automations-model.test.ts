@@ -254,3 +254,9 @@ test("hasList: sólo una lista o un enum se pueden devolver a «Pick from the li
 	assert.equal(hasList(paramControl("title", { type: "string" })), false);
 	assert.equal(hasList(paramControl("description", { type: "string", maxLength: 4000 })), false);
 });
+
+test("reasonText: los cierres de una ejecución recuperada y del error interno", () => {
+	assert.match(reasonText("changed"), /changed/);
+	assert.match(reasonText("conditions"), /conditions/);
+	assert.match(reasonText("internal"), /went wrong/);
+});
