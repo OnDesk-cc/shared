@@ -224,7 +224,8 @@ export function defaultParams(action: CatalogAction, trigger: CatalogTrigger): R
 	return {};
 }
 
-function paramLabel(key: string): string {
+/** «assignee_email» → «Assignee»: el rótulo de un parámetro en el editor. */
+export function paramLabel(key: string): string {
 	const words = key.replace(/_email$/, "").replace(/_/g, " ");
 	return words.charAt(0).toUpperCase() + words.slice(1);
 }
@@ -262,4 +263,140 @@ export function draftErrors(catalog: Catalog, draft: FlowDraft): string[] {
 export function automationsUrl(novaHost: string, path: string, params: Record<string, string>): string {
 	const qs = new URLSearchParams(params).toString();
 	return `${novaOrigin(novaHost)}/api/automations${path ? `/${path}` : ""}${qs ? `?${qs}` : ""}`;
+}
+
+// ── Lo que dicen la lista y el historial ────────────────────────────────────
+
+export type ToneWord = "neutral" | "accent" | "warning" | "danger" | "success";
+
+/** La app donde empieza y las apps donde actúa (sin repetir, en el orden de los pasos): la ruta de baldosas de una fila. */
+export function flowProducts(catalog: Catalog, flow: { trigger_product: AutomationProduct; steps: { tool: string }[] }): { from: AutomationProduct; to: AutomationProduct[] } {
+	const to: AutomationProduct[] = [];
+	for (const step of flow.steps) {
+		const product = actionOf(catalog, step.tool)?.product ?? (step.tool.split(".")[0] as AutomationProduct);
+		if (!to.includes(product)) to.push(product);
+	}
+	return { from: flow.trigger_product, to };
+}
+
+const PAUSED: Record<PausedReason, { tone: ToneWord; detail: string }> = {
+	manual: { tone: "neutral", detail: "Someone paused it." },
+	failing: { tone: "danger", detail: "It failed 3 times in a row. Check the last runs, then resume it." },
+	owner_left: { tone: "danger", detail: "The person it runs as no longer has access. Take it over to run it as you." },
+	plan_limit: { tone: "warning", detail: "Your plan allows fewer automations than this workspace has." },
+};
+
+/** El estado de una automatización como palabra, tono y, si está pausada, por qué. */
+export function statusLine(flow: { status: FlowStatus; paused_reason: PausedReason | null }): { tone: ToneWord; label: string; detail: string | null } {
+	if (flow.status === "active") return { tone: "success", label: "Active", detail: null };
+	const why = PAUSED[flow.paused_reason ?? "manual"];
+	return { tone: why.tone, label: "Paused", detail: why.detail };
+}
+
+const OUTCOMES: Record<FlowOutcome | "running", { tone: ToneWord; label: string }> = {
+	done: { tone: "success", label: "Done" },
+	failed: { tone: "danger", label: "Failed" },
+	unknown: { tone: "warning", label: "Check it" },
+	skipped: { tone: "neutral", label: "Skipped" },
+	running: { tone: "accent", label: "Running" },
+};
+
+export function outcomeLine(outcome: FlowOutcome | "running"): { tone: ToneWord; label: string } {
+	return OUTCOMES[outcome];
+}
+
+const REASONS: Record<string, string> = {
+	not_visible: "The person it runs as can't see this item.",
+	owner_access: "The person it runs as no longer has access to the app.",
+	subject_unavailable: "The app didn't answer in time, so nothing ran.",
+	chain: "Stopped: another automation started it, and the chain was already 3 deep.",
+	stale: "Skipped: the event was more than 24 hours old when it reached the automation.",
+	rate_limited: "Skipped: the workspace ran 5,000 automations today.",
+	paused: "Skipped: the automation was paused.",
+	deleted: "Skipped: the automation was deleted.",
+	unknown_outcome: "The app stopped answering mid-step. Check in the app whether it was done; it won't be retried.",
+};
+
+/** El motivo de una ejecución en una frase; uno que no se conoce se enseña tal cual. */
+export function reasonText(reason: string | null): string {
+	if (!reason) return "";
+	return REASONS[reason] ?? reason;
+}
+
+/** «Just now», «5 min ago», «3 h ago», o la fecha: la columna de cuándo del historial. */
+export function ago(unixSec: number, nowSec: number = Math.floor(Date.now() / 1000)): string {
+	const d = Math.max(0, nowSec - unixSec);
+	if (d < 60) return "Just now";
+	if (d < 3600) return `${Math.floor(d / 60)} min ago`;
+	if (d < 86_400) return `${Math.floor(d / 3600)} h ago`;
+	return new Date(unixSec * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+// ── Condiciones ─────────────────────────────────────────────────────────────
+
+export interface ConditionField {
+	field: string;
+	label: string;
+	group: string;
+	type: NovaTriggerDef["fields"][number]["type"];
+	options?: { value: string; label: string }[];
+}
+
+/** Lo que se puede comparar en «Only if»: el objeto, el cambio y quién lo hizo. */
+export function conditionFields(trigger: CatalogTrigger): ConditionField[] {
+	return [
+		...trigger.fields.map((f) => ({ field: `trigger.${f.key}`, label: f.label, group: trigger.label, type: f.type, options: f.options })),
+		...(trigger.change ?? []).map((f) => ({ field: `change.${f.key}`, label: f.label, group: "What changed", type: f.type, options: f.options })),
+		{ field: "actor.email", label: "Email", group: "Who did it", type: "text" as const },
+		{ field: "actor.is_automation", label: "Another automation did it", group: "Who did it", type: "bool" as const },
+	];
+}
+
+const OP_LABELS: Record<FlowOp, string> = {
+	eq: "is",
+	neq: "is not",
+	contains: "contains",
+	not_contains: "doesn't contain",
+	gt: "is more than",
+	lt: "is less than",
+	in: "is one of",
+	is_empty: "is empty",
+	is_not_empty: "is not empty",
+};
+
+const OPS_BY_TYPE: Record<string, FlowOp[]> = {
+	text: ["eq", "neq", "contains", "not_contains", "is_empty", "is_not_empty"],
+	link: ["eq", "neq", "contains", "not_contains", "is_empty", "is_not_empty"],
+	person: ["eq", "neq", "is_empty", "is_not_empty"],
+	enum: ["eq", "neq", "is_empty", "is_not_empty"],
+	number: ["eq", "neq", "gt", "lt"],
+	date: ["eq", "neq", "is_empty", "is_not_empty"],
+	bool: ["eq"],
+};
+
+export function opsFor(type: ConditionField["type"]): { op: FlowOp; label: string }[] {
+	return (OPS_BY_TYPE[type] ?? OPS_BY_TYPE.text).map((op) => ({ op, label: OP_LABELS[op] }));
+}
+
+export function needsValue(op: FlowOp): boolean {
+	return op !== "is_empty" && op !== "is_not_empty";
+}
+
+// ── Los parámetros de un paso ───────────────────────────────────────────────
+
+const LONG_PARAMS = new Set(["description", "body", "content"]);
+
+/** Qué control lleva un parámetro: un selector alimentado por la app, un desplegable fijo, un texto largo o uno corto. */
+export function paramControl(key: string, schema: JsonSchema): "options" | "enum" | "long" | "text" {
+	if (schema["x-options"]) return "options";
+	if (schema.enum?.length) return "enum";
+	if (LONG_PARAMS.has(key) || (schema.maxLength ?? 0) > 1000) return "long";
+	return "text";
+}
+
+/** Los parámetros que el editor enseña, en el orden del esquema: nunca listas ni objetos (los internos de las apps). */
+export function visibleParams(schema: JsonSchema): string[] {
+	return Object.entries(schema.properties ?? {})
+		.filter(([, s]) => s.type !== "array" && s.type !== "object")
+		.map(([key]) => key);
 }

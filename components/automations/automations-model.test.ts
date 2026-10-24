@@ -2,10 +2,21 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+	ago,
 	automationsUrl,
+	conditionFields,
 	defaultParams,
+	needsValue,
+	paramControl,
+	paramLabel,
+	visibleParams,
+	opsFor,
 	draftErrors,
+	flowProducts,
 	flowSentence,
+	outcomeLine,
+	reasonText,
+	statusLine,
 	MAX_STEPS,
 	splitTemplate,
 	unknownTokens,
@@ -147,4 +158,82 @@ test("automationsUrl: http sólo en local, la ruta y los parámetros", () => {
 	assert.equal(automationsUrl("127.0.0.1:8787", "catalog", { workspace: "w" }), "http://127.0.0.1:8787/api/automations/catalog?workspace=w");
 	assert.equal(automationsUrl("nova.ondesk.cc", "", { workspace: "w 1", product: "orbit" }), "https://nova.ondesk.cc/api/automations?workspace=w+1&product=orbit");
 	assert.equal(automationsUrl("nova.ondesk.cc", "f1/pause", { workspace: "w" }), "https://nova.ondesk.cc/api/automations/f1/pause?workspace=w");
+});
+
+test("flowProducts: la app del disparador y las de los pasos, sin repetir", () => {
+	assert.deepEqual(flowProducts(catalog, { trigger_product: "pulse", steps: [{ tool: "orbit.create_task" }, { tool: "nexus.post_message" }, { tool: "orbit.create_task" }] }), {
+		from: "pulse",
+		to: ["orbit", "nexus"],
+	});
+	assert.deepEqual(flowProducts(catalog, { trigger_product: "pulse", steps: [{ tool: "pulse.update_ticket" }] }), { from: "pulse", to: ["pulse"] });
+});
+
+test("statusLine: activa, o pausada con su motivo en palabras", () => {
+	assert.deepEqual(statusLine({ status: "active", paused_reason: null }), { tone: "success", label: "Active", detail: null });
+	assert.equal(statusLine({ status: "paused", paused_reason: "failing" }).tone, "danger");
+	assert.match(String(statusLine({ status: "paused", paused_reason: "failing" }).detail), /failed 3 times/);
+	assert.match(String(statusLine({ status: "paused", paused_reason: "owner_left" }).detail), /no longer/);
+	assert.match(String(statusLine({ status: "paused", paused_reason: "plan_limit" }).detail), /plan/);
+	assert.equal(statusLine({ status: "paused", paused_reason: "manual" }).tone, "neutral");
+});
+
+test("outcomeLine: cada resultado con su palabra y su tono", () => {
+	assert.deepEqual(outcomeLine("done"), { tone: "success", label: "Done" });
+	assert.deepEqual(outcomeLine("failed"), { tone: "danger", label: "Failed" });
+	assert.deepEqual(outcomeLine("unknown"), { tone: "warning", label: "Check it" });
+	assert.deepEqual(outcomeLine("skipped"), { tone: "neutral", label: "Skipped" });
+	assert.deepEqual(outcomeLine("running"), { tone: "accent", label: "Running" });
+});
+
+test("reasonText traduce los motivos del motor", () => {
+	assert.match(reasonText("not_visible"), /can't see/);
+	assert.match(reasonText("chain"), /chain/);
+	assert.match(reasonText("stale"), /24 hours/);
+	assert.equal(reasonText("whatever the engine said"), "whatever the engine said");
+	assert.equal(reasonText(null), "");
+});
+
+test("ago: hace segundos, minutos, horas o una fecha", () => {
+	const now = 1_800_000_000;
+	assert.equal(ago(now - 20, now), "Just now");
+	assert.equal(ago(now - 5 * 60, now), "5 min ago");
+	assert.equal(ago(now - 3 * 3600, now), "3 h ago");
+	assert.match(ago(now - 9 * 86_400, now), /2027/);
+});
+
+test("conditionFields: los del objeto, los del cambio y los de quién lo hizo", () => {
+	const fields = conditionFields(catalog.triggers[1]);
+	assert.deepEqual(
+		fields.map((f) => f.field),
+		["trigger.ref", "change.to_status", "actor.email", "actor.is_automation"],
+	);
+	assert.equal(fields.find((f) => f.field === "actor.is_automation")?.type, "bool");
+});
+
+test("opsFor: cada tipo con sus operadores", () => {
+	assert.deepEqual(opsFor("text").map((o) => o.op), ["eq", "neq", "contains", "not_contains", "is_empty", "is_not_empty"]);
+	assert.deepEqual(opsFor("number").map((o) => o.op), ["eq", "neq", "gt", "lt"]);
+	assert.deepEqual(opsFor("enum").map((o) => o.op), ["eq", "neq", "is_empty", "is_not_empty"]);
+	assert.deepEqual(opsFor("bool").map((o) => o.op), ["eq"]);
+	assert.equal(needsValue("is_empty"), false);
+	assert.equal(needsValue("contains"), true);
+});
+
+test("paramControl: selector con opciones, desplegable de enum, texto largo o texto", () => {
+	assert.equal(paramControl("project", { type: "string", "x-options": "orbit.projects" }), "options");
+	assert.equal(paramControl("status", { type: "string", enum: ["open", "pending"] }), "enum");
+	assert.equal(paramControl("description", { type: "string", maxLength: 4000 }), "long");
+	assert.equal(paramControl("body", { type: "string" }), "long");
+	assert.equal(paramControl("title", { type: "string", maxLength: 200 }), "text");
+	assert.equal(paramControl("ticket", { type: "integer" }), "text");
+});
+
+test("paramLabel: legible y sin _email", () => {
+	assert.equal(paramLabel("assignee_email"), "Assignee");
+	assert.equal(paramLabel("due"), "Due");
+	assert.equal(paramLabel("project"), "Project");
+});
+
+test("visibleParams: los del esquema en su orden, sin los que no son texto ni número", () => {
+	assert.deepEqual(visibleParams({ type: "object", properties: { a: { type: "string" }, b: { type: "array" }, c: { type: "integer" }, d: { type: "boolean" } } }), ["a", "c", "d"]);
 });

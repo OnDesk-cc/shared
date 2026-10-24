@@ -77,12 +77,25 @@ archivo nuevo es importable sin tocar `package.json`.
 <!-- BEGIN generated:modules -->
 <!-- No edites aquí: lo reescribe `npm run docs`. -->
 
-Módulos de las carpetas publicadas (80), con la primera línea de su comentario de cabecera.
+Módulos de las carpetas publicadas (95), con la primera línea de su comentario de cabecera.
 
 | Archivo | Qué hace |
 | --- | --- |
 | [`calls/ring-tone.tsx`](../calls/ring-tone.tsx) | Los dos tonos de llamada. |
 | [`calls/ringer-lease.ts`](../calls/ringer-lease.ts) | Un solo tono de llamada por navegador, por muchas pestañas de OnDesk que haya abiertas. |
+| [`components/automations/automation-editor.tsx`](../components/automations/automation-editor.tsx) | El editor de una automatización, nueva o guardada (2026-10-21). |
+| [`components/automations/automations-api.test.ts`](../components/automations/automations-api.test.ts) | — |
+| [`components/automations/automations-api.ts`](../components/automations/automations-api.ts) | El cliente de la API de automatizaciones de Nova (`/api/automations/*`, 2026-10-21; spec ondesk/docs/specs/2026-10-21-automatizaciones.md § 7). |
+| [`components/automations/automations-model.test.ts`](../components/automations/automations-model.test.ts) | — |
+| [`components/automations/automations-model.ts`](../components/automations/automations-model.ts) | El modelo del editor de automatizaciones (2026-10-21), sin React, para probarlo en Node. |
+| [`components/automations/automations-panel.tsx`](../components/automations/automations-panel.tsx) | Las automatizaciones en una app y en la consola (2026-10-21). |
+| [`components/automations/condition-editor.tsx`](../components/automations/condition-editor.tsx) | «Only if»: las condiciones de una automatización (2026-10-21). |
+| [`components/automations/flow-parts.tsx`](../components/automations/flow-parts.tsx) | Las piezas pequeñas de las automatizaciones (2026-10-21): |
+| [`components/automations/index.ts`](../components/automations/index.ts) | Las automatizaciones entre apps en la interfaz (2026-10-21): lo que montan las apps en Ajustes (`AutomationsPanel`) y la consola de ondesk (`AutomationsConsole`). |
+| [`components/automations/runs-list.tsx`](../components/automations/runs-list.tsx) | El historial de ejecuciones (2026-10-21): de una automatización (en su editor) o de todo el workspace (en la consola). |
+| [`components/automations/step-editor.tsx`](../components/automations/step-editor.tsx) | Un paso del «Do» de una automatización (2026-10-21): la acción, su app y sus parámetros, con subir, bajar y quitar. |
+| [`components/automations/template-field.tsx`](../components/automations/template-field.tsx) | Un campo de texto que acepta variables (2026-10-21): `{{trigger.subject}}` se escribe tal cual o se inserta desde «Insert variable», en el punto del cursor. |
+| [`components/automations/use-automations.ts`](../components/automations/use-automations.ts) | Las consultas y mutaciones de TanStack Query de las automatizaciones (2026-10-21), sobre `automationsApi`. |
 | [`components/callout.tsx`](../components/callout.tsx) | El aviso (2026-10-06): lo que una pantalla tiene que decir antes de lo demás o al lado de ello — que una acción queda auditada, que nadie más puede ver un proyecto… |
 | [`components/confirm-delete-modal.tsx`](../components/confirm-delete-modal.tsx) | «¿Seguro?» antes de un borrado, igual en los seis productos. |
 | [`components/console-kit.tsx`](../components/console-kit.tsx) | Las piezas de los paneles, en el mundo «Clear Sky» (2026-10-04). |
@@ -144,6 +157,8 @@ Módulos de las carpetas publicadas (80), con la primera línea de su comentario
 | [`worker/access.test.ts`](../worker/access.test.ts) | — |
 | [`worker/access.ts`](../worker/access.ts) | La pregunta «¿es miembro de este workspace y tiene un derecho vivo para este producto?», en una sola consulta (2026-10-07). |
 | [`worker/api.ts`](../worker/api.ts) | El lado de la Developer Platform en un producto: rutas a las que llama una aplicación de terceros con un bearer token, en nombre de una persona. |
+| [`worker/automation-events.test.ts`](../worker/automation-events.test.ts) | — |
+| [`worker/automation-events.ts`](../worker/automation-events.ts) | La bandeja de eventos de automatización de un producto (2026-10-21). |
 | [`worker/cookies.ts`](../worker/cookies.ts) | Lectura de cookies, y nada más. |
 | [`worker/email.ts`](../worker/email.ts) | Email transaccional para las notificaciones de un producto. |
 | [`worker/json-schema.test.ts`](../worker/json-schema.test.ts) | — |
