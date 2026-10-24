@@ -2,7 +2,7 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { createNovaTools, defineAction, defineTool, NovaToolError, requireResource, type JsonSchema, type NovaToolContext, type NovaToolsEnv } from "./nova-tools.ts";
-import { agentSubject, ticketResource, type NovaActionPreview } from "./nova-contract.ts";
+import { agentSubject, ticketResource, type NovaActionPreview, type NovaTriggerDef } from "./nova-contract.ts";
 
 const realFetch = globalThis.fetch;
 const ISSUER = "https://nova.test";
@@ -634,4 +634,41 @@ test("el indexador lee la bandeja de eventos (feed events); un agente no", async
 	const asAgent = await invokePulse("pulse.events", { after: 0 }, { sub: AGENT, resource: TICKET });
 	assert.equal(asAgent.status, 403);
 	assert.equal(pulseCalls.access, 0);
+});
+
+// ── Automatizaciones (2026-10-21): el paso de una automatización corre como su dueño, con key ──
+
+test("una persona con key vacía o de 201 caracteres → 400 sin escribir", async () => {
+	resetPulseCalls();
+	for (const key of ["", "k".repeat(201), 7]) {
+		const { status, json } = await invokePulse("pulse.reply_ticket", { ticket_id: "t1", text: "Hi" }, { mode: "commit", key, origin: "flow:f1:r1" });
+		assert.equal(status, 400, JSON.stringify(key));
+		assert.equal(json.code, "invalid_params");
+	}
+	assert.equal(pulseCalls.commit, 0);
+});
+
+test("una persona con key r1:0 llega a run con ctx.key", async () => {
+	const { status, json } = await invokePulse("pulse.reply_ticket", { ticket_id: "t1", text: "Hi" }, { mode: "commit", key: "r1:0", origin: "flow:f1:r1" });
+	assert.equal(status, 200);
+	assert.deepEqual(json, { ok: true, data: { user: "u1", agent: null, resource: null, key: "r1:0", role: "admin", mode: "commit" } });
+});
+
+const TRIGGER: NovaTriggerDef = {
+	type: "orbit.task.created",
+	label: "Task created",
+	description: "A task is created",
+	resource_kind: "task",
+	subject_tool: "orbit.automation_subject",
+	fields: [{ key: "title", label: "Title", type: "text" }],
+};
+
+test("el manifiesto lleva triggers cuando se dan", () => {
+	const withTriggers = createNovaTools<Env>({ product: "orbit", version: "t", guidance: "", tools: [echo], triggers: [TRIGGER], resolveAccess: async () => ({ ok: true, role: "admin" }) });
+	assert.deepEqual(withTriggers.manifest.triggers, [TRIGGER]);
+});
+
+test("sin triggers el manifiesto no lleva la clave", () => {
+	const plain = createNovaTools<Env>({ product: "orbit", version: "t", guidance: "", tools: [echo], resolveAccess: async () => ({ ok: true, role: "admin" }) });
+	assert.equal("triggers" in plain.manifest, false);
 });

@@ -20,6 +20,12 @@ export interface JsonSchema {
 	maximum?: number;
 	maxLength?: number;
 	maxItems?: number;
+	/**
+	 * Automatizaciones (2026-10-21): la herramienta (`read`, `offer: false`) que da
+	 * las opciones de este parámetro en el editor (`orbit.projects`). El validador
+	 * la ignora.
+	 */
+	"x-options"?: string;
 }
 
 /** La lista de errores, en inglés porque llega al modelo; vacía si vale. */

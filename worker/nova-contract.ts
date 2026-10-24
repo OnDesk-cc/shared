@@ -17,6 +17,15 @@
  *     nunca se la ofrece al modelo) y `feed` (qué bandeja es una `index`).
  *   - La bandeja de eventos de Pulse (`NovaEvent`, `NovaEventsFeed`) y lo que
  *     viaja con un borrador (`NovaDraftProposal`, `NovaDraftApproval`).
+ *
+ * Automatizaciones (2026-10-21, spec ondesk/docs/specs/2026-10-21-automatizaciones.md):
+ *   - Los disparadores que un producto publica en su manifiesto (`NovaTriggerDef`,
+ *     con sus campos `NovaFieldDef`) y lo que devuelve la herramienta que lee el
+ *     objeto como el dueño de la automatización (`NovaSubject`).
+ *   - La bandeja `automation_events` de cada producto (`NovaAutomationEvent`,
+ *     `NovaAutomationFeed`; el ayudante está en worker/automation-events.ts).
+ *   - El `origin` de un paso: `flow:<automatización>:<ejecución>` (`flowOrigin`,
+ *     `parseFlowOrigin`), y lo que dice la auditoría de él (`viaOfOrigin`).
  */
 import type { JsonSchema } from "./json-schema";
 
@@ -45,8 +54,12 @@ export interface NovaManifestTool {
 	automatic?: boolean;
 	/** Fase 4: false = sale en el manifiesto pero Nova nunca se la ofrece al modelo (consola, lectura previa). Por defecto true. */
 	offer?: boolean;
-	/** Fase 4, sólo en kind `index`: qué bandeja es. Sin campo = "search" (el indexador de la 1b). */
-	feed?: "search" | "events";
+	/**
+	 * Sólo en kind `index`: qué bandeja es. Sin campo = "search" (el indexador de
+	 * la 1b); "events" es la de la respuesta automática de Pulse (fase 4) y
+	 * "automations" la de las automatizaciones (`<product>.automation_events`).
+	 */
+	feed?: "search" | "events" | "automations";
 	params: JsonSchema;
 }
 
@@ -56,6 +69,8 @@ export interface NovaManifest {
 	/** Cómo contestar en este producto: lo que antes era «HOW TO ANSWER» en su prompt. */
 	guidance: string;
 	tools: NovaManifestTool[];
+	/** Automatizaciones: lo que en este producto puede disparar una. Sin clave = ninguno. */
+	triggers?: NovaTriggerDef[];
 }
 
 export type NovaToolErrorCode = "unauthorized" | "forbidden" | "payment_required" | "not_found" | "invalid_params" | "too_large" | "failed";
@@ -218,4 +233,98 @@ export interface NovaPreviewData {
 	tool: string;
 	destructive: boolean;
 	preview: NovaActionPreview;
+}
+
+// ── Automatizaciones (2026-10-21) ───────────────────────────────────────────
+
+export type NovaFieldType = "text" | "enum" | "number" | "date" | "person" | "link" | "bool";
+
+/** Un campo de un disparador: una variable de las plantillas y algo sobre lo que poner una condición. */
+export interface NovaFieldDef {
+	key: string;
+	/** En inglés: lo lee la persona en el editor. */
+	label: string;
+	type: NovaFieldType;
+	/** Sólo en `enum`. */
+	options?: { value: string; label: string }[];
+}
+
+/** Algo que pasa en un producto y puede disparar una automatización. */
+export interface NovaTriggerDef {
+	/** `{producto}.{objeto}.{verbo}`: `pulse.ticket.created`. */
+	type: string;
+	label: string;
+	description: string;
+	/** El `kind` del `resource` del evento: `ticket` en `pulse:ticket:<id>`. */
+	resource_kind: string;
+	/** La herramienta (`read`, `offer: false`) que lee el objeto como el dueño: `pulse.automation_subject`. */
+	subject_tool: string;
+	/** Los campos del objeto: los devuelve `subject_tool`. */
+	fields: NovaFieldDef[];
+	/** Los campos del cambio: los trae el evento en `data` (`from_status`, `to_status`…). */
+	change?: NovaFieldDef[];
+}
+
+export type NovaScalar = string | number | boolean | null;
+
+/** Una fila de la bandeja `automation_events` de un producto, como la entrega `<product>.automation_events`. */
+export interface NovaAutomationEvent {
+	/** El cursor: `automation_events.seq` (AUTOINCREMENT). */
+	seq: number;
+	/** UUID: la idempotencia en la DO de cada automatización. */
+	id: string;
+	type: string;
+	workspace_id: string;
+	/** `<product>:<kind>:<id>`. */
+	resource: string;
+	/** Quién hizo el cambio: una persona, `nova:agent:<id>` o null (el sistema, un correo que entró). */
+	actor_id: string | null;
+	/**
+	 * El `origin` del token si el cambio vino de Nova (`chat:…`, `run:…`,
+	 * `flow:…`) u otra marca del producto (`api:<cliente>`, `rule:<id>`); null si
+	 * lo hizo una persona en la app.
+	 */
+	origin: string | null;
+	/** Los campos `change` del disparador. Nunca el contenido del objeto. */
+	data: Record<string, NovaScalar>;
+	/** Unix, segundos. */
+	created_at: number;
+}
+
+export interface NovaAutomationFeed {
+	events: NovaAutomationEvent[];
+	next_after: number;
+	has_more: boolean;
+}
+
+/** Lo que devuelve la `subject_tool` de un disparador: los campos del objeto, vistos como quien llama. */
+export interface NovaSubject {
+	fields: Record<string, NovaScalar>;
+	link: string | null;
+}
+
+/** El tope de `automation_events.data`, en caracteres de JSON. */
+export const AUTOMATION_EVENT_DATA_MAX_CHARS = 2048;
+
+/** El `origin` de un paso de una automatización: este prefijo, la automatización y la ejecución. */
+export const FLOW_ORIGIN_PREFIX = "flow:";
+
+/** Los ids de un `origin` de automatización: como el de un agente. */
+const FLOW_ID = /^[A-Za-z0-9_-]{1,64}$/;
+
+export function flowOrigin(flowId: string, runId: string): string {
+	return `${FLOW_ORIGIN_PREFIX}${flowId}:${runId}`;
+}
+
+/** La automatización y la ejecución de un `origin`, o null si no es de una automatización. */
+export function parseFlowOrigin(origin: string | null): { flowId: string; runId: string } | null {
+	if (!origin?.startsWith(FLOW_ORIGIN_PREFIX)) return null;
+	const parts = origin.slice(FLOW_ORIGIN_PREFIX.length).split(":");
+	if (parts.length !== 2 || !FLOW_ID.test(parts[0]) || !FLOW_ID.test(parts[1])) return null;
+	return { flowId: parts[0], runId: parts[1] };
+}
+
+/** Lo que dice la auditoría de un producto de una escritura que vino de Nova: «automation» si fue un paso. */
+export function viaOfOrigin(origin: string | null): "nova" | "automation" {
+	return parseFlowOrigin(origin) ? "automation" : "nova";
 }

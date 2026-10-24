@@ -41,7 +41,9 @@
  *      - siempre con `resource` (`<product>:<kind>:<id>`, de este mismo
  *        producto) y con un workspace de verdad, no `"*"` (403);
  *      - en una `write`, `mode` sigue siendo obligatorio;
- *      - `key`, si viene, de 1 a 200 caracteres (400);
+ *      - `key`, si viene, de 1 a 200 caracteres (400; desde 2026-10-21 vale
+ *        igual para una persona: el paso de una automatización corre como su
+ *        dueño y lleva `key` y `origin: flow:…`);
  *      - no pasa por `resolveAccess`, porque no es un miembro: el límite es el
  *        recurso. `ctx.workspaceRole` es `"agent"` y `ctx.agentId` su id.
  *        Ojo: el rol de tenencia de una persona también puede ser `agent`;
@@ -57,7 +59,7 @@ import { bearerToken } from "./sso";
 import { verifyRs256 } from "./rs256";
 import { validateParams, type JsonSchema } from "./json-schema";
 import { parseAgentSubject, parseResource } from "./nova-contract";
-import type { NovaActionPreview, NovaManifest, NovaManifestTool, NovaToolClaims, NovaToolErrorCode, NovaToolResponse } from "./nova-contract";
+import type { NovaActionPreview, NovaManifest, NovaManifestTool, NovaToolClaims, NovaToolErrorCode, NovaToolResponse, NovaTriggerDef } from "./nova-contract";
 import type { WorkspaceAccess } from "./access";
 import { NOVA_INDEXER_SUBJECT } from "./nova-search";
 
@@ -75,8 +77,14 @@ export type {
 	NovaToolErrorCode,
 	NovaToolResponse,
 	NovaUsage,
+	NovaAutomationEvent,
+	NovaAutomationFeed,
+	NovaFieldDef,
+	NovaScalar,
+	NovaSubject,
+	NovaTriggerDef,
 } from "./nova-contract";
-export { agentSubject, NOVA_AGENT_PREFIX, parseAgentSubject, parseResource, ticketResource } from "./nova-contract";
+export { agentSubject, flowOrigin, NOVA_AGENT_PREFIX, parseAgentSubject, parseFlowOrigin, parseResource, ticketResource, viaOfOrigin } from "./nova-contract";
 
 export interface NovaToolsEnv {
 	DB: D1Database;
@@ -222,6 +230,8 @@ export function createNovaTools<E extends NovaToolsEnv>(opts: {
 	version: string;
 	guidance: string;
 	tools: NovaToolDef<E>[];
+	/** Automatizaciones (2026-10-21): lo que en este producto puede disparar una. */
+	triggers?: NovaTriggerDef[];
 	resolveAccess: (env: E, workspaceId: string, userId: string) => Promise<WorkspaceAccess>;
 }) {
 	const byName = new Map(opts.tools.map((t) => [t.name, t]));
@@ -230,6 +240,7 @@ export function createNovaTools<E extends NovaToolsEnv>(opts: {
 		version: opts.version,
 		guidance: opts.guidance,
 		tools: opts.tools.map(({ run: _run, ...rest }) => rest),
+		...(opts.triggers ? { triggers: opts.triggers } : {}),
 	};
 
 	const onManifest: PagesFunction<E> = async () => Response.json(manifest, { headers: { "Cache-Control": "no-store" } });
@@ -279,8 +290,9 @@ export function createNovaTools<E extends NovaToolsEnv>(opts: {
 		}
 		const mode: NovaToolContext<E>["mode"] = write ? (claims.mode as "preview" | "commit") : "read";
 
-		// La clave de idempotencia de un agente: el producto la guarda tal cual.
-		if (agentId !== null && claims.key !== undefined && (typeof claims.key !== "string" || claims.key.length === 0 || claims.key.length > 200)) {
+		// La clave de idempotencia: el producto la guarda tal cual. La lleva un agente (fase 4) y
+		// el paso de una automatización, que corre como una persona (2026-10-21).
+		if (claims.key !== undefined && (typeof claims.key !== "string" || claims.key.length === 0 || claims.key.length > 200)) {
 			return fail("invalid_params", "key must be 1 to 200 characters");
 		}
 

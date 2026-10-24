@@ -1,7 +1,18 @@
 // La identidad de una ejecución automática de Nova (fase 4): `npm test`.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { agentSubject, NOVA_AGENT_PREFIX, parseAgentSubject, parseResource, ticketResource } from "./nova-contract.ts";
+import {
+	agentSubject,
+	AUTOMATION_EVENT_DATA_MAX_CHARS,
+	FLOW_ORIGIN_PREFIX,
+	flowOrigin,
+	NOVA_AGENT_PREFIX,
+	parseAgentSubject,
+	parseFlowOrigin,
+	parseResource,
+	ticketResource,
+	viaOfOrigin,
+} from "./nova-contract.ts";
 
 test("agentSubject y parseAgentSubject van y vuelven", () => {
 	assert.equal(NOVA_AGENT_PREFIX, "nova:agent:");
@@ -53,4 +64,28 @@ test("parseResource: sólo <product>:<kind>:<id>, con las tres partes llenas", (
 		assert.equal(parseResource(resource), null, resource);
 	}
 	assert.deepEqual(parseResource(`pulse:ticket:${"a".repeat(128)}`), { product: "pulse", kind: "ticket", id: "a".repeat(128) });
+});
+
+// ── Automatizaciones (2026-10-21, spec ondesk/docs/specs/2026-10-21-automatizaciones.md) ──
+
+test("flowOrigin y parseFlowOrigin van y vuelven", () => {
+	assert.equal(FLOW_ORIGIN_PREFIX, "flow:");
+	assert.equal(flowOrigin("f1", "r1"), "flow:f1:r1");
+	assert.deepEqual(parseFlowOrigin("flow:f1:r1"), { flowId: "f1", runId: "r1" });
+	const run = "0123456789abcdef0123456789abcdef";
+	assert.deepEqual(parseFlowOrigin(flowOrigin("f_1-A", run)), { flowId: "f_1-A", runId: run });
+});
+
+test("parseFlowOrigin: sólo flow:<id>:<id>", () => {
+	for (const origin of [null, "", "chat:x", "run:r1", "flow:", "flow:a", "flow:a:", "flow::b", "flow:a:b:c", "flow:a b:c", `flow:${"a".repeat(65)}:b`, "FLOW:a:b"]) {
+		assert.equal(parseFlowOrigin(origin), null, String(origin));
+	}
+});
+
+test("viaOfOrigin: automation sólo para una automatización", () => {
+	assert.equal(viaOfOrigin("flow:a:b"), "automation");
+	assert.equal(viaOfOrigin("chat:x"), "nova");
+	assert.equal(viaOfOrigin("run:r1"), "nova");
+	assert.equal(viaOfOrigin(null), "nova");
+	assert.equal(AUTOMATION_EVENT_DATA_MAX_CHARS, 2048);
 });
