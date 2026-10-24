@@ -301,6 +301,12 @@ export interface NovaAutomationFeed {
 export interface NovaSubject {
 	fields: Record<string, NovaScalar>;
 	link: string | null;
+	/**
+	 * Quien hizo el cambio, si la llamada trajo `actor_id` y es un miembro (del
+	 * espejo de miembros del producto): para `{{actor.name}}` y `{{actor.email}}`.
+	 * null si no lo es (un correo que entró, un agente) o no se pidió.
+	 */
+	actor?: { name: string | null; email: string | null } | null;
 }
 
 /** El tope de `automation_events.data`, en caracteres de JSON. */
