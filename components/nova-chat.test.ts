@@ -18,6 +18,7 @@ import {
 	usageLine,
 	usageUrl,
 	type NovaToolCard,
+	NOVA_AI_NOTICE,
 } from "./nova-chat-parts.ts";
 
 test("el estado de get-messages decide qué hacer", () => {
@@ -191,4 +192,9 @@ test("usageUrl: siempre con el producto de la hoja, y http sólo en local", () =
 	assert.equal(usageUrl("nova.ondesk.cc", "ws 1", "orbit"), "https://nova.ondesk.cc/api/me/usage?workspace=ws+1&product=orbit");
 	assert.equal(usageUrl("localhost:8787", "ws1", "halo"), "http://localhost:8787/api/me/usage?workspace=ws1&product=halo");
 	assert.equal(usageUrl("127.0.0.1:8787", "ws1", "halo"), "http://127.0.0.1:8787/api/me/usage?workspace=ws1&product=halo");
+});
+
+test("NOVA_AI_NOTICE: el panel dice siempre que Nova es una IA, sin rayas", () => {
+	assert.match(NOVA_AI_NOTICE, /AI assistant/);
+	assert.doesNotMatch(NOVA_AI_NOTICE, /[—–]/);
 });

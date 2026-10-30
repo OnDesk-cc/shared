@@ -23,6 +23,7 @@ import { useLayoutEffect, useRef, type ElementType, type ReactNode, type Ref } f
 import { ArrowUp, CircleAlert, MessageSquareText } from "lucide-react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../ui/sheet";
 import { NovaMark } from "./nova-mark";
+import { NOVA_AI_NOTICE } from "./nova-chat-parts";
 
 export interface NovaMessage {
 	role: "user" | "assistant";
@@ -479,7 +480,11 @@ export function NovaThreadFrame({ busy, scrollKey, revealKey, children, composer
 					label={composer.label}
 					inputRef={inputRef}
 				/>
-				<p className="sk-small mt-2.5 text-pretty px-1 leading-snug">{footnote}</p>
+				{/* La frase fija va siempre delante de la nota de la app: Nova es una IA y
+				    se dice (NOVA_AI_NOTICE, compliance de EE. UU.). */}
+				<p className="sk-small mt-2.5 text-pretty px-1 leading-snug">
+					{NOVA_AI_NOTICE} {footnote}
+				</p>
 			</div>
 		</>
 	);

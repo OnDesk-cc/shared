@@ -153,6 +153,8 @@ export interface Emailer {
 // Hay dos copias a mano de esto (`halo-realtime/src/notify.ts` y
 // `nexus-realtime/src/notify.ts`): un cambio de diseño se hace en las tres.
 
+// Geist sólo si el lector la tiene instalada: el correo no carga fuentes de fuera
+// (antes las pedía a Google Fonts, que recibía la IP de quien lo abría).
 const FONT = "'Geist','Segoe UI',-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif";
 const GROUND = "#f4f7fb";
 const SURFACE = "#ffffff";
@@ -255,7 +257,6 @@ function card(input: { title: string; preheader: string; plate: string; app: str
 <meta name="color-scheme" content="light only" />
 <meta name="supported-color-schemes" content="light" />
 <title>${escapeHtml(input.title)}</title>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;display=swap" rel="stylesheet" />
 <style>
   :root { color-scheme: light only; supported-color-schemes: light; }
   body { margin: 0; padding: 0; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }

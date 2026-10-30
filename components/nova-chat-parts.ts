@@ -329,3 +329,11 @@ export function usageUrl(novaHost: string, workspaceId: string, surface: NovaSur
 	const params = new URLSearchParams({ workspace: workspaceId, product: surface });
 	return `${novaOrigin(novaHost)}/api/me/usage?${params.toString()}`;
 }
+
+/**
+ * La frase fija que el panel de Nova pinta delante de la nota de cada app. Varias
+ * leyes estatales de EE. UU. piden decir que es una IA a quien la usa (Colorado a
+ * todo el que interactúa; Utah si lo pregunta); un panel rotulado «Nova» no lo
+ * dice por sí solo. Compliance de EE. UU., plan 3 (2026-10-30).
+ */
+export const NOVA_AI_NOTICE = "Nova is an AI assistant.";
