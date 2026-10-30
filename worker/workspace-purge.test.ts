@@ -71,7 +71,14 @@ test("runDuePurges: antes de la fecha no borra nada; después borra todo lo del 
 			deleted.push(...keys);
 		},
 	};
-	const opts = { storage, objects: async (ws: string) => ({ prefixes: [`w/${ws}/`], keys: ["inbox/1/0"] }) };
+	const before: string[] = [];
+	const opts = {
+		storage,
+		objects: async (ws: string) => ({ prefixes: [`w/${ws}/`], keys: ["inbox/1/0"] }),
+		beforeRows: async (ws: string) => {
+			before.push(ws);
+		},
+	};
 
 	assert.deepEqual(await runDuePurges(db, { ...opts, now: PURGE_DELAY_SECONDS - 1 }), []);
 	assert.equal(count(raw, "SELECT COUNT(*) AS n FROM projects"), 2);
@@ -83,6 +90,7 @@ test("runDuePurges: antes de la fecha no borra nada; después borra todo lo del 
 	assert.equal(count(raw, "SELECT COUNT(*) AS n FROM projects WHERE workspace_id = 'w2'"), 1);
 	assert.equal(count(raw, "SELECT COUNT(*) AS n FROM tasks WHERE id = 't2'"), 1);
 	assert.deepEqual(listed, ["w/w1/"]);
+	assert.deepEqual(before, ["w1"]);
 	assert.deepEqual(deleted.sort(), ["inbox/1/0", "w/w1/a", "w/w1/b"]);
 	assert.ok((raw.prepare("SELECT done_at FROM workspace_purges WHERE workspace_id = 'w1'").get() as { done_at: number }).done_at);
 

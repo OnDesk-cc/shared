@@ -131,6 +131,12 @@ export async function runDuePurges(
 		storage?: PurgeStorage;
 		/** Los objetos de R2 del workspace, leídos antes de borrar las filas. */
 		objects?: (workspaceId: string) => Promise<PurgeObjects>;
+		/**
+		 * Lo que hay que borrar a mano antes de las filas: una tabla sin
+		 * `workspace_id` que apunta sin cascada a una que sí lo tiene (en Pulse,
+		 * `email_tickets` → `tickets`). Sin esto la purga se queda a medias.
+		 */
+		beforeRows?: (workspaceId: string) => Promise<void>;
 		now?: number;
 	} = {},
 ): Promise<string[]> {
@@ -144,6 +150,7 @@ export async function runDuePurges(
 	for (const { workspace_id: workspaceId } of results) {
 		try {
 			const objects = opts.objects ? await opts.objects(workspaceId) : { prefixes: [], keys: [] };
+			if (opts.beforeRows) await opts.beforeRows(workspaceId);
 			await purgeWorkspaceRows(db, workspaceId);
 			if (opts.storage) await deleteObjects(opts.storage, objects);
 			await db.prepare("UPDATE workspace_purges SET done_at = ? WHERE workspace_id = ?").bind(now, workspaceId).run();
