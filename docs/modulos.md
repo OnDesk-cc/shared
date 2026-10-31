@@ -77,7 +77,7 @@ archivo nuevo es importable sin tocar `package.json`.
 <!-- BEGIN generated:modules -->
 <!-- No edites aquí: lo reescribe `npm run docs`. -->
 
-Módulos de las carpetas publicadas (95), con la primera línea de su comentario de cabecera.
+Módulos de las carpetas publicadas (99), con la primera línea de su comentario de cabecera.
 
 | Archivo | Qué hace |
 | --- | --- |
@@ -102,6 +102,7 @@ Módulos de las carpetas publicadas (95), con la primera línea de su comentario
 | [`components/console.tsx`](../components/console.tsx) | Las piezas de página que las seis apps ya usaban (`PageHeader`, `StatGrid`, `StatTile`, `PanelHeader`, `EmptyState`, `ConsoleTag`), en el mundo «Clear Sky» desde el… |
 | [`components/data-table.tsx`](../components/data-table.tsx) | La tabla de una página (2026-10-06): auditoría, avisos, listas de elementos. |
 | [`components/form-modal.tsx`](../components/form-modal.tsx) | El envoltorio de cualquier formulario en diálogo: título, descripción y hueco. |
+| [`components/kit-css.test.ts`](../components/kit-css.test.ts) | Los estilos de las primitivas de consola (styles/kit.css) valen en los productos (`<html class="site sk">`) y en la consola de ondesk (`<div class="site sk">`): `npm… |
 | [`components/map.tsx`](../components/map.tsx) | Las piezas pequeñas del mapa que llevan los seis productos: la banda de seis líneas y el cierre de seis tramos. |
 | [`components/nova-chat-parts.ts`](../components/nova-chat-parts.ts) | Las piezas sin React de la hoja de Nova central (components/nova-chat.tsx), aparte para poder probarlas con node:test. |
 | [`components/nova-chat-tools.tsx`](../components/nova-chat-tools.tsx) | Las llamadas a herramientas en la hoja de Nova (fase 2, 2026-10-08). |
@@ -160,6 +161,7 @@ Módulos de las carpetas publicadas (95), con la primera línea de su comentario
 | [`worker/automation-events.test.ts`](../worker/automation-events.test.ts) | — |
 | [`worker/automation-events.ts`](../worker/automation-events.ts) | La bandeja de eventos de automatización de un producto (2026-10-21). |
 | [`worker/cookies.ts`](../worker/cookies.ts) | Lectura de cookies, y nada más. |
+| [`worker/email.test.ts`](../worker/email.test.ts) | — |
 | [`worker/email.ts`](../worker/email.ts) | Email transaccional para las notificaciones de un producto. |
 | [`worker/json-schema.test.ts`](../worker/json-schema.test.ts) | — |
 | [`worker/json-schema.ts`](../worker/json-schema.ts) | El subconjunto de JSON Schema con el que se describen los parámetros de una herramienta de Nova, y su validador (2026-10-07, Nova central). |
@@ -176,6 +178,8 @@ Módulos de las carpetas publicadas (95), con la primera línea de su comentario
 | [`worker/rs256.test.ts`](../worker/rs256.test.ts) | — |
 | [`worker/rs256.ts`](../worker/rs256.ts) | Verificación RS256 contra un JWKS remoto, con caché por URL en el isolate (2026-10-07, Nova central). |
 | [`worker/sso.ts`](../worker/sso.ts) | Verificación de los tokens de plataforma del control plane de OnDesk. |
+| [`worker/workspace-purge.test.ts`](../worker/workspace-purge.test.ts) | Una D1 mínima sobre node:sqlite, con las claves foráneas encendidas como en D1. |
+| [`worker/workspace-purge.ts`](../worker/workspace-purge.ts) | La purga de un workspace borrado, igual en los seis productos (2026-10-30). |
 
 <!-- END generated:modules -->
 
