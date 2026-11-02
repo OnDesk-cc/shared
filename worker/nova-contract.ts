@@ -26,6 +26,12 @@
  *     `NovaAutomationFeed`; el ayudante está en worker/automation-events.ts).
  *   - El `origin` de un paso: `flow:<automatización>:<ejecución>` (`flowOrigin`,
  *     `parseFlowOrigin`), y lo que dice la auditoría de él (`viaOfOrigin`).
+ *
+ * Resumen de reuniones (2026-11-01, spec ondesk/docs/specs/2026-11-01-resumen-de-reuniones.md):
+ *   - `bindPlace` en el manifiesto: Nova, y no el modelo, le pasa a la herramienta
+ *     el `place` del turno, ya atado al `scope` de la conversación.
+ *   - El `scope` de la conversación sobre una reunión (`occurrenceScope`) y la
+ *     bandeja `purges` de resúmenes borrados (`NovaPurgeFeed`).
  */
 import type { JsonSchema } from "./json-schema";
 
@@ -59,7 +65,13 @@ export interface NovaManifestTool {
 	 * la 1b); "events" es la de la respuesta automática de Pulse (fase 4) y
 	 * "automations" la de las automatizaciones (`<product>.automation_events`).
 	 */
-	feed?: "search" | "events" | "automations";
+	feed?: "search" | "events" | "automations" | "purges";
+	/**
+	 * Resumen de reuniones (2026-11-01): las claves del `place` del turno que Nova
+	 * le pasa a esta herramienta como `params.place`, ya atado al `scope` de la
+	 * conversación. El modelo no ve el parámetro `place` y lo que mande se pisa.
+	 */
+	bindPlace?: string[];
 	params: JsonSchema;
 }
 
@@ -193,6 +205,24 @@ export interface NovaSearchCandidate {
 export type NovaIndexEntry =
 	| { op: "upsert"; kind: string; id: string; workspace_id: string; text: string }
 	| { op: "delete"; kind: string; id: string; workspace_id: string };
+
+/**
+ * Una página de la bandeja `purges` (2026-11-01): los resúmenes de reunión de
+ * Halo que se borraron. Nova borra las conversaciones `occurrence:<id>` de cada uno.
+ */
+export interface NovaPurgeFeed {
+	entries: { seq: number; workspace_id: string; occurrence_id: string }[];
+	/** Hasta dónde se ha entregado: la siguiente llamada pasa éste como `after`. */
+	next_after: number;
+}
+
+/** El prefijo del `scope` de la conversación de Nova sobre una reunión de Halo. */
+export const NOVA_SCOPE_OCCURRENCE = "occurrence";
+
+/** `occurrence:<id>`: el `scope` de la conversación sobre esa ocurrencia. */
+export function occurrenceScope(occurrenceId: string): string {
+	return `${NOVA_SCOPE_OCCURRENCE}:${occurrenceId}`;
+}
 
 export interface NovaIndexFeed {
 	entries: NovaIndexEntry[];

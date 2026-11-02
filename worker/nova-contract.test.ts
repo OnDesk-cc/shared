@@ -89,3 +89,9 @@ test("viaOfOrigin: automation sólo para una automatización", () => {
 	assert.equal(viaOfOrigin(null), "nova");
 	assert.equal(AUTOMATION_EVENT_DATA_MAX_CHARS, 2048);
 });
+
+test("el scope de la conversación de una reunión es occurrence:<id>", async () => {
+	const { occurrenceScope, NOVA_SCOPE_OCCURRENCE } = await import("./nova-contract.ts");
+	assert.equal(NOVA_SCOPE_OCCURRENCE, "occurrence");
+	assert.equal(occurrenceScope("abc"), "occurrence:abc");
+});

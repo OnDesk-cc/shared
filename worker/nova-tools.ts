@@ -73,6 +73,7 @@ export type {
 	NovaEventType,
 	NovaManifest,
 	NovaManifestTool,
+	NovaPurgeFeed,
 	NovaToolClaims,
 	NovaToolErrorCode,
 	NovaToolResponse,
@@ -84,7 +85,18 @@ export type {
 	NovaSubject,
 	NovaTriggerDef,
 } from "./nova-contract";
-export { agentSubject, flowOrigin, NOVA_AGENT_PREFIX, parseAgentSubject, parseFlowOrigin, parseResource, ticketResource, viaOfOrigin } from "./nova-contract";
+export {
+	agentSubject,
+	flowOrigin,
+	NOVA_AGENT_PREFIX,
+	NOVA_SCOPE_OCCURRENCE,
+	occurrenceScope,
+	parseAgentSubject,
+	parseFlowOrigin,
+	parseResource,
+	ticketResource,
+	viaOfOrigin,
+} from "./nova-contract";
 
 export interface NovaToolsEnv {
 	DB: D1Database;
