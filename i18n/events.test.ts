@@ -1,7 +1,7 @@
 // Las frases de las notificaciones de un producto, en el idioma de cada quien: `npm test`.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { eventParams, notificationText, parseEventParams, renderEvent, type EventBook } from "./events";
+import { eventParams, notificationText, parseEventParams, renderEvent, renderEventVar, type EventBook } from "./events";
 
 const en = {
 	events: {
@@ -67,4 +67,9 @@ test("una fecha completa lleva el día de la semana; una zona que no existe cae 
 	const at = Date.UTC(2026, 10, 7, 15, 30) / 1000;
 	assert.match(renderEvent(book, "es", "invited", "description", { when: { word: "startsAt", vars: { date: { at, tz: "UTC", full: true } } } }), /sábado/);
 	assert.match(renderEvent(book, "en", "invited", "description", { when: { word: "startsAt", vars: { date: { at, tz: "Mars/Olympus", zone: true } } } }), /\(UTC\)$/);
+});
+
+test("renderEventVar escribe un valor suelto", () => {
+	assert.equal(renderEventVar(book, "es", { word: "minutes", vars: { count: 45 } }), "45 minutos");
+	assert.equal(renderEventVar(book, "en", "Retro"), "Retro");
 });

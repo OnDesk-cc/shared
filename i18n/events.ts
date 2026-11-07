@@ -106,3 +106,8 @@ export function notificationText(
 		description: renderEvent(book, locale, event.key, "description", event.vars),
 	};
 }
+
+/** Un valor suelto (una fecha, «45 minutos») para la columna de datos de un correo. */
+export function renderEventVar(book: EventBook, locale: Locale, value: EventVar): string {
+	return String(renderVar(book, locale, value));
+}
