@@ -5,7 +5,8 @@
  *
  *   - texto JSX con al menos una letra (`<p>Hello</p>`);
  *   - cadenas literales en atributos que se leen (`placeholder`, `title`,
- *     `aria-label`, `alt`, `label`, `description`, …);
+ *     `aria-label`, `alt`, `label`, `description`, …), también plantillas
+ *     (`aria-label={`Remove ${x}`}` sale como «Remove …»);
  *   - el primer argumento literal de `toast()`, `toast.*()`, `confirm()` y `alert()`.
  *
  * Uso, desde cualquier repo que tenga `@ondesk/shared` y `typescript`:
@@ -56,8 +57,22 @@ export function scanSource(fileName, text, allow = []) {
 		if (!clean || !HAS_LETTER.test(clean) || allowed.has(clean)) return;
 		found.push({ line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1, text: clean });
 	};
+	// Cadenas sueltas dentro de una expresión hija de JSX (`{ok ? "Copied" : x}`),
+	// sin entrar en llamadas: `{list.join(", ")}` o `{t(d.x)}` no son texto visible.
+	const visitChildExpression = (node) => {
+		if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) push(node, node.text);
+		else if (ts.isConditionalExpression(node)) {
+			visitChildExpression(node.whenTrue);
+			visitChildExpression(node.whenFalse);
+		} else if (ts.isBinaryExpression(node)) {
+			visitChildExpression(node.left);
+			visitChildExpression(node.right);
+		} else if (ts.isParenthesizedExpression(node)) visitChildExpression(node.expression);
+	};
 	const visit = (node) => {
 		if (ts.isJsxText(node)) push(node, node.text);
+		else if (ts.isJsxExpression(node) && node.expression && (ts.isJsxElement(node.parent) || ts.isJsxFragment(node.parent)))
+			visitChildExpression(node.expression);
 		else if (ts.isJsxAttribute(node) && node.initializer) {
 			const name = node.name.getText(sf);
 			if (TEXT_ATTRIBUTES.has(name)) {
@@ -65,6 +80,11 @@ export function scanSource(fileName, text, allow = []) {
 				if (ts.isStringLiteral(init)) push(init, init.text);
 				else if (ts.isJsxExpression(init) && init.expression && (ts.isStringLiteral(init.expression) || ts.isNoSubstitutionTemplateLiteral(init.expression)))
 					push(init.expression, init.expression.text);
+				else if (ts.isJsxExpression(init) && init.expression && ts.isTemplateExpression(init.expression)) {
+					// `Remove ${x}` → «Remove …»: el texto fijo de la plantilla, con un hueco por variable.
+					const tpl = init.expression;
+					push(tpl, [tpl.head.text, ...tpl.templateSpans.map((span) => span.literal.text)].join("…"));
+				}
 			}
 		} else if (ts.isCallExpression(node) && CALLS.has(calleeRoot(node.expression) ?? "")) {
 			const first = node.arguments[0];

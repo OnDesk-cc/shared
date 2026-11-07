@@ -6,8 +6,11 @@ export function Fixture({ t, d }: any) {
 			<input placeholder="Search" />
 			<button onClick={() => toast.success("Saved")}>{t(d.x)}</button>
 			<p>{t(d.x)}</p>
+			<p>{d.ok ? "Copied" : t(d.x)}</p>
+			<p>{d.list.join(", ")}</p>
 			<span>·</span>
 			<b>OnDesk</b>
+			<button aria-label={`Remove ${d.name}`} title={`${d.n}`} />
 		</div>
 	);
 }

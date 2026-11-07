@@ -9,9 +9,9 @@ import { scanSource } from "./i18n-literals.mjs";
 const file = resolve(dirname(fileURLToPath(import.meta.url)), "fixtures/literals.tsx");
 const source = readFileSync(file, "utf8");
 
-test("reporta texto JSX, atributos visibles y toasts; ignora className, expresiones y puntuación", () => {
+test("reporta texto JSX, atributos visibles (también en plantillas) y toasts; ignora className, expresiones y puntuación", () => {
 	const found = scanSource("literals.tsx", source).map((f) => f.text);
-	assert.deepEqual(found, ["Hello", "Search", "Saved", "OnDesk"]);
+	assert.deepEqual(found, ["Hello", "Search", "Saved", "Copied", "OnDesk", "Remove …"]);
 });
 
 test("cada hallazgo lleva su línea", () => {
@@ -21,6 +21,6 @@ test("cada hallazgo lleva su línea", () => {
 
 test("la lista de permitidos quita lo que nombra", () => {
 	const found = scanSource("literals.tsx", source, ["OnDesk"]).map((f) => f.text);
-	assert.equal(found.length, 3);
+	assert.equal(found.length, 5);
 	assert.ok(!found.includes("OnDesk"));
 });
