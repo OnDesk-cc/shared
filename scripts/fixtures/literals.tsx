@@ -8,6 +8,8 @@ export function Fixture({ t, d }: any) {
 			<p>{t(d.x)}</p>
 			<p>{d.ok ? "Copied" : t(d.x)}</p>
 			<p>{d.list.join(", ")}</p>
+			{d.mode === "out" && <i />}
+			<p>{d.name || "Unnamed"}</p>
 			<span>·</span>
 			<b>OnDesk</b>
 			<button aria-label={`Remove ${d.name}`} title={`${d.n}`} />

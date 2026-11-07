@@ -11,7 +11,7 @@ const source = readFileSync(file, "utf8");
 
 test("reporta texto JSX, atributos visibles (también en plantillas) y toasts; ignora className, expresiones y puntuación", () => {
 	const found = scanSource("literals.tsx", source).map((f) => f.text);
-	assert.deepEqual(found, ["Hello", "Search", "Saved", "Copied", "OnDesk", "Remove …"]);
+	assert.deepEqual(found, ["Hello", "Search", "Saved", "Copied", "Unnamed", "OnDesk", "Remove …"]);
 });
 
 test("cada hallazgo lleva su línea", () => {
@@ -21,6 +21,6 @@ test("cada hallazgo lleva su línea", () => {
 
 test("la lista de permitidos quita lo que nombra", () => {
 	const found = scanSource("literals.tsx", source, ["OnDesk"]).map((f) => f.text);
-	assert.equal(found.length, 5);
+	assert.equal(found.length, 6);
 	assert.ok(!found.includes("OnDesk"));
 });

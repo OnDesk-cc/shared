@@ -16,6 +16,7 @@ import { useDismiss } from "../../hooks/map";
 import { CharCount, FieldShell } from "../console-kit";
 import { Tag } from "../tag";
 import { splitTemplate, type Variable } from "./automations-model";
+import { useSharedStrings } from "../../i18n/react";
 
 export function TemplateField({
 	id,
@@ -40,6 +41,7 @@ export function TemplateField({
 	error?: string | null;
 	required?: boolean;
 }) {
+	const { s, t } = useSharedStrings();
 	const input = useRef<HTMLInputElement & HTMLTextAreaElement>(null);
 	const box = useRef<HTMLDivElement>(null);
 	const trigger = useRef<HTMLButtonElement>(null);
@@ -106,14 +108,14 @@ export function TemplateField({
 						className="ticket ticket--xs ticket--ghost"
 						aria-haspopup="menu"
 						aria-expanded={open}
-						aria-label={`Insert a variable in ${label}`}
+						aria-label={t(s.automations.insertVariableIn, { label })}
 						onClick={() => setOpen((v) => !v)}>
 						<Braces className="size-3.5" strokeWidth={1.75} aria-hidden="true" />
-						Insert variable
+						{s.automations.insertVariable}
 					</button>
 				</div>
 				{open && (
-					<div role="menu" aria-label="Variables" className="menu-panel right-0 top-full mt-1 max-h-80 w-72 overflow-y-auto">
+					<div role="menu" aria-label={s.automations.variables} className="menu-panel right-0 top-full mt-1 max-h-80 w-72 overflow-y-auto">
 						{groups.map((group, i) => (
 							<div key={group} className={i > 0 ? "mt-1 border-t border-(--sk-hair) pt-1" : undefined}>
 								<p className="sk-small px-3 pb-1 pt-2 font-medium">{group}</p>

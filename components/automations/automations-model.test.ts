@@ -23,6 +23,7 @@ import {
 	splitTemplate,
 	unknownTokens,
 	variablesAt,
+	paramRequiredError,
 	type Catalog,
 	type FlowDraft,
 } from "./automations-model.ts";
@@ -259,4 +260,24 @@ test("reasonText: los cierres de una ejecución recuperada y del error interno",
 	assert.match(reasonText("changed"), /changed/);
 	assert.match(reasonText("conditions"), /conditions/);
 	assert.match(reasonText("internal"), /went wrong/);
+});
+
+test("los textos del modelo en es y pt; sin idioma, inglés", () => {
+	assert.deepEqual(statusLine({ status: "paused", paused_reason: "manual" }, "es"), { tone: "neutral", label: "En pausa", detail: "Alguien la pausó." });
+	assert.equal(outcomeLine("failed", "pt").label, "Com falha");
+	assert.equal(reasonText("paused", "es"), "Omitida: la automatización estaba en pausa.");
+	assert.equal(ago(1000 - 120, 1000, "pt"), "há 2 min");
+	assert.deepEqual(opsFor("bool", "es"), [{ op: "eq", label: "es" }]);
+	assert.equal(flowSentence(catalog, { trigger_type: "x.y.z", steps: [] }, "es"), "Cuando se dispara un disparador desconocido");
+	assert.equal(flowSentence(catalog, { trigger_type: "pulse.ticket.created", steps: [{ tool: "orbit.create_task" }] }, "pt"), "Quando Ticket created → Create task (Orbit)");
+	const vars = variablesAt(catalog, "pulse.ticket.created", [], 0, "es");
+	assert.equal(vars.find((v) => v.token === "actor.email")?.group, "Quién lo hizo");
+	assert.ok(draftErrors(catalog, { ...good, name: " " }, "es").includes("Ponle un nombre a la automatización."));
+	assert.equal(statusLine({ status: "active", paused_reason: null }).label, "Active");
+});
+
+test("paramRequiredError es la misma frase que da draftErrors", () => {
+	const errors = draftErrors(catalog, { ...good, steps: [{ tool: "orbit.create_task", params: { project: "", title: "x" } }] }, "es");
+	assert.ok(errors.includes(paramRequiredError(1, "project", "es")));
+	assert.equal(paramRequiredError(1, "project", "es"), "Paso 1: Project es obligatorio.");
 });

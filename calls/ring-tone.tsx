@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Volume2 } from "lucide-react";
 import { Button } from "../ui/button";
 import { useRingerLease } from "./ringer-lease";
+import { useSharedStrings } from "../i18n/react";
 
 /**
  * Los dos tonos de llamada. Se sirven tal cual desde `public/`, así que cambiar
@@ -69,6 +70,7 @@ export type RingMode = "in" | "out" | null;
  * muestra botón.
  */
 export function RingTone({ mode }: { mode: RingMode }) {
+	const { s } = useSharedStrings();
 	const [blocked, setBlocked] = useState(false);
 	const [attempt, setAttempt] = useState(0);
 	const audible = useRingerLease(mode === "in", blocked);
@@ -107,7 +109,7 @@ export function RingTone({ mode }: { mode: RingMode }) {
 					}}
 				>
 					<Volume2 className="size-3.5" />
-					Turn on sound
+					{s.calls.turnOnSound}
 				</Button>
 			)}
 		</>

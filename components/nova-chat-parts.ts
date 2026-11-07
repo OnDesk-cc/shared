@@ -18,6 +18,13 @@
  */
 import type { UIMessage } from "ai";
 import { NOVA_PREVIEW_PART, type NovaActionPreview, type NovaPreviewData, type NovaUsage } from "../worker/nova-contract";
+import { INTL_TAG, type Locale } from "../i18n/locale";
+import { interpolate, plural } from "../i18n/format";
+import { SHARED_STRINGS } from "../i18n/strings";
+
+// Los textos para la persona salen del diccionario de shared. Cada función acepta
+// un `locale` final, opcional y `en` por defecto.
+const N = (locale: Locale) => SHARED_STRINGS[locale].nova;
 
 export type NovaProduct = "pulse" | "vault" | "orbit" | "nexus" | "halo" | "atlas";
 
@@ -47,10 +54,11 @@ export function classifyHistoryStatus(status: number): "ok" | "expired" | "forei
  * interno (un producto desconocido, una conversación sin dueño, un error del
  * modelo) no se le enseña tal cual a nadie, y la hoja cae a `novaErrorMessage`.
  */
-export function chatErrorText(message: string): string | null {
-	if (/closed mid-stream|websocket closed/i.test(message)) return "The connection to Nova dropped. Try again.";
-	if (/too fast/i.test(message)) return "You're asking Nova too fast. Wait a minute and try again.";
-	if (/session expired/i.test(message)) return "Your session expired. Reload the page to keep talking to Nova.";
+export function chatErrorText(message: string, locale: Locale = "en"): string | null {
+	const n = N(locale);
+	if (/closed mid-stream|websocket closed/i.test(message)) return n.connectionDropped;
+	if (/too fast/i.test(message)) return n.tooFast;
+	if (/session expired/i.test(message)) return n.sessionExpired;
 	if (/too long for Nova/i.test(message)) return message;
 	return null;
 }
@@ -91,40 +99,44 @@ export function toolProduct(tool: string): NovaProduct | null {
 }
 
 /** El verbo de una acción, para el botón de una destructiva: `orbit.delete_task` → «Delete task». */
-export function actionVerb(tool: string): string {
+export function actionVerb(tool: string, locale: Locale = "en"): string {
+	// El verbo sale del nombre inglés de la herramienta; en otro idioma, un «Confirmar» honesto.
+	if (locale !== "en") return N(locale).confirm;
 	const action = tool.includes(".") ? tool.slice(tool.indexOf(".") + 1) : tool;
 	const words = action.split("_").filter(Boolean).join(" ");
-	return words ? words.charAt(0).toUpperCase() + words.slice(1) : "Approve";
+	return words ? words.charAt(0).toUpperCase() + words.slice(1) : N(locale).approve;
 }
 
 /** Lo que dice la línea de una lectura mientras corre. */
-export function runningLabel(tool: string, input: unknown): string {
+export function runningLabel(tool: string, input: unknown, locale: Locale = "en"): string {
+	const n = N(locale);
 	if (tool === "open_product") {
 		const product = (input as { product?: unknown } | null | undefined)?.product;
-		return isNovaProduct(product) ? `Opening ${NOVA_PRODUCT_NAMES[product]}…` : "Opening another product…";
+		return isNovaProduct(product) ? interpolate(n.opening, { product: NOVA_PRODUCT_NAMES[product] }) : n.openingOther;
 	}
 	const product = toolProduct(tool);
-	return product ? `Checking ${NOVA_PRODUCT_NAMES[product]}…` : "Working…";
+	return product ? interpolate(n.checking, { product: NOVA_PRODUCT_NAMES[product] }) : n.working;
 }
 
 /** Por qué no se hizo una acción, en una frase para la persona (lo que lee el modelo es otro texto). */
-export function actionErrorText(code: unknown, productName: string): string {
+export function actionErrorText(code: unknown, productName: string, locale: Locale = "en"): string {
+	const e = N(locale).actionErrors;
 	switch (code) {
 		case "forbidden":
 		case "unauthorized":
-			return "You don't have permission to do this.";
+			return e.forbidden;
 		case "payment_required":
-			return `${productName} isn't active in this workspace.`;
+			return interpolate(e.inactive, { product: productName });
 		case "not_found":
-			return "It no longer exists.";
+			return e.notFound;
 		case "invalid_params":
-			return "Some of the details weren't valid.";
+			return e.invalid;
 		case "unknown_outcome":
-			return `Nova lost track of this action. Check in ${productName} before trying again.`;
+			return interpolate(e.unknownOutcome, { product: productName });
 		case "disabled":
-			return "This action was turned off for this workspace.";
+			return e.disabled;
 		default:
-			return "This couldn't be done.";
+			return e.generic;
 	}
 }
 
@@ -202,7 +214,8 @@ type ToolPartView = {
  * - `latest`: es el último mensaje y no corre nada (sólo ahí se puede aprobar).
  * - `live`: es el último mensaje y el turno sigue corriendo (sólo ahí sale la línea de una lectura).
  */
-export function toolCards(message: Pick<UIMessage, "parts">, opts: { previews: Map<string, NovaPreviewData>; latest: boolean; live: boolean }): NovaToolCard[] {
+export function toolCards(message: Pick<UIMessage, "parts">, opts: { previews: Map<string, NovaPreviewData>; latest: boolean; live: boolean; locale?: Locale }): NovaToolCard[] {
+	const locale = opts.locale ?? "en";
 	const cards: NovaToolCard[] = [];
 	for (const raw of message.parts) {
 		const part = raw as ToolPartView;
@@ -213,7 +226,7 @@ export function toolCards(message: Pick<UIMessage, "parts">, opts: { previews: M
 		const state = part.state;
 
 		if (state === "input-streaming" || state === "input-available") {
-			if (opts.live) cards.push({ kind: "running", toolCallId, label: runningLabel(tool, part.input) });
+			if (opts.live) cards.push({ kind: "running", toolCallId, label: runningLabel(tool, part.input, locale) });
 			continue;
 		}
 
@@ -240,12 +253,12 @@ export function toolCards(message: Pick<UIMessage, "parts">, opts: { previews: M
 				break;
 			case "output-error":
 				status = "failed";
-				error = actionErrorText(null, productName);
+				error = actionErrorText(null, productName, locale);
 				break;
 			case "output-available":
 				if (output && typeof output.error === "string") {
 					status = output.error === "cancelled" ? "cancelled" : "failed";
-					error = status === "failed" ? actionErrorText(output.error, productName) : null;
+					error = status === "failed" ? actionErrorText(output.error, productName, locale) : null;
 				} else {
 					status = "done";
 					link = safeLink(output?.link);
@@ -300,19 +313,18 @@ export function latestUsage(messages: Pick<UIMessage, "role" | "metadata">[], in
 	return initial;
 }
 
-function renewDay(iso: string): string {
+function renewDay(iso: string, locale: Locale): string {
 	const date = new Date(iso);
-	if (Number.isNaN(date.getTime())) return "the 1st of next month";
-	return new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", timeZone: "UTC" }).format(date);
+	if (Number.isNaN(date.getTime())) return N(locale).renewFallback;
+	return new Intl.DateTimeFormat(INTL_TAG[locale], { month: "long", day: "numeric", timeZone: "UTC" }).format(date);
 }
 
 /** La línea de saldo de la hoja, o null mientras no se haya usado el 80 % del límite que manda. */
-export function usageLine(usage: NovaUsage | null): string | null {
+export function usageLine(usage: NovaUsage | null, locale: Locale = "en"): string | null {
 	if (!usage || usage.limit <= 0) return null;
 	if (usage.limit - usage.remaining < usage.limit * NOVA_USAGE_WARN_AT) return null;
-	if (usage.remaining <= 0) return `No Nova credits left this month. They renew on ${renewDay(usage.renews_at)} (UTC).`;
-	const n = Math.floor(usage.remaining);
-	return `You have ${n.toLocaleString("en-US")} ${n === 1 ? "credit" : "credits"} left this month.`;
+	if (usage.remaining <= 0) return interpolate(N(locale).creditsOut, { date: renewDay(usage.renews_at, locale) });
+	return plural(locale, N(locale).creditsLeft, Math.floor(usage.remaining));
 }
 
 /** `https://nova.ondesk.cc`; http sólo en local. `novaHost` va sin protocolo, como en `useAgent`. */
@@ -336,4 +348,9 @@ export function usageUrl(novaHost: string, workspaceId: string, surface: NovaSur
  * todo el que interactúa; Utah si lo pregunta); un panel rotulado «Nova» no lo
  * dice por sí solo. Compliance de EE. UU., plan 3 (2026-10-30).
  */
-export const NOVA_AI_NOTICE = "Nova is an AI assistant.";
+export const NOVA_AI_NOTICE = SHARED_STRINGS.en.nova.aiNotice;
+
+/** La misma frase en el idioma de quien lee. */
+export function novaAiNotice(locale: Locale = "en"): string {
+	return N(locale).aiNotice;
+}

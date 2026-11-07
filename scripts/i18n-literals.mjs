@@ -65,8 +65,14 @@ export function scanSource(fileName, text, allow = []) {
 			visitChildExpression(node.whenTrue);
 			visitChildExpression(node.whenFalse);
 		} else if (ts.isBinaryExpression(node)) {
-			visitChildExpression(node.left);
-			visitChildExpression(node.right);
+			// `a && "Texto"` pinta la derecha; `a || "Texto"` y `a ?? "Texto"`, cualquiera.
+			// Una comparación (`mode === "out"`) no pinta nada.
+			const op = node.operatorToken.kind;
+			if (op === ts.SyntaxKind.AmpersandAmpersandToken) visitChildExpression(node.right);
+			else if (op === ts.SyntaxKind.BarBarToken || op === ts.SyntaxKind.QuestionQuestionToken || op === ts.SyntaxKind.PlusToken) {
+				visitChildExpression(node.left);
+				visitChildExpression(node.right);
+			}
 		} else if (ts.isParenthesizedExpression(node)) visitChildExpression(node.expression);
 	};
 	const visit = (node) => {

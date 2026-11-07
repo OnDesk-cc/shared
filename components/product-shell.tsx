@@ -24,15 +24,16 @@ import { APP_NAME, PRODUCT_IDS, type ProductId } from "../lib/lines";
 import { useDismiss } from "../hooks/map";
 import {
 	CHOOSABLE_STATUSES,
-	STATUS_META,
 	lastSeenSentence,
 	presenceLabel,
+	statusText,
 	type OwnPresence,
 	type PresenceStatus,
 } from "../presence/status";
 import { PresenceRing } from "../presence/presence-dot";
 import { Monogram } from "./console-kit";
 import { AppTile, Mark } from "./sky";
+import { useSharedStrings } from "../i18n/react";
 
 // ─── el marco ────────────────────────────────────────────────────────────────
 
@@ -84,6 +85,7 @@ export function ProductFrame({
 	nova?: ReactNode;
 	children: ReactNode;
 }) {
+	const { s, t } = useSharedStrings();
 	const [scrolled, setScrolled] = useState(false);
 	const sentinel = useRef<HTMLDivElement>(null);
 	// El cajón recuerda en qué página se abrió: al navegar queda cerrado solo.
@@ -152,7 +154,7 @@ export function ProductFrame({
 								className="sk-navlink size-10! justify-center p-0!"
 								onClick={() => setDrawerAt(drawerOpen ? null : pathname)}
 								aria-expanded={drawerOpen}
-								aria-label={drawerOpen ? "Close the menu" : "Open the menu"}>
+								aria-label={drawerOpen ? s.shell.closeMenu : s.shell.openMenu}>
 								{drawerOpen ? <X className="size-5" strokeWidth={1.75} /> : <Menu className="size-5" strokeWidth={1.75} />}
 							</button>
 						</span>
@@ -179,18 +181,16 @@ export function ProductFrame({
 						</main>
 						<footer className="px-4 pb-6 sm:px-6 lg:px-8">
 							<div className="mx-auto flex w-full max-w-[80rem] flex-wrap items-center justify-between gap-3 border-t border-(--sk-hair) pt-5">
-								<span className="sk-small">
-									© {new Date().getFullYear()} OnDesk {APP_NAME[app]}. Northstar Platforms Limited Liability Co.
-								</span>
+								<span className="sk-small">{t(s.shell.copyright, { year: new Date().getFullYear(), app: APP_NAME[app] })}</span>
 								<span className="flex gap-4">
 									<a href={`${ondeskHref}/status`} className="sk-small no-underline hover:text-(--sk-ink)">
-										Status
+										{s.shell.status}
 									</a>
 									<a href={`${ondeskHref}/help`} className="sk-small no-underline hover:text-(--sk-ink)">
-										Help
+										{s.shell.help}
 									</a>
 									<a href={`${ondeskHref}/legal`} className="sk-small no-underline hover:text-(--sk-ink)">
-										Legal
+										{s.shell.legal}
 									</a>
 								</span>
 							</div>
@@ -207,7 +207,7 @@ export function ProductFrame({
 				<div className="fixed inset-0 z-50 lg:hidden">
 					<button
 						type="button"
-						aria-label="Close the menu"
+						aria-label={s.shell.closeMenu}
 						className="absolute inset-0 bg-[rgba(14,27,46,0.35)] backdrop-blur-[2px]"
 						onClick={() => setDrawerAt(null)}
 					/>
@@ -241,6 +241,7 @@ export function BareFrame({
 	ondeskHref: string;
 	children: ReactNode;
 }) {
+	const { s, t } = useSharedStrings();
 	return (
 		<div className="flex min-h-dvh flex-col">
 			<header className="sk-header sticky top-0 z-40">
@@ -257,15 +258,13 @@ export function BareFrame({
 			</main>
 			<footer className="px-4 pb-6 sm:px-6">
 				<div className="mx-auto flex w-full max-w-[72rem] flex-wrap items-center justify-between gap-3 border-t border-(--sk-hair) pt-5">
-					<span className="sk-small">
-						© {new Date().getFullYear()} OnDesk {APP_NAME[app]}. Northstar Platforms Limited Liability Co.
-					</span>
+					<span className="sk-small">{t(s.shell.copyright, { year: new Date().getFullYear(), app: APP_NAME[app] })}</span>
 					<span className="flex gap-4">
 						<a href={`${ondeskHref}/status`} className="sk-small no-underline hover:text-(--sk-ink)">
-							Status
+							{s.shell.status}
 						</a>
 						<a href={`${ondeskHref}/legal`} className="sk-small no-underline hover:text-(--sk-ink)">
-							Legal
+							{s.shell.legal}
 						</a>
 					</span>
 				</div>
@@ -296,11 +295,12 @@ export function SideLinkBody({ icon: Icon, active, badge, children }: { icon: Lu
 
 /** Las otras cinco apps, con su baldosa, y la consola de OnDesk al final. */
 function SidebarApps({ current, hrefFor, consoleHref }: { current: ProductId; hrefFor: (id: ProductId) => string; consoleHref: string }) {
+	const { s } = useSharedStrings();
 	const row =
 		"flex h-9 items-center gap-3 rounded-[10px] px-3 text-[0.875rem] text-(--sk-ink-2) no-underline transition-colors duration-150 hover:bg-white/60 hover:text-(--sk-ink)";
 	return (
 		<div className="mt-6">
-			<p className="sk-small px-3 pb-1.5 font-medium">Apps</p>
+			<p className="sk-small px-3 pb-1.5 font-medium">{s.shell.apps}</p>
 			<ul className="flex flex-col gap-0.5">
 				{PRODUCT_IDS.filter((id) => id !== current).map((id) => (
 					<li key={id}>
@@ -313,7 +313,7 @@ function SidebarApps({ current, hrefFor, consoleHref }: { current: ProductId; hr
 				<li>
 					<a href={consoleHref} className={row}>
 						<Mark className="size-5" />
-						<span className="min-w-0 flex-1 truncate">OnDesk console</span>
+						<span className="min-w-0 flex-1 truncate">{s.shell.console}</span>
 						<ArrowUpRight className="size-3.5 text-(--sk-ink-3)" strokeWidth={1.75} aria-hidden="true" />
 					</a>
 				</li>
@@ -341,6 +341,7 @@ export function WorkspaceSwitch<T extends { id: string; name: string; slug: stri
 	onChoose: (workspace: T) => void;
 	consoleHref: string;
 }) {
+	const { s, t } = useSharedStrings();
 	const [open, setOpen] = useState(false);
 	const box = useRef<HTMLDivElement>(null);
 	const trigger = useRef<HTMLButtonElement>(null);
@@ -366,14 +367,14 @@ export function WorkspaceSwitch<T extends { id: string; name: string; slug: stri
 				className={`${card} transition-shadow hover:shadow-(--sk-shadow-2)`}
 				aria-haspopup="menu"
 				aria-expanded={open}
-				aria-label={`Switch workspace, currently ${current.name}`}
+				aria-label={t(s.console.switchWorkspace, { name: current.name })}
 				onClick={() => setOpen((v) => !v)}>
 				{face}
 				<span className="min-w-0 flex-1 truncate text-[0.875rem] font-medium text-(--sk-ink)">{current.name}</span>
 				<ChevronDown className={`size-4 shrink-0 text-(--sk-ink-3) transition-transform duration-200 ${open ? "rotate-180" : ""}`} strokeWidth={1.75} aria-hidden="true" />
 			</button>
 			{open && (
-				<div role="menu" aria-label="Workspaces" className="menu-panel left-0 right-0 top-full z-50 mt-2">
+				<div role="menu" aria-label={s.console.workspaces} className="menu-panel left-0 right-0 top-full z-50 mt-2">
 					{all.map((workspace) => (
 						<button
 							key={workspace.id}
@@ -391,7 +392,7 @@ export function WorkspaceSwitch<T extends { id: string; name: string; slug: stri
 					))}
 					<div className="mx-2 my-1 border-t border-(--sk-hair)" />
 					<a role="menuitem" href={consoleHref}>
-						Manage in the console
+						{s.console.manageInConsole}
 						<ArrowUpRight className="ml-auto size-3.5 text-(--sk-ink-3)" strokeWidth={1.75} aria-hidden="true" />
 					</a>
 				</div>
@@ -441,6 +442,7 @@ export function AccountMenu({
 	onSignOut: () => void;
 	signingOut?: boolean;
 }) {
+	const { s, t, locale } = useSharedStrings();
 	const [open, setOpen] = useState(false);
 	// «Account» es un grupo, no un destino, como en la consola: se abre al
 	// pulsarlo y vuelve a plegarse cada vez que el menú se cierra.
@@ -464,21 +466,21 @@ export function AccountMenu({
 				onClick={() => setOpen((v) => !v)}
 				aria-expanded={open}
 				aria-haspopup="menu"
-				aria-label={`Your account, ${name}`}>
+				aria-label={t(s.shell.yourAccountNamed, { name })}>
 				<span className="relative">
 					<Monogram name={name} logoUrl={logoUrl} size="sm" />
 					{/* el punto de estado, pequeño en la esquina de la cara */}
 					<span className="absolute -bottom-0.5 -right-0.5 flex size-3.5 items-center justify-center rounded-full bg-white">
 						<span
 							className={`block size-2 rounded-full ${chosen === "online" ? "bg-(--sk-ink)" : chosen === "busy" ? "bg-(--sk-ink-2)" : "bg-white ring-[1.5px] ring-[#9aa8ba]"}`}
-							title={STATUS_META[chosen].label}
+							title={statusText(chosen, locale).label}
 						/>
 					</span>
 				</span>
 				<ChevronDown className={`size-3.5 shrink-0 text-(--sk-ink-3) transition-transform duration-200 ${open ? "rotate-180" : ""}`} strokeWidth={1.75} aria-hidden="true" />
 			</button>
 			{open && (
-				<div role="menu" aria-label="Your account" className="menu-panel right-0 top-full mt-2 w-80">
+				<div role="menu" aria-label={s.shell.yourAccount} className="menu-panel right-0 top-full mt-2 w-80">
 					<div className="flex items-center gap-3 px-3 pb-3 pt-2">
 						<Monogram name={name} logoUrl={logoUrl} size="sm" />
 						<div className="min-w-0">
@@ -493,7 +495,7 @@ export function AccountMenu({
 						{links && <div onClick={close}>{links}</div>}
 						<button type="button" role="menuitem" aria-expanded={accountOpen} aria-controls={groupId} onClick={() => setAccountOpen((v) => !v)}>
 							<MenuIcon icon={UserRound} />
-							<span className="flex-1">Account</span>
+							<span className="flex-1">{s.shell.account}</span>
 							<ChevronRight
 								className={`size-3.5 shrink-0 text-(--sk-ink-3) transition-transform duration-200 ${accountOpen ? "rotate-90" : ""}`}
 								strokeWidth={1.75}
@@ -504,24 +506,24 @@ export function AccountMenu({
 							<div id={groupId} className="ml-5 border-l border-(--sk-hair) pl-1" onClick={close}>
 								<a role="menuitem" href={`${ondeskHref}/account`}>
 									<MenuIcon icon={UserRound} />
-									<span className="flex-1">Profile</span>
+									<span className="flex-1">{s.shell.profile}</span>
 									<ArrowUpRight className="size-3.5 text-(--sk-ink-3)" strokeWidth={1.75} aria-hidden="true" />
 								</a>
 								<a role="menuitem" href={`${ondeskHref}/account/security`}>
 									<MenuIcon icon={ShieldCheck} />
-									<span className="flex-1">Security</span>
+									<span className="flex-1">{s.shell.security}</span>
 									<ArrowUpRight className="size-3.5 text-(--sk-ink-3)" strokeWidth={1.75} aria-hidden="true" />
 								</a>
 								<a role="menuitem" href={`${ondeskHref}/account/hours`}>
 									<MenuIcon icon={Clock} />
-									<span className="flex-1">Working hours</span>
+									<span className="flex-1">{s.shell.workingHours}</span>
 									<ArrowUpRight className="size-3.5 text-(--sk-ink-3)" strokeWidth={1.75} aria-hidden="true" />
 								</a>
 							</div>
 						)}
 						<button type="button" role="menuitem" disabled={signingOut} onClick={onSignOut}>
 							<MenuIcon icon={LogOut} />
-							{signingOut ? "Signing out…" : "Sign out"}
+							{signingOut ? s.shell.signingOut : s.shell.signOut}
 						</button>
 					</div>
 				</div>
@@ -545,15 +547,16 @@ export function PresenceChoices({
 	onChoose: (status: PresenceStatus) => void;
 	disabled?: boolean;
 }) {
+	const { s, t, locale } = useSharedStrings();
 	const chosen: PresenceStatus = presence?.status ?? "online";
-	const meta = STATUS_META[chosen];
+	const meta = statusText(chosen, locale);
 
 	return (
-		<div role="radiogroup" aria-label="Your status">
-			<p className="sk-small mb-1.5 font-medium">Your status</p>
+		<div role="radiogroup" aria-label={s.shell.yourStatus}>
+			<p className="sk-small mb-1.5 font-medium">{s.shell.yourStatus}</p>
 			<ul className="flex flex-col gap-0.5">
 				{CHOOSABLE_STATUSES.map((status) => {
-					const option = STATUS_META[status];
+					const option = statusText(status, locale);
 					const on = status === chosen;
 					return (
 						<li key={status}>
@@ -580,12 +583,12 @@ export function PresenceChoices({
 			</ul>
 			<p className="sk-small mt-2 leading-snug" aria-live="polite">
 				{chosen === "invisible"
-					? "Everyone sees you as offline, in every OnDesk product."
+					? s.shell.invisibleNote
 					: presence?.activity
-						? `You're in a meeting. Everyone sees you as ${presenceLabel({ status: "busy", activity: presence.activity })} until you leave, then ${meta.label} again.`
+						? t(s.shell.meetingNote, { busy: presenceLabel({ status: "busy", activity: presence.activity }, locale), status: meta.label })
 						: presence?.effective === "offline"
-							? (lastSeenSentence(presence.last_seen_at) ?? "Nobody has seen you online yet.")
-							: "Visible in every OnDesk product."}
+							? (lastSeenSentence(presence.last_seen_at, locale) ?? s.shell.neverSeen)
+							: s.shell.visibleNote}
 			</p>
 		</div>
 	);

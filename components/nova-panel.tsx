@@ -22,6 +22,7 @@ import { useNovaDock } from "./nova-dock";
 import { asConversationList, historyUrl, startedInText } from "./nova-dock-state";
 import { NovaHistory, NovaHistoryError, NovaOriginMark } from "./nova-history";
 import { TopbarButton } from "./topbar";
+import { useSharedStrings } from "../i18n/react";
 
 export interface NovaPanelProps {
 	/** `nova.ondesk.cc`, o `127.0.0.1:8787` en local: sin protocolo. */
@@ -82,6 +83,7 @@ export function NovaPanel({
 		setView("chat");
 	}, [workspaceId]);
 
+	const { s, locale } = useSharedStrings();
 	const history = useQuery({
 		queryKey: ["nova", "history", novaHost, workspaceId],
 		queryFn: () => fetchHistory(novaHost, workspaceId),
@@ -93,7 +95,7 @@ export function NovaPanel({
 	}, [queryClient, novaHost, workspaceId]);
 
 	const origin = history.data?.find((c) => c.id === conversationId)?.product ?? null;
-	const started = startedInText(origin, surface);
+	const started = startedInText(origin, surface, locale);
 	const ask = dock.ask && dock.ask.workspaceId === workspaceId && dock.ask.conversationId === conversationId ? dock.ask : null;
 
 	// Abrir a mano enfoca el campo, una sola vez (`takeFocus`): volver a montar el
@@ -144,7 +146,7 @@ export function NovaPanel({
 						onClick={() => setView("chat")}
 						className="-ml-2 inline-flex h-9 min-w-0 items-center gap-1.5 rounded-full px-2 text-[0.9375rem] font-semibold text-(--sk-ink) transition-colors duration-150 hover:bg-[rgba(14,27,46,0.05)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--sk-accent)">
 						<ArrowLeft className="size-4 shrink-0" strokeWidth={1.75} aria-hidden="true" />
-						Conversations
+						{s.nova.conversations}
 					</button>
 				) : (
 					<>
@@ -156,18 +158,18 @@ export function NovaPanel({
 					</>
 				)}
 				<div className="ml-auto flex shrink-0 items-center gap-0.5">
-					<TopbarButton aria-label="New chat" title="New chat" onClick={startOver}>
+					<TopbarButton aria-label={s.nova.newChat} title={s.nova.newChat} onClick={startOver}>
 						<SquarePen className="size-[18px]" strokeWidth={1.75} aria-hidden="true" />
 					</TopbarButton>
 					<TopbarButton
-						aria-label="Conversations"
-						title="Conversations"
+						aria-label={s.nova.conversations}
+						title={s.nova.conversations}
 						aria-pressed={view === "history"}
 						className="aria-pressed:bg-[rgba(14,27,46,0.06)] aria-pressed:text-(--sk-ink)"
 						onClick={showHistory}>
 						<History className="size-[18px]" strokeWidth={1.75} aria-hidden="true" />
 					</TopbarButton>
-					<TopbarButton aria-label="Close Nova" title="Close" onClick={() => setOpen(false)}>
+					<TopbarButton aria-label={s.nova.closeNova} title={s.common.close} onClick={() => setOpen(false)}>
 						<X className="size-[18px]" strokeWidth={1.75} aria-hidden="true" />
 					</TopbarButton>
 				</div>

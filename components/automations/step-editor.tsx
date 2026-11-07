@@ -18,7 +18,8 @@ import { ArrowDown, ArrowUp, Trash2 } from "lucide-react";
 import type { JsonSchema } from "../../worker/json-schema";
 import { FieldShell } from "../console-kit";
 import { AppTile } from "../sky";
-import { hasList, paramControl, paramLabel, PRODUCT_LABELS, visibleParams, type CatalogAction, type FlowStep, type Variable } from "./automations-model";
+import { hasList, paramControl, paramLabel, paramRequiredError, PRODUCT_LABELS, visibleParams, type CatalogAction, type FlowStep, type Variable } from "./automations-model";
+import { useSharedStrings } from "../../i18n/react";
 import { TemplateField } from "./template-field";
 import { useFlowOptions } from "./use-automations";
 
@@ -49,6 +50,8 @@ export function StepEditor({
 	onMove: (delta: -1 | 1) => void;
 	onRemove: () => void;
 }) {
+	const { s, t, locale } = useSharedStrings();
+	const a = s.automations;
 	const n = index + 1;
 	const setParam = (key: string, value: unknown) => {
 		const params = { ...step.params };
@@ -63,20 +66,20 @@ export function StepEditor({
 				<div className="flex min-w-0 items-center gap-3">
 					{action && <AppTile id={action.product} size="sm" />}
 					<div className="min-w-0">
-						<p className="sk-small">Step {n}</p>
+						<p className="sk-small">{t(a.step, { n })}</p>
 						<p className="font-medium leading-tight text-(--sk-ink) [overflow-wrap:anywhere]">
-							{action ? `${action.label} in ${PRODUCT_LABELS[action.product]}` : "This action is no longer available"}
+							{action ? t(a.actionIn, { action: action.label, app: PRODUCT_LABELS[action.product] }) : a.actionGone}
 						</p>
 					</div>
 				</div>
 				<div className="flex items-center gap-1">
-					<button type="button" className="ticket ticket--glyph" aria-label={`Move step ${n} up`} disabled={index === 0} onClick={() => onMove(-1)}>
+					<button type="button" className="ticket ticket--glyph" aria-label={t(a.moveUp, { n })} disabled={index === 0} onClick={() => onMove(-1)}>
 						<ArrowUp className="size-4" strokeWidth={1.75} aria-hidden="true" />
 					</button>
-					<button type="button" className="ticket ticket--glyph" aria-label={`Move step ${n} down`} disabled={index === count - 1} onClick={() => onMove(1)}>
+					<button type="button" className="ticket ticket--glyph" aria-label={t(a.moveDown, { n })} disabled={index === count - 1} onClick={() => onMove(1)}>
 						<ArrowDown className="size-4" strokeWidth={1.75} aria-hidden="true" />
 					</button>
-					<button type="button" className="ticket ticket--glyph" aria-label={`Remove step ${n}`} onClick={onRemove}>
+					<button type="button" className="ticket ticket--glyph" aria-label={t(a.removeStep, { n })} onClick={onRemove}>
 						<Trash2 className="size-4" strokeWidth={1.75} aria-hidden="true" />
 					</button>
 				</div>
@@ -87,7 +90,7 @@ export function StepEditor({
 						const schema = action.params.properties?.[key] as JsonSchema;
 						const control = paramControl(key, schema);
 						const required = action.params.required?.includes(key) ?? false;
-						const error = errors.find((e) => e.startsWith(`Step ${n}: ${paramLabel(key)} `)) ?? null;
+						const error = errors.includes(paramRequiredError(n, key, locale));
 						return (
 							<div key={key} className={control === "long" ? "sm:col-span-2" : undefined}>
 								<ParamField
@@ -99,7 +102,7 @@ export function StepEditor({
 									vars={vars}
 									novaHost={novaHost}
 									workspaceId={workspaceId}
-									error={error ? "Required" : null}
+									error={error ? a.required : null}
 									onChange={(v) => setParam(key, v)}
 								/>
 							</div>
@@ -135,7 +138,9 @@ function ParamField({
 	onChange: (value: unknown) => void;
 }) {
 	const id = useId();
-	const label = `${paramLabel(name)}${required ? "" : " (optional)"}`;
+	const { s, t } = useSharedStrings();
+	const a = s.automations;
+	const label = required ? paramLabel(name) : t(a.optional, { label: paramLabel(name) });
 	const text = value === undefined || value === null ? "" : String(value);
 	const [asVariable, setAsVariable] = useState(text.includes("{{"));
 	const options = useFlowOptions(novaHost, workspaceId, control === "options" ? (schema["x-options"] ?? null) : null);
@@ -156,7 +161,7 @@ function ParamField({
 				/>
 				{asVariable && hasList(control) && (
 					<button type="button" className="sk-small -mt-1 mb-2 font-medium text-(--sk-accent) hover:underline" onClick={() => (onChange(""), setAsVariable(false))}>
-						Pick from the list
+						{a.pickFromList}
 					</button>
 				)}
 			</div>
@@ -168,7 +173,7 @@ function ParamField({
 			? (schema.enum ?? []).map((v) => ({ value: String(v), label: String(v).replace(/_/g, " ") }))
 			: (options.data ?? []);
 	return (
-		<FieldShell id={id} label={label} error={error} hint={control === "options" && options.isError ? "Couldn't load the list. Use a variable, or try again later." : undefined}>
+		<FieldShell id={id} label={label} error={error} hint={control === "options" && options.isError ? a.listError : undefined}>
 			<select
 				id={id}
 				className="field sk-select"
@@ -182,13 +187,13 @@ function ParamField({
 						setAsVariable(true);
 					} else onChange(e.target.value);
 				}}>
-				<option value="">{control === "options" && options.isPending ? "Loading…" : required ? "Choose…" : "Leave as it is"}</option>
+				<option value="">{control === "options" && options.isPending ? s.common.loadingEllipsis : required ? a.choose : a.leaveAsIs}</option>
 				{choices.map((c) => (
 					<option key={c.value} value={c.value}>
 						{c.label}
 					</option>
 				))}
-				<option value={VARIABLE}>Use a variable…</option>
+				<option value={VARIABLE}>{a.useVariable}</option>
 			</select>
 		</FieldShell>
 	);

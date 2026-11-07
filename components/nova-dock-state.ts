@@ -16,6 +16,9 @@
  * que parecen enteros, y un workspace con id «123» saltaría al principio.
  */
 import { NOVA_PRODUCT_NAMES, novaOrigin, type NovaProduct, type NovaSurface } from "./nova-chat-parts";
+import { INTL_TAG, type Locale } from "../i18n/locale";
+import { interpolate } from "../i18n/format";
+import { SHARED_STRINGS } from "../i18n/strings";
 
 export const NOVA_DOCK_KEY = "nova_dock";
 export const DOCK_DEFAULT_WIDTH = 448; // 28rem
@@ -174,13 +177,14 @@ export function groupConversations(items: NovaConversationSummary[], now: Date, 
 	return groups.filter((g) => g.items.length > 0);
 }
 
-/** «2:05 PM» si es de hoy; «Oct 3» si no. En inglés, como el resto del panel. */
-export function historyTime(updatedAt: number, now: Date, timeZone: string = localZone()): string {
+/** «2:05 PM» si es de hoy; «Oct 3» si no. En el idioma de quien lee (`en` por defecto). */
+export function historyTime(updatedAt: number, now: Date, timeZone: string = localZone(), locale: Locale = "en"): string {
 	const date = new Date(updatedAt * 1000);
+	const tag = INTL_TAG[locale];
 	if (dayNumber(date, timeZone) >= dayNumber(now, timeZone)) {
-		return new Intl.DateTimeFormat("en-US", { timeZone, hour: "numeric", minute: "2-digit" }).format(date);
+		return new Intl.DateTimeFormat(tag, { timeZone, hour: "numeric", minute: "2-digit" }).format(date);
 	}
-	return new Intl.DateTimeFormat("en-US", { timeZone, month: "short", day: "numeric" }).format(date);
+	return new Intl.DateTimeFormat(tag, { timeZone, month: "short", day: "numeric" }).format(date).replace(/\.$/, "");
 }
 
 export function historyUrl(novaHost: string, workspaceId: string): string {
@@ -188,14 +192,14 @@ export function historyUrl(novaHost: string, workspaceId: string): string {
 }
 
 /** «the OnDesk console», «Atlas», o null para lo que no se conoce. */
-export function surfaceName(surface: string | null): string | null {
-	if (surface === "console") return "the OnDesk console";
+export function surfaceName(surface: string | null, locale: Locale = "en"): string | null {
+	if (surface === "console") return SHARED_STRINGS[locale].nova.theConsole;
 	return surface && Object.hasOwn(NOVA_PRODUCT_NAMES, surface) ? NOVA_PRODUCT_NAMES[surface as NovaProduct] : null;
 }
 
 /** La línea encima de una conversación empezada en otra superficie. */
-export function startedInText(origin: string | null, current: NovaSurface): string | null {
+export function startedInText(origin: string | null, current: NovaSurface, locale: Locale = "en"): string | null {
 	if (!origin || origin === current) return null;
-	const name = surfaceName(origin);
-	return name ? `Started in ${name}` : null;
+	const name = surfaceName(origin, locale);
+	return name ? interpolate(SHARED_STRINGS[locale].nova.startedIn, { name }) : null;
 }

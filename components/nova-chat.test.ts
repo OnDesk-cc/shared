@@ -19,6 +19,7 @@ import {
 	usageUrl,
 	type NovaToolCard,
 	NOVA_AI_NOTICE,
+	novaAiNotice,
 } from "./nova-chat-parts.ts";
 
 test("el estado de get-messages decide qué hacer", () => {
@@ -197,4 +198,23 @@ test("usageUrl: siempre con el producto de la hoja, y http sólo en local", () =
 test("NOVA_AI_NOTICE: el panel dice siempre que Nova es una IA, sin rayas", () => {
 	assert.match(NOVA_AI_NOTICE, /AI assistant/);
 	assert.doesNotMatch(NOVA_AI_NOTICE, /[—–]/);
+});
+
+test("los textos de la hoja hablan el idioma pedido; sin idioma, inglés", () => {
+	assert.equal(chatErrorText("websocket closed", "es"), "Se cortó la conexión con Nova. Vuelve a intentarlo.");
+	assert.equal(chatErrorText("websocket closed"), "The connection to Nova dropped. Try again.");
+	assert.equal(actionErrorText("not_found", "Orbit", "pt"), "Isso não existe mais.");
+	assert.equal(actionErrorText("payment_required", "Orbit", "es"), "Orbit no está activo en este espacio de trabajo.");
+	assert.equal(runningLabel("orbit.search_tasks", {}, "es"), "Consultando Orbit…");
+	assert.equal(runningLabel("open_product", { product: "halo" }, "pt"), "Abrindo o Halo…");
+	assert.equal(actionVerb("orbit.delete_task"), "Delete task");
+	assert.equal(actionVerb("orbit.delete_task", "es"), "Confirmar");
+	assert.equal(novaAiNotice("pt"), "A Nova é um assistente de IA.");
+});
+
+test("usageLine en es con plural y número local", () => {
+	const usage = { limit: 1000, remaining: 1, renews_at: "2026-12-01T00:00:00Z" } as never;
+	assert.equal(usageLine(usage, "es"), "Te queda 1 crédito este mes.");
+	const out = { limit: 1000, remaining: 0, renews_at: "2026-12-01T00:00:00Z" } as never;
+	assert.equal(usageLine(out, "pt"), "Você não tem mais créditos da Nova este mês. Eles renovam em 1 de dezembro (UTC).");
 });

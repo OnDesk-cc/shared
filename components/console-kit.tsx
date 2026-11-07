@@ -30,6 +30,7 @@ import { useCopy } from "../lib/use-copy";
 import { useDismiss } from "../hooks/map";
 import { Callout } from "./callout";
 import { Tag } from "./tag";
+import { useSharedStrings } from "../i18n/react";
 
 const ERROR_TEXT = "text-[#b3261e]";
 
@@ -112,6 +113,7 @@ export function Section({
  * se desplaza de lado y sigue a la actual.
  */
 export function CallingAt({ stops }: { stops: { id: string; label: string }[] }) {
+	const { s } = useSharedStrings();
 	const [current, setCurrent] = useState(stops[0]?.id);
 	const listRef = useRef<HTMLOListElement>(null);
 	const key = stops.map((stop) => stop.id).join("|");
@@ -160,7 +162,7 @@ export function CallingAt({ stops }: { stops: { id: string; label: string }[] })
 	const currentIndex = stops.findIndex((stop) => stop.id === current);
 
 	return (
-		<nav className="sk-onpage" aria-label="On this page">
+		<nav className="sk-onpage" aria-label={s.console.onThisPage}>
 			<ol ref={listRef}>
 				{stops.map((stop, i) => (
 					<li key={stop.id} data-stop={stop.id} className={i < currentIndex ? "is-done" : undefined}>
@@ -256,6 +258,7 @@ export function WorkspacePlate<T extends { id: string; name: string }>({
 	/** La última fila del menú, en lugar del enlace a la consola: un `role="menuitem"`. */
 	manage?: ReactNode;
 }) {
+	const { s, t } = useSharedStrings();
 	const [open, setOpen] = useState(false);
 	const box = useRef<HTMLDivElement>(null);
 	const trigger = useRef<HTMLButtonElement>(null);
@@ -272,7 +275,7 @@ export function WorkspacePlate<T extends { id: string; name: string }>({
 					className="-ml-2 inline-flex items-center gap-2 rounded-[12px] px-2 py-0.5 text-left transition-colors hover:bg-[rgba(14,27,46,0.05)]"
 					aria-haspopup="menu"
 					aria-expanded={open}
-					aria-label={`Switch workspace, currently ${current.name}`}
+					aria-label={t(s.console.switchWorkspace, { name: current.name })}
 					onClick={() => setOpen((v) => !v)}>
 					<span className="max-w-[58vw] truncate sm:max-w-[34rem]">{current.name}</span>
 					<ChevronDown
@@ -283,8 +286,8 @@ export function WorkspacePlate<T extends { id: string; name: string }>({
 				</button>
 			</h1>
 			{open && (
-				<div role="menu" aria-label="Workspaces" className="menu-panel left-0 top-full mt-2 w-80 max-w-[calc(100vw-2rem)]">
-					<p className="sk-small px-3 pb-1 pt-2 font-medium">Workspaces</p>
+				<div role="menu" aria-label={s.console.workspaces} className="menu-panel left-0 top-full mt-2 w-80 max-w-[calc(100vw-2rem)]">
+					<p className="sk-small px-3 pb-1 pt-2 font-medium">{s.console.workspaces}</p>
 					{all.map((workspace) => (
 						<button
 							key={workspace.id}
@@ -305,7 +308,7 @@ export function WorkspacePlate<T extends { id: string; name: string }>({
 					{manage ??
 						(manageHref && (
 							<a role="menuitem" href={manageHref}>
-								Manage in the console
+								{s.console.manageInConsole}
 								<ExternalLink className="ml-auto size-3.5 text-(--sk-ink-3)" strokeWidth={1.75} aria-hidden="true" />
 							</a>
 						))}
@@ -644,7 +647,7 @@ export function SaveRow({
 	pending,
 	saved,
 	blocked = false,
-	label = "Save",
+	label,
 	extra,
 }: {
 	dirty: boolean;
@@ -656,15 +659,16 @@ export function SaveRow({
 	/** Otro botón a la izquierda del de guardar: «Cancel», «Revert». */
 	extra?: ReactNode;
 }) {
+	const { s } = useSharedStrings();
 	const status = pending
-		? "Saving…"
+		? s.save.saving
 		: saved && !dirty
-			? "Saved."
+			? s.save.saved
 			: dirty && blocked
-				? "Fix the field above to save."
+				? s.save.blocked
 				: dirty
-					? "Unsaved changes."
-					: "No changes.";
+					? s.save.unsaved
+					: s.save.noChanges;
 	const ready = dirty && !blocked;
 	return (
 		<div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-2 border-t border-(--sk-hair) pt-4">
@@ -673,7 +677,7 @@ export function SaveRow({
 			</p>
 			{extra}
 			<button type="submit" className={`ticket ticket--sm ${ready ? "ticket--solid" : ""}`} disabled={!ready || pending} aria-busy={pending || undefined}>
-				{pending ? "Saving…" : label}
+				{pending ? s.save.saving : (label ?? s.save.save)}
 			</button>
 		</div>
 	);
@@ -685,6 +689,7 @@ export function SaveRow({
  * rechazado cuesta la comodidad, no el valor: sigue impreso y seleccionable.
  */
 export function CopyTicket({ value, label, text }: { value: string; label: string; text?: string }) {
+	const { s } = useSharedStrings();
 	const [copied, copy] = useCopy();
 	return (
 		<>
@@ -695,10 +700,10 @@ export function CopyTicket({ value, label, text }: { value: string; label: strin
 				title={text ? undefined : label}
 				className={text ? "ticket ticket--sm shrink-0" : "ticket ticket--glyph shrink-0"}>
 				{copied ? <CheckIcon className="size-4" strokeWidth={2} aria-hidden="true" /> : <Copy className="size-4" strokeWidth={1.75} aria-hidden="true" />}
-				{text && (copied ? "Copied" : text)}
+				{text && (copied ? s.common.copied : text)}
 			</button>
 			<span className="sr-only" aria-live="polite">
-				{copied ? "Copied" : ""}
+				{copied ? s.common.copied : ""}
 			</span>
 		</>
 	);
@@ -793,6 +798,7 @@ export function SheetDialog({
 	children?: ReactNode;
 	footer?: ReactNode;
 }) {
+	const { s } = useSharedStrings();
 	const ref = useRef<HTMLDialogElement>(null);
 	const titleId = useId();
 	const descId = useId();
@@ -834,7 +840,7 @@ export function SheetDialog({
 					)}
 				</div>
 				{dismissable && (
-					<button type="button" className="ticket ticket--glyph shrink-0" aria-label="Close" onClick={onClose}>
+					<button type="button" className="ticket ticket--glyph shrink-0" aria-label={s.common.close} onClick={onClose}>
 						<X className="size-4" strokeWidth={1.75} aria-hidden="true" />
 					</button>
 				)}
@@ -871,12 +877,13 @@ export function ConfirmRow({
 	/** Falso mientras falte algo para poder confirmar (el slug tecleado, una casilla). */
 	canConfirm?: boolean;
 }) {
+	const { s } = useSharedStrings();
 	return (
 		<div className="flex flex-col gap-3">
 			{error && <Alert error={error} />}
 			<div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
 				<button type="button" className="ticket ticket--sm" data-autofocus disabled={pending} onClick={onCancel}>
-					Cancel
+					{s.common.cancel}
 				</button>
 				<button
 					type="button"
@@ -917,8 +924,9 @@ export function Spine({ steps }: { steps: { title: string; text: ReactNode }[] }
 
 /** La forma de lo que viene mientras llega: bloques de niebla que respiran despacio, sin girar nada. */
 export function Skeleton({ rows = 4 }: { rows?: number }) {
+	const { s } = useSharedStrings();
 	return (
-		<div aria-busy="true" aria-label="Loading" className="flex flex-col gap-3">
+		<div aria-busy="true" aria-label={s.common.loading} className="flex flex-col gap-3">
 			<div className="skeleton h-9 w-1/2" />
 			{Array.from({ length: rows }, (_, i) => (
 				<div key={i} className="skeleton h-6" style={{ width: `${92 - i * 9}%` }} />

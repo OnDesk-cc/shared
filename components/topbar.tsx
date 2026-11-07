@@ -22,6 +22,7 @@ import { ArrowUpRight, Bell, HelpCircle, Search, X } from "lucide-react";
 import { useDismiss } from "../hooks/map";
 import { LinkArrow, textLinkClass } from "./console";
 import { NovaMark } from "./nova-mark";
+import { useSharedStrings } from "../i18n/react";
 
 // ─── el botón ────────────────────────────────────────────────────────────────
 
@@ -134,7 +135,7 @@ export function NotificationsMenu({
 	onDismiss,
 	onMarkAllRead,
 	onViewAll,
-	emptyText = "A reply, an assignment or a mention will appear here.",
+	emptyText,
 }: {
 	items: NotificationItem[];
 	unreadCount: number;
@@ -145,8 +146,9 @@ export function NotificationsMenu({
 	onViewAll: () => void;
 	emptyText?: string;
 }) {
+	const { s, t, num } = useSharedStrings();
 	const { open, setOpen, close, box, trigger } = usePanel();
-	const count = unreadCount > 99 ? "99+" : String(unreadCount);
+	const count = unreadCount > 99 ? `${num(99)}+` : num(unreadCount);
 
 	return (
 		<div ref={box} className="relative">
@@ -154,7 +156,7 @@ export function NotificationsMenu({
 				ref={trigger}
 				aria-haspopup="dialog"
 				aria-expanded={open}
-				aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : "Notifications"}
+				aria-label={unreadCount > 0 ? t(s.topbar.notificationsUnread, { count: num(unreadCount) }) : s.topbar.notifications}
 				onClick={() => setOpen((v) => !v)}>
 				<Bell className="size-[1.125rem]" strokeWidth={1.75} aria-hidden="true" />
 				{unreadCount > 0 && (
@@ -167,26 +169,26 @@ export function NotificationsMenu({
 			</TopbarButton>
 
 			{open && (
-				<div role="dialog" aria-label="Notifications" className="menu-panel absolute right-0 top-full z-50 mt-2 flex w-[24rem] max-w-[calc(100vw-2rem)] flex-col p-0!">
+				<div role="dialog" aria-label={s.topbar.notifications} className="menu-panel absolute right-0 top-full z-50 mt-2 flex w-[24rem] max-w-[calc(100vw-2rem)] flex-col p-0!">
 					<div className="flex items-center justify-between gap-3 px-4 pb-2.5 pt-3.5">
 						<p className="flex items-center gap-2 text-[0.9375rem] font-medium text-(--sk-ink)">
-							Notifications
-							{unreadCount > 0 && <span className="rounded-full bg-(--sk-mist) px-2 py-0.5 text-[0.75rem] font-medium text-(--sk-ink-2) tabular-nums">{count} new</span>}
+							{s.topbar.notifications}
+							{unreadCount > 0 && <span className="rounded-full bg-(--sk-mist) px-2 py-0.5 text-[0.75rem] font-medium text-(--sk-ink-2) tabular-nums">{t(s.topbar.countNew, { count })}</span>}
 						</p>
 						{unreadCount > 0 && (
 							<button type="button" className={`${textLinkClass} text-[0.8125rem]`} onClick={onMarkAllRead}>
-								Mark all read
+								{s.topbar.markAllRead}
 							</button>
 						)}
 					</div>
 
 					<div className="max-h-[22rem] overflow-y-auto overscroll-contain border-y border-(--sk-hair) px-1.5 py-1.5">
 						{isLoading ? (
-							<p className="sk-small px-3 py-6">Loading…</p>
+							<p className="sk-small px-3 py-6">{s.common.loadingEllipsis}</p>
 						) : items.length === 0 ? (
 							<div className="px-3 py-6">
-								<p className="text-[0.9375rem] font-medium text-(--sk-ink)">Nothing new</p>
-								<p className="sk-small mt-1">{emptyText}</p>
+								<p className="text-[0.9375rem] font-medium text-(--sk-ink)">{s.topbar.nothingNew}</p>
+								<p className="sk-small mt-1">{emptyText ?? s.topbar.notificationsEmpty}</p>
 							</div>
 						) : (
 							<ul className="flex flex-col gap-0.5">
@@ -201,8 +203,7 @@ export function NotificationsMenu({
 												if (item.opens) close();
 											}}>
 											<span className="sr-only">
-												{item.read ? "" : "Unread: "}
-												{item.title}
+												{item.read ? item.title : t(s.topbar.unreadTitle, { title: item.title })}
 											</span>
 										</button>
 										{item.icon}
@@ -217,7 +218,7 @@ export function NotificationsMenu({
 										<button
 											type="button"
 											className="relative z-10 -mr-1 inline-flex size-7 shrink-0 items-center justify-center rounded-full text-(--sk-ink-3) opacity-60 transition-[opacity,background-color] duration-150 hover:bg-[rgba(14,27,46,0.06)] hover:text-(--sk-ink) focus-visible:opacity-100 group-hover:opacity-100"
-											aria-label={`Dismiss: ${item.title}`}
+											aria-label={t(s.topbar.dismiss, { title: item.title })}
 											onClick={() => onDismiss(item.id)}>
 											<X className="size-3.5" strokeWidth={1.75} aria-hidden="true" />
 										</button>
@@ -235,7 +236,7 @@ export function NotificationsMenu({
 								close();
 								onViewAll();
 							}}>
-							All notifications
+							{s.topbar.allNotifications}
 							<LinkArrow />
 						</button>
 					</div>
@@ -260,7 +261,7 @@ export function TopbarSearch({
 	label,
 	minChars = 1,
 	hasResults,
-	emptyTitle = "Nothing matches",
+	emptyTitle,
 	emptyText,
 	children,
 }: {
@@ -276,6 +277,7 @@ export function TopbarSearch({
 	emptyText?: string;
 	children: (close: () => void) => ReactNode;
 }) {
+	const { s } = useSharedStrings();
 	const [focused, setFocused] = useState(false);
 	const box = useRef<HTMLDivElement>(null);
 	const input = useRef<HTMLInputElement>(null);
@@ -315,7 +317,7 @@ export function TopbarSearch({
 						<div className="max-h-[24rem] overflow-y-auto overscroll-contain">{children(close)}</div>
 					) : (
 						<div className="px-3 py-4">
-							<p className="text-[0.9375rem] font-medium text-(--sk-ink)">{emptyTitle}</p>
+							<p className="text-[0.9375rem] font-medium text-(--sk-ink)">{emptyTitle ?? s.topbar.nothingMatches}</p>
 							{emptyText && <p className="sk-small mt-1 max-w-[46ch]">{emptyText}</p>}
 						</div>
 					)}
@@ -388,16 +390,17 @@ export interface HelpTopic {
  * app; la forma es ésta.
  */
 export function HelpMenu({ intro, topics, onAskNova }: { intro: string; topics: HelpTopic[]; onAskNova: () => void }) {
+	const { s } = useSharedStrings();
 	const { open, setOpen, close, box, trigger } = usePanel();
 	return (
 		<div ref={box} className="relative">
-			<TopbarButton ref={trigger} aria-haspopup="menu" aria-expanded={open} aria-label="Help" onClick={() => setOpen((v) => !v)}>
+			<TopbarButton ref={trigger} aria-haspopup="menu" aria-expanded={open} aria-label={s.topbar.help} onClick={() => setOpen((v) => !v)}>
 				<HelpCircle className="size-[1.125rem]" strokeWidth={1.75} aria-hidden="true" />
 			</TopbarButton>
 			{open && (
-				<div role="menu" aria-label="Help" className="menu-panel absolute right-0 top-full z-50 mt-2 flex w-[24rem] max-w-[calc(100vw-2rem)] flex-col p-0!">
+				<div role="menu" aria-label={s.topbar.help} className="menu-panel absolute right-0 top-full z-50 mt-2 flex w-[24rem] max-w-[calc(100vw-2rem)] flex-col p-0!">
 					<div className="px-4 pb-2.5 pt-3.5">
-						<p className="text-[0.9375rem] font-medium text-(--sk-ink)">Help</p>
+						<p className="text-[0.9375rem] font-medium text-(--sk-ink)">{s.topbar.help}</p>
 						<p className="sk-small mt-0.5 leading-snug">{intro}</p>
 					</div>
 					<div className="max-h-[22rem] overflow-y-auto overscroll-contain border-y border-(--sk-hair) px-1.5 py-1.5">
@@ -427,7 +430,7 @@ export function HelpMenu({ intro, topics, onAskNova }: { intro: string; topics: 
 								close();
 								onAskNova();
 							}}>
-							Ask Nova instead
+							{s.topbar.askNovaInstead}
 						</NovaButton>
 					</div>
 				</div>

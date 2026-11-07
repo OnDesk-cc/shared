@@ -23,7 +23,10 @@ import { useLayoutEffect, useRef, type ElementType, type ReactNode, type Ref } f
 import { ArrowUp, CircleAlert, MessageSquareText } from "lucide-react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../ui/sheet";
 import { NovaMark } from "./nova-mark";
-import { NOVA_AI_NOTICE } from "./nova-chat-parts";
+import { novaAiNotice } from "./nova-chat-parts";
+import { useSharedStrings } from "../i18n/react";
+import type { Locale } from "../i18n/locale";
+import { SHARED_STRINGS } from "../i18n/strings";
 
 export interface NovaMessage {
 	role: "user" | "assistant";
@@ -39,9 +42,6 @@ export interface NovaSuggestion {
 
 // ─── el fallo, dicho en una frase ────────────────────────────────────────────
 
-const UNREACHABLE = "Couldn't reach Nova. Check your connection and try again.";
-const DOWN = "Nova couldn't be reached right now.";
-const NO_ANSWER = "Nova didn't answer that one. Try asking again.";
 
 /**
  * Lo que la hoja dice cuando algo falla, en una frase propia y nunca el cuerpo
@@ -49,8 +49,9 @@ const NO_ANSWER = "Nova didn't answer that one. Try asking again.";
  * error de la API (`{"error":"…"}` → ese campo) o el «Failed to fetch» de un
  * `fetch` sin red.
  */
-export function novaErrorMessage(err: unknown): string {
-	if (err instanceof DOMException && err.name === "AbortError") return "The answer was cut off. Try asking again.";
+export function novaErrorMessage(err: unknown, locale: Locale = "en"): string {
+	const { unreachable: UNREACHABLE, down: DOWN, noAnswer: NO_ANSWER, cutOff } = SHARED_STRINGS[locale].nova;
+	if (err instanceof DOMException && err.name === "AbortError") return cutOff;
 	const raw = err instanceof Error ? err.message : typeof err === "string" ? err : "";
 	const text = raw.trim();
 	if (!text) return NO_ANSWER;
@@ -229,6 +230,7 @@ export function NovaMessageRow({
 	lead?: ReactNode;
 	children?: ReactNode;
 }) {
+	const { s } = useSharedStrings();
 	if (role === "user") {
 		return (
 			<div className="flex justify-end pl-10">
@@ -248,7 +250,7 @@ export function NovaMessageRow({
 			<div className="min-w-0 flex-1 pt-[0.3125rem]">
 				{lead && <div className={content.trim() !== "" || pending ? "mb-3" : ""}>{lead}</div>}
 				{pending ? (
-					<p className="sk-nova-writing text-[0.9375rem] leading-relaxed">Writing…</p>
+					<p className="sk-nova-writing text-[0.9375rem] leading-relaxed">{s.nova.writing}</p>
 				) : lead && content.trim() === "" ? null : (
 					<div
 						className={`max-w-[62ch] text-[0.9375rem] leading-relaxed [overflow-wrap:anywhere] ${failed && !partial ? "text-(--sk-ink-2)" : "text-(--sk-ink)"}`}>
@@ -282,7 +284,7 @@ export function NovaComposer({
 	onSubmit,
 	busy = false,
 	placeholder,
-	label = "Ask Nova",
+	label,
 	inputRef,
 	leading,
 }: {
@@ -297,6 +299,7 @@ export function NovaComposer({
 	/** A la izquierda del texto (la estrella de Nova en el campo de la portada de la consola). */
 	leading?: ReactNode;
 }) {
+	const { s } = useSharedStrings();
 	const own = useRef<HTMLTextAreaElement | null>(null);
 	const canSend = value.trim().length > 0 && !busy;
 
@@ -323,7 +326,7 @@ export function NovaComposer({
 					if (typeof inputRef === "function") inputRef(el);
 					else if (inputRef) inputRef.current = el;
 				}}
-				aria-label={label}
+				aria-label={label ?? s.nova.askNova}
 				placeholder={placeholder}
 				rows={1}
 				value={value}
@@ -335,7 +338,7 @@ export function NovaComposer({
 					}
 				}}
 			/>
-			<button type="submit" className="sk-composer-send" disabled={!canSend} aria-label="Send" aria-busy={busy || undefined}>
+			<button type="submit" className="sk-composer-send" disabled={!canSend} aria-label={s.nova.send} aria-busy={busy || undefined}>
 				<ArrowUp className="size-4" strokeWidth={2} aria-hidden="true" />
 			</button>
 		</form>
@@ -358,10 +361,11 @@ export function NovaSuggestions({
 	onPick: (prompt: string) => void;
 	disabled?: boolean;
 }) {
+	const shared = useSharedStrings();
 	const all: (NovaSuggestion & { scoped?: boolean })[] = scoped ? [{ ...scoped, scoped: true }, ...suggestions] : suggestions;
 	if (all.length === 0) return null;
 	return (
-		<ul className="flex flex-col gap-0.5 rounded-[16px] bg-(--sk-surface) p-1 shadow-[inset_0_0_0_1px_var(--sk-hair)]" aria-label="Suggested questions">
+		<ul className="flex flex-col gap-0.5 rounded-[16px] bg-(--sk-surface) p-1 shadow-[inset_0_0_0_1px_var(--sk-hair)]" aria-label={shared.s.nova.suggested}>
 			{all.map((s) => {
 				const Icon = s.icon ?? MessageSquareText;
 				const isScoped = Boolean(s.scoped);
@@ -436,6 +440,7 @@ export interface NovaThreadFrameProps {
  * escribe Nova, salvo si has subido a leer.
  */
 export function NovaThreadFrame({ busy, scrollKey, revealKey, children, composer, footnote, notice, inputRef }: NovaThreadFrameProps) {
+	const { s, locale } = useSharedStrings();
 	const log = useRef<HTMLDivElement | null>(null);
 	// Si la vista está al final. Leer una respuesta larga hacia arriba mientras
 	// llega no debe devolverte abajo con cada token.
@@ -453,7 +458,7 @@ export function NovaThreadFrame({ busy, scrollKey, revealKey, children, composer
 				role="log"
 				aria-live="polite"
 				aria-busy={busy}
-				aria-label="Conversation with Nova"
+				aria-label={s.nova.conversation}
 				onScroll={(e) => {
 					const el = e.currentTarget;
 					pinned.current = el.scrollHeight - el.scrollTop - el.clientHeight < 48;
@@ -483,7 +488,7 @@ export function NovaThreadFrame({ busy, scrollKey, revealKey, children, composer
 				{/* La frase fija va siempre delante de la nota de la app: Nova es una IA y
 				    se dice (NOVA_AI_NOTICE, compliance de EE. UU.). */}
 				<p className="sk-small mt-2.5 text-pretty px-1 leading-snug">
-					{NOVA_AI_NOTICE} {footnote}
+					{novaAiNotice(locale)} {footnote}
 				</p>
 			</div>
 		</>

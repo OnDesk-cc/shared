@@ -21,6 +21,7 @@ import { FlaskConical, Plus, Search } from "lucide-react";
 import { Alert, ConfirmRow, SheetDialog, TextField } from "../console-kit";
 import { Panel } from "../console";
 import { Callout } from "../callout";
+import { useSharedStrings } from "../../i18n/react";
 import { AutomationsError, automationsApi, type FlowInput } from "./automations-api";
 import {
 	defaultParams,
@@ -68,18 +69,20 @@ export function AutomationEditor({
 	memberName?: (id: string) => string | null;
 	onBack: () => void;
 }) {
-	const triggers = catalog.triggers.filter((t) => triggerProducts.includes(t.product));
+	const { s, t, locale } = useSharedStrings();
+	const a = s.automations;
+	const triggers = catalog.triggers.filter((tr) => triggerProducts.includes(tr.product));
 	const [draft, setDraft] = useState<FlowDraft>(() => draftOf(flow, flow ? flow.trigger_type : (triggers[0]?.type ?? "")));
 	const [showErrors, setShowErrors] = useState(false);
 	const [confirmOwner, setConfirmOwner] = useState(false);
 	const m = useFlowMutations(novaHost, workspaceId);
 	const save = flow ? m.update : m.create;
 
-	const trigger = catalog.triggers.find((t) => t.type === draft.trigger_type) ?? null;
-	const errors = useMemo(() => draftErrors(catalog, draft), [catalog, draft]);
+	const trigger = catalog.triggers.find((tr) => tr.type === draft.trigger_type) ?? null;
+	const errors = useMemo(() => draftErrors(catalog, draft, locale), [catalog, draft, locale]);
 	const changesWhatItDoes = !!flow && (flow.trigger_type !== draft.trigger_type || !sameJson(flow.conditions, draft.conditions) || !sameJson(flow.steps, draft.steps));
 	const notOwner = !!flow && flow.owner_id !== userId;
-	const ownerName = flow ? (memberName?.(flow.owner_id) ?? "another member") : null;
+	const ownerName = flow ? (memberName?.(flow.owner_id) ?? a.runsAsOther) : null;
 	const dirty = !flow || flow.name !== draft.name || changesWhatItDoes;
 
 	function setSteps(steps: FlowDraft["steps"]) {
@@ -106,37 +109,37 @@ export function AutomationEditor({
 			<header className="flex flex-col gap-4">
 				<BackLink onClick={onBack} />
 				<div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-					<h2 className="sk-h2 min-w-0 text-[1.5rem] [overflow-wrap:anywhere] md:text-[1.75rem]">{flow ? flow.name : "New automation"}</h2>
+					<h2 className="sk-h2 min-w-0 text-[1.5rem] [overflow-wrap:anywhere] md:text-[1.75rem]">{flow ? flow.name : a.newAutomation}</h2>
 					{flow && <StatusTag flow={flow} />}
 				</div>
 				{notOwner && (
-					<Callout tone="warning" title={`This automation runs as ${ownerName}`}>
-						It does what that person can do. If you change what it does, it runs as you from then on.
+					<Callout tone="warning" title={t(a.runsAsWarning, { name: ownerName ?? "" })}>
+						{a.runsAsWarningBody}
 					</Callout>
 				)}
 			</header>
 
-			<Panel title="Name">
-				<TextField id="flow-name" label="Name" value={draft.name} onChange={(name) => setDraft((d) => ({ ...d, name }))} max={120} error={showErrors && !draft.name.trim() ? "Give it a name" : null} />
+			<Panel title={a.name}>
+				<TextField id="flow-name" label={a.name} value={draft.name} onChange={(name) => setDraft((d) => ({ ...d, name }))} max={120} error={showErrors && !draft.name.trim() ? a.giveName : null} />
 			</Panel>
 
-			<Panel title="When">
+			<Panel title={a.when}>
 				{triggers.length === 0 ? (
-					<p className="sk-small">There's nothing in this app that can start an automation yet.</p>
+					<p className="sk-small">{a.nothingCanStart}</p>
 				) : (
 					<label className="flex max-w-md flex-col gap-1.5">
-						<span className="sk-label mb-0!">This happens</span>
+						<span className="sk-label mb-0!">{a.thisHappens}</span>
 						<select
 							className="field sk-select"
 							value={draft.trigger_type}
 							onChange={(e) => setDraft((d) => ({ ...d, trigger_type: e.target.value, conditions: { match: "all", rules: [] } }))}>
-							{[...new Set(triggers.map((t) => t.product))].map((product) => (
+							{[...new Set(triggers.map((tr) => tr.product))].map((product) => (
 								<optgroup key={product} label={PRODUCT_LABELS[product]}>
 									{triggers
-										.filter((t) => t.product === product)
-										.map((t) => (
-											<option key={t.type} value={t.type}>
-												{t.label}
+										.filter((tr) => tr.product === product)
+										.map((tr) => (
+											<option key={tr.type} value={tr.type}>
+												{tr.label}
 											</option>
 										))}
 								</optgroup>
@@ -147,13 +150,13 @@ export function AutomationEditor({
 				)}
 			</Panel>
 
-			<Panel title="Only if">
+			<Panel title={a.onlyIf}>
 				<ConditionEditor trigger={trigger} value={draft.conditions} onChange={(conditions) => setDraft((d) => ({ ...d, conditions }))} />
 			</Panel>
 
-			<Panel title="Do" meta={`${draft.steps.length} of ${MAX_STEPS} steps`}>
+			<Panel title={a.do} meta={t(a.stepsOf, { count: draft.steps.length, max: MAX_STEPS })}>
 				<div className="flex flex-col gap-4">
-					{draft.steps.length === 0 && <p className="sk-small">Add what should happen, in order. Each step can use what the steps before it created.</p>}
+					{draft.steps.length === 0 && <p className="sk-small">{a.doBody}</p>}
 					<ol className="flex flex-col gap-4">
 						{draft.steps.map((step, i) => (
 							<StepEditor
@@ -162,11 +165,11 @@ export function AutomationEditor({
 								count={draft.steps.length}
 								step={step}
 								action={catalog.actions.find((a) => a.tool === step.tool) ?? null}
-								vars={variablesAt(catalog, draft.trigger_type, draft.steps, i)}
+								vars={variablesAt(catalog, draft.trigger_type, draft.steps, i, locale)}
 								novaHost={novaHost}
 								workspaceId={workspaceId}
 								errors={showErrors ? errors : []}
-								onChange={(next) => setSteps(draft.steps.map((s, j) => (j === i ? next : s)))}
+								onChange={(next) => setSteps(draft.steps.map((st, j) => (j === i ? next : st)))}
 								onMove={(delta) => {
 									const steps = [...draft.steps];
 									[steps[i], steps[i + delta]] = [steps[i + delta], steps[i]];
@@ -180,7 +183,7 @@ export function AutomationEditor({
 						<label className="flex max-w-md flex-col gap-1.5">
 							<span className="sk-label mb-0!">
 								<Plus className="mr-1.5 inline size-3.5 align-[-2px]" strokeWidth={1.75} aria-hidden="true" />
-								Add a step
+								{a.addStep}
 							</span>
 							<select
 								className="field sk-select"
@@ -190,7 +193,7 @@ export function AutomationEditor({
 									if (!action) return;
 									setSteps([...draft.steps, { tool: action.tool, params: trigger ? defaultParams(action, trigger) : {} }]);
 								}}>
-								<option value="">Choose an action…</option>
+								<option value="">{a.chooseAction}</option>
 								{[...new Set(catalog.actions.map((a) => a.product))].map((product) => (
 									<optgroup key={product} label={PRODUCT_LABELS[product]}>
 										{catalog.actions
@@ -211,17 +214,17 @@ export function AutomationEditor({
 			{flow && <TestPanel novaHost={novaHost} workspaceId={workspaceId} flow={flow} dirty={dirty} />}
 
 			{flow && (
-				<Panel title="Runs">
+				<Panel title={a.runs}>
 					<RunsList novaHost={novaHost} workspaceId={workspaceId} catalog={catalog} flowId={flow.id} />
 				</Panel>
 			)}
 
 			<div className="sk-card sticky bottom-4 z-10 flex flex-col gap-3 px-5 py-4 sm:px-7">
 				{showErrors && errors.length > 0 && (
-					<Callout tone="danger" role="alert" title="Fix these to save">
+					<Callout tone="danger" role="alert" title={a.fixToSave}>
 						<ul className="list-disc pl-5">
-							{errors.slice(0, 6).map((e) => (
-								<li key={e}>{e}</li>
+							{errors.slice(0, 6).map((err) => (
+								<li key={err}>{err}</li>
 							))}
 						</ul>
 					</Callout>
@@ -229,10 +232,10 @@ export function AutomationEditor({
 				{apiError && !confirmOwner && <Alert error={apiError} />}
 				<div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
 					<button type="button" className="ticket ticket--sm" disabled={save.isPending} onClick={onBack}>
-						Cancel
+						{s.common.cancel}
 					</button>
 					<button type="button" className="ticket ticket--sm ticket--solid" disabled={save.isPending || !dirty} aria-busy={save.isPending || undefined} onClick={() => submit()}>
-						{save.isPending ? "Saving…" : flow ? "Save changes" : "Create automation"}
+						{save.isPending ? s.save.saving : flow ? a.saveChanges : a.create}
 					</button>
 				</div>
 			</div>
@@ -240,14 +243,14 @@ export function AutomationEditor({
 			<SheetDialog
 				open={confirmOwner}
 				onClose={() => setConfirmOwner(false)}
-				title="Run it as you?"
-				description={`Right now it runs as ${ownerName}. After this change it does what you can do, in every app it touches.`}
+				title={a.runAsYouTitle}
+				description={t(a.runAsYouBody, { name: ownerName ?? "" })}
 				footer={
 					<ConfirmRow
 						error={apiError}
 						pending={m.update.isPending}
-						label="Save and run as me"
-						pendingLabel="Saving…"
+						label={a.saveAndRunAsMe}
+						pendingLabel={s.save.saving}
 						onCancel={() => setConfirmOwner(false)}
 						onConfirm={() => submit(true)}
 					/>
@@ -259,6 +262,8 @@ export function AutomationEditor({
 
 /** «Test»: un objeto real, leído como quien prueba, y lo que haría cada paso. Nada se escribe. */
 function TestPanel({ novaHost, workspaceId, flow, dirty }: { novaHost: string; workspaceId: string; flow: ListedFlow; dirty: boolean }) {
+	const { s: strings, t } = useSharedStrings();
+	const a = strings.automations;
 	const [q, setQ] = useState("");
 	const [subjects, setSubjects] = useState<{ resource: string; label: string }[] | null>(null);
 	const [result, setResult] = useState<FlowTestResult | null>(null);
@@ -271,7 +276,7 @@ function TestPanel({ novaHost, workspaceId, flow, dirty }: { novaHost: string; w
 		try {
 			setSubjects(await automationsApi.subjects(novaHost, workspaceId, flow.trigger_type, q.trim()));
 		} catch (err) {
-			setError(err instanceof Error ? err : new Error("Couldn't search right now."));
+			setError(err instanceof Error ? err : new Error(a.searchError));
 		} finally {
 			setBusy(null);
 		}
@@ -284,18 +289,18 @@ function TestPanel({ novaHost, workspaceId, flow, dirty }: { novaHost: string; w
 		try {
 			setResult(await automationsApi.test(novaHost, workspaceId, flow.id, resource));
 		} catch (err) {
-			setError(err instanceof Error ? err : new Error("Couldn't test right now."));
+			setError(err instanceof Error ? err : new Error(a.testError));
 		} finally {
 			setBusy(null);
 		}
 	}
 
 	return (
-		<Panel title="Test">
+		<Panel title={a.test}>
 			<div className="flex flex-col gap-4">
 				<p className="max-w-[68ch] text-[0.9375rem] leading-relaxed text-(--sk-ink-2)">
-					Pick a real item and see what each step would do, as you. Nothing is created or changed.
-					{dirty && " This tests the saved version, not your unsaved changes."}
+					{a.testBody}
+					{dirty && ` ${a.testSavedOnly}`}
 				</p>
 				<form
 					className="flex max-w-xl gap-2"
@@ -304,18 +309,18 @@ function TestPanel({ novaHost, workspaceId, flow, dirty }: { novaHost: string; w
 						void find();
 					}}>
 					<label className="sr-only" htmlFor={`test-q-${flow.id}`}>
-						Find an item
+						{a.findItem}
 					</label>
-					<input id={`test-q-${flow.id}`} className="field" placeholder="Search by name or number" value={q} maxLength={120} onChange={(e) => setQ(e.target.value)} />
+					<input id={`test-q-${flow.id}`} className="field" placeholder={a.searchPlaceholder} value={q} maxLength={120} onChange={(e) => setQ(e.target.value)} />
 					<button type="submit" className="ticket ticket--sm shrink-0" disabled={busy !== null} aria-busy={busy === "find" || undefined}>
 						<Search className="size-4" strokeWidth={1.75} aria-hidden="true" />
-						Find
+						{a.find}
 					</button>
 				</form>
 				{error && <Alert error={error} />}
-				{subjects && subjects.length === 0 && <p className="sk-small">Nothing found that you can see.</p>}
+				{subjects && subjects.length === 0 && <p className="sk-small">{a.nothingFound}</p>}
 				{subjects && subjects.length > 0 && (
-					<ul className="flex flex-wrap gap-2" aria-label="Items to test with">
+					<ul className="flex flex-wrap gap-2" aria-label={a.itemsToTest}>
 						{subjects.map((s) => (
 							<li key={s.resource}>
 								<button type="button" className="ticket ticket--sm" disabled={busy !== null} onClick={() => void run(s.resource)}>
@@ -329,14 +334,14 @@ function TestPanel({ novaHost, workspaceId, flow, dirty }: { novaHost: string; w
 				{result && (
 					<div className="flex flex-col gap-3" aria-live="polite">
 						{!result.matched ? (
-							<Callout tone="info" title="It wouldn't run for this item">
-								The conditions don't match it.
+							<Callout tone="info" title={a.wouldntRun}>
+								{a.conditionsDontMatch}
 							</Callout>
 						) : (
 							<ol className="flex flex-col gap-3">
 								{result.steps.map((s, i) => (
 									<li key={i} className="rounded-[14px] bg-(--sk-ground) px-4 py-3">
-										<p className="sk-small">Step {i + 1}</p>
+										<p className="sk-small">{t(a.step, { n: i + 1 })}</p>
 										{s.ok && s.preview ? (
 											<>
 												<p className="font-medium text-(--sk-ink) [overflow-wrap:anywhere]">{s.preview.summary}</p>
@@ -350,7 +355,7 @@ function TestPanel({ novaHost, workspaceId, flow, dirty }: { novaHost: string; w
 												</dl>
 											</>
 										) : (
-											<p className="font-medium text-[#b3261e] [overflow-wrap:anywhere]">{s.error ?? "This step would fail."}</p>
+											<p className="font-medium text-[#b3261e] [overflow-wrap:anywhere]">{s.error ?? a.stepWouldFail}</p>
 										)}
 									</li>
 								))}

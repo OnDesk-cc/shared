@@ -8,6 +8,7 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from "../ui/alert-dialog";
+import { useSharedStrings } from "../i18n/react";
 
 /**
  * «¿Seguro?» antes de un borrado, igual en los seis productos.
@@ -42,6 +43,7 @@ export function ConfirmDeleteModal({
 	confirmLabel,
 	onConfirm,
 }: ConfirmDeleteModalProps) {
+	const { s } = useSharedStrings();
 	return (
 		<AlertDialog open={open} onOpenChange={onOpenChange}>
 			<AlertDialogContent>
@@ -50,7 +52,7 @@ export function ConfirmDeleteModal({
 					<AlertDialogDescription>{description}</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
-					<AlertDialogCancel>Cancel</AlertDialogCancel>
+					<AlertDialogCancel>{s.common.cancel}</AlertDialogCancel>
 					<AlertDialogAction
 						variant="destructive"
 						onClick={() => {

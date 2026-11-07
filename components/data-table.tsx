@@ -16,6 +16,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Panel, EmptyState } from "./console";
 import { Callout } from "./callout";
 import { Skeleton } from "./console-kit";
+import { useSharedStrings } from "../i18n/react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
 
 // ─── el paginador ────────────────────────────────────────────────────────────
@@ -37,25 +38,25 @@ export interface PaginationProps {
  * hay nada que cambiar.
  */
 export function Pagination({ page, pageSize, total, onPageChange, pageSizeOptions, onPageSizeChange, className = "" }: PaginationProps) {
+	const { s, t, num } = useSharedStrings();
 	const smallest = Math.min(pageSize, ...(onPageSizeChange && pageSizeOptions?.length ? pageSizeOptions : [pageSize]));
 	if (total <= smallest) return null;
 	const pages = Math.max(1, Math.ceil(total / pageSize));
 	const current = Math.min(Math.max(1, page), pages);
 	const from = (current - 1) * pageSize + 1;
 	const to = Math.min(current * pageSize, total);
-	const fmt = (n: number) => n.toLocaleString("en");
 	return (
-		<nav className={`sk-pager ${className}`} aria-label="Pagination">
+		<nav className={`sk-pager ${className}`} aria-label={s.table.pagination}>
 			<p aria-live="polite">
 				<span className="text-(--sk-ink-2)">
-					{fmt(from)}–{fmt(to)}
+					{num(from)}–{num(to)}
 				</span>{" "}
-				of {fmt(total)}
+				{t(s.table.ofTotal, { total: num(total) })}
 			</p>
 			<div className="flex flex-wrap items-center gap-x-4 gap-y-2">
 				{onPageSizeChange && pageSizeOptions && pageSizeOptions.length > 1 && (
 					<label className="flex items-center gap-2">
-						<span>Rows per page</span>
+						<span>{s.table.rowsPerPage}</span>
 						<select
 							className="field field--sm sk-select w-auto! min-h-[30px]! py-0! pr-8!"
 							value={pageSize}
@@ -70,12 +71,12 @@ export function Pagination({ page, pageSize, total, onPageChange, pageSizeOption
 				)}
 				<div className="flex items-center gap-1.5">
 					<span className="mr-1">
-						Page {fmt(current)} of {fmt(pages)}
+						{t(s.table.pageOf, { page: num(current), pages: num(pages) })}
 					</span>
 					<button
 						type="button"
 						className="ticket ticket--glyph ticket--xs"
-						aria-label="Previous page"
+						aria-label={s.table.previousPage}
 						disabled={current <= 1}
 						onClick={() => onPageChange(current - 1)}>
 						<ChevronLeft className="size-4" strokeWidth={1.75} aria-hidden="true" />
@@ -83,7 +84,7 @@ export function Pagination({ page, pageSize, total, onPageChange, pageSizeOption
 					<button
 						type="button"
 						className="ticket ticket--glyph ticket--xs"
-						aria-label="Next page"
+						aria-label={s.table.nextPage}
 						disabled={current >= pages}
 						onClick={() => onPageChange(current + 1)}>
 						<ChevronRight className="size-4" strokeWidth={1.75} aria-hidden="true" />
@@ -149,6 +150,7 @@ export function DataTable<T>({
 	pagination?: PaginationProps;
 	className?: string;
 }) {
+	const { s } = useSharedStrings();
 	const cellClass = (c: DataColumn<T>) => `${c.hideBelow ? HIDE[c.hideBelow] : ""} ${c.align === "end" ? "text-right" : ""} ${c.className ?? ""}`;
 
 	let body: ReactNode;
@@ -156,7 +158,7 @@ export function DataTable<T>({
 		body = (
 			<div className="px-5 pb-5 sm:px-7 sm:pb-6">
 				<Callout tone="danger" role="alert">
-					{error.message || "This list couldn't load. Try again in a moment."}
+					{error.message || s.table.loadError}
 				</Callout>
 			</div>
 		);

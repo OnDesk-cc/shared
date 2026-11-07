@@ -41,6 +41,7 @@ import type { NovaUsage } from "../worker/nova-contract";
 import { NovaMessageRow, NovaSheetShell, NovaSuggestions, NovaThreadFrame, novaErrorMessage, type NovaMessage, type NovaSheetProps, type NovaSuggestion } from "./nova";
 import { NovaToolCards } from "./nova-chat-tools";
 import { textLinkClass } from "./console";
+import { useSharedStrings } from "../i18n/react";
 import {
 	asUsage,
 	chatErrorText,
@@ -188,12 +189,13 @@ export function NovaConversation({
 		},
 	});
 
+	const { s, locale } = useSharedStrings();
 	const busy = status === "submitted" || status === "streaming";
 	const visible = messages.filter((m) => m.role === "user" || m.role === "assistant");
 	const last = visible[visible.length - 1];
 	const waiting = status === "submitted" && last?.role !== "assistant";
 	const previews = useMemo(() => collectPreviews(messages), [messages]);
-	const usageText = usageLine(latestUsage(messages, initialUsage ?? openingUsage, new Date()));
+	const usageText = usageLine(latestUsage(messages, initialUsage ?? openingUsage, new Date()), locale);
 
 	// Montada: el campo ya es el de verdad. Sólo la primera vez.
 	const ready = useRef(onReady);
@@ -235,9 +237,9 @@ export function NovaConversation({
 	}
 
 	const errorText = sessionExpired
-		? "Your session expired. Reload the page to keep talking to Nova."
+		? s.nova.sessionExpired
 		: error
-			? (chatErrorText(error.message) ?? novaErrorMessage(error))
+			? (chatErrorText(error.message, locale) ?? novaErrorMessage(error, locale))
 			: null;
 
 	return (
@@ -264,7 +266,7 @@ export function NovaConversation({
 				const text = messageText(message);
 				const isLast = i === visible.length - 1;
 				const streaming = busy && isLast && message.role === "assistant";
-				const cards = message.role === "assistant" ? toolCards(message, { previews, latest: isLast && !busy, live: streaming }) : [];
+				const cards = message.role === "assistant" ? toolCards(message, { previews, latest: isLast && !busy, live: streaming, locale }) : [];
 				const done = message.role === "assistant" && !streaming && text.trim() !== "";
 				return (
 					<NovaMessageRow
@@ -286,12 +288,12 @@ export function NovaConversation({
 						<>
 							<button type="button" className={`${textLinkClass} text-[0.875rem]`} onClick={() => void regenerate()}>
 								<RotateCcw className="size-3.5" strokeWidth={1.75} aria-hidden="true" />
-								Try again
+								{s.common.tryAgain}
 							</button>
 							{/* Una salida siempre a mano, aunque la conversación no tenga mensajes. */}
 							<button type="button" className={`${textLinkClass} text-[0.875rem]`} onClick={onStartOver}>
 								<SquarePen className="size-3.5" strokeWidth={1.75} aria-hidden="true" />
-								New chat
+								{s.nova.newChat}
 							</button>
 						</>
 					)}
@@ -356,6 +358,7 @@ export function NovaChatSheet(props: NovaChatSheetProps) {
 }
 
 function SheetConversation({ storageKey, open, onOpenChange, title = "Nova", description, product, ...rest }: NovaChatSheetProps & { storageKey: string }) {
+	const { s } = useSharedStrings();
 	const [conversationId, setConversationId] = useState(() => storedConversation(storageKey));
 	const startOver = () => setConversationId(freshConversation(storageKey));
 	const input = useRef<HTMLTextAreaElement | null>(null);
@@ -369,7 +372,7 @@ function SheetConversation({ storageKey, open, onOpenChange, title = "Nova", des
 			headerAction={
 				<button type="button" className={`${textLinkClass} shrink-0 text-[0.875rem]`} onClick={startOver}>
 					<SquarePen className="size-3.5" strokeWidth={1.75} aria-hidden="true" />
-					New chat
+					{s.nova.newChat}
 				</button>
 			}>
 			<Suspense fallback={<NovaConversationLoading greeting={rest.greeting} placeholder={rest.placeholder} footnote={rest.footnote} inputLabel={rest.inputLabel} />}>

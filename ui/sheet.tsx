@@ -10,6 +10,7 @@ import { XIcon } from "lucide-react"
 import { Dialog as SheetPrimitive } from "radix-ui"
 
 import { cn } from "../lib/utils"
+import { useSharedStrings } from "../i18n/react"
 
 function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
   return <SheetPrimitive.Root data-slot="sheet" {...props} />
@@ -56,6 +57,7 @@ function SheetContent({
   side?: "top" | "right" | "bottom" | "left"
   showCloseButton?: boolean
 }) {
+  const { s } = useSharedStrings()
   return (
     <SheetPortal>
       <SheetOverlay />
@@ -73,7 +75,7 @@ function SheetContent({
       >
         {children}
         {showCloseButton && (
-          <SheetPrimitive.Close className="ticket ticket--glyph absolute top-4 right-4" aria-label="Close">
+          <SheetPrimitive.Close className="ticket ticket--glyph absolute top-4 right-4" aria-label={s.common.close}>
             <XIcon className="size-4" aria-hidden="true" />
           </SheetPrimitive.Close>
         )}

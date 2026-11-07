@@ -1,4 +1,13 @@
 import { Circle, Clock, MinusCircle, EyeOff, type LucideIcon } from "lucide-react";
+import { INTL_TAG, type Locale } from "../i18n/locale";
+import { interpolate } from "../i18n/format";
+import { SHARED_STRINGS } from "../i18n/strings";
+
+// Cada función de este archivo acepta un `locale` final, opcional y `en` por
+// defecto, para que quien no lo pase siga leyendo lo de siempre. `STATUS_META`
+// guarda las palabras inglesas sólo por compatibilidad: las del idioma de quien
+// lee salen de `statusText(status, locale)`.
+const P = (locale: Locale) => SHARED_STRINGS[locale].presence;
 
 /**
  * El vocabulario de presencia.
@@ -131,6 +140,11 @@ export const STATUS_META: Record<PresenceStatus | "offline", StatusMeta> = {
 	},
 };
 
+/** La palabra y la descripción de un estado en el idioma pedido. */
+export function statusText(status: PresenceStatus | "offline", locale: Locale = "en"): { label: string; description: string } {
+	return P(locale)[status];
+}
+
 /** Los cuatro que ofrece el selector, en el orden en que los ofrece. */
 export const CHOOSABLE_STATUSES: PresenceStatus[] = ["online", "away", "busy", "invisible"];
 
@@ -145,9 +159,10 @@ export const ACTIVITY_META: Record<PresenceActivity, { label: string }> = {
  * que se muestre una etiqueta de estado a otras personas, para que una reunión se
  * lea como una reunión y no como un «Busy» sin explicar.
  */
-export function presenceLabel(presence: Pick<PublicPresence, "status" | "activity">): string {
-	const base = STATUS_META[presence.status].label;
-	return presence.activity ? `${base} · ${ACTIVITY_META[presence.activity].label}` : base;
+export function presenceLabel(presence: Pick<PublicPresence, "status" | "activity">, locale: Locale = "en"): string {
+	const p = P(locale);
+	const base = p[presence.status].label;
+	return presence.activity ? interpolate(p.withActivity, { status: base, activity: p.inMeeting }) : base;
 }
 
 /**
@@ -158,33 +173,36 @@ export function presenceLabel(presence: Pick<PublicPresence, "status" | "activit
  * deben ser indistinguibles — nunca visto, o eligió no ser visto — así que
  * inventar una etiqueta aquí sería inventar la respuesta a cuál de las dos.
  */
-export function lastSeenLabel(lastSeenAt: number | null | undefined): string | null {
+export function lastSeenLabel(lastSeenAt: number | null | undefined, locale: Locale = "en"): string | null {
 	if (lastSeenAt == null || lastSeenAt <= 0) return null;
+	const p = P(locale);
 	const seconds = Math.max(0, Math.floor(Date.now() / 1000) - lastSeenAt);
-	if (seconds < 3_600) return `${Math.max(1, Math.floor(seconds / 60))}m ago`;
-	if (seconds < 86_400) return `${Math.floor(seconds / 3_600)}h ago`;
-	if (seconds < 7 * 86_400) return `${Math.floor(seconds / 86_400)}d ago`;
-	return new Date(lastSeenAt * 1000).toLocaleDateString([], { month: "short", day: "numeric" });
+	if (seconds < 3_600) return interpolate(p.minutesAgo, { n: Math.max(1, Math.floor(seconds / 60)) });
+	if (seconds < 86_400) return interpolate(p.hoursAgo, { n: Math.floor(seconds / 3_600) });
+	if (seconds < 7 * 86_400) return interpolate(p.daysAgo, { n: Math.floor(seconds / 86_400) });
+	return new Date(lastSeenAt * 1000).toLocaleDateString(INTL_TAG[locale], { month: "short", day: "numeric" });
 }
 
 /** El mismo dato con las palabras delante: «Last seen 5m ago». */
-export function lastSeenSentence(lastSeenAt: number | null | undefined): string | null {
-	const label = lastSeenLabel(lastSeenAt);
-	return label === null ? null : `Last seen ${label}`;
+export function lastSeenSentence(lastSeenAt: number | null | undefined, locale: Locale = "en"): string | null {
+	const label = lastSeenLabel(lastSeenAt, locale);
+	return label === null ? null : interpolate(P(locale).lastSeen, { when: label });
 }
 
 /** La forma a la medida de la barra lateral: «5m», «3h», «2d», y después una fecha. Sin palabras que truncar. */
-export function lastSeenShort(lastSeenAt: number | null | undefined): string | null {
+export function lastSeenShort(lastSeenAt: number | null | undefined, locale: Locale = "en"): string | null {
 	if (lastSeenAt == null || lastSeenAt <= 0) return null;
+	const p = P(locale);
 	const seconds = Math.max(0, Math.floor(Date.now() / 1000) - lastSeenAt);
-	if (seconds < 3_600) return `${Math.max(1, Math.floor(seconds / 60))}m`;
-	if (seconds < 86_400) return `${Math.floor(seconds / 3_600)}h`;
-	if (seconds < 7 * 86_400) return `${Math.floor(seconds / 86_400)}d`;
-	return new Date(lastSeenAt * 1000).toLocaleDateString([], { month: "short", day: "numeric" });
+	if (seconds < 3_600) return interpolate(p.minutesShort, { n: Math.max(1, Math.floor(seconds / 60)) });
+	if (seconds < 86_400) return interpolate(p.hoursShort, { n: Math.floor(seconds / 3_600) });
+	if (seconds < 7 * 86_400) return interpolate(p.daysShort, { n: Math.floor(seconds / 86_400) });
+	return new Date(lastSeenAt * 1000).toLocaleDateString(INTL_TAG[locale], { month: "short", day: "numeric" });
 }
 
-/** `""`, `"tomorrow "` u `"on Monday "` — lo lejos que queda un instante, en días locales enteros. */
-function dayPrefix(unixSeconds: number): string {
+/** `""`, `"tomorrow"` u `"on Monday"` — lo lejos que queda un instante, en días locales enteros. */
+function dayPhrase(unixSeconds: number, locale: Locale): string {
+	const p = P(locale);
 	const then = new Date(unixSeconds * 1000);
 	const now = new Date();
 	const days = Math.round(
@@ -193,9 +211,13 @@ function dayPrefix(unixSeconds: number): string {
 			86_400_000,
 	);
 	if (days <= 0) return "";
-	if (days === 1) return "tomorrow ";
-	if (days < 7) return `on ${then.toLocaleDateString([], { weekday: "long" })} `;
-	return `on ${then.toLocaleDateString([], { month: "short", day: "numeric" })} `;
+	if (days === 1) return p.tomorrow;
+	const tag = INTL_TAG[locale];
+	if (days < 7) {
+		const weekend = then.getDay() === 0 || then.getDay() === 6;
+		return interpolate(weekend ? p.onWeekend : p.onWeekday, { weekday: then.toLocaleDateString(tag, { weekday: "long" }) });
+	}
+	return interpolate(p.onDate, { date: then.toLocaleDateString(tag, { month: "short", day: "numeric" }) });
 }
 
 /**
@@ -207,12 +229,14 @@ function dayPrefix(unixSeconds: number): string {
  * allí donde se muestren; esto es una afirmación sobre cuándo puede esperarla
  * quien lee, y convertirla es justo la razón de que `changes_at` sea un instante.
  */
-export function shiftSentence(shift: ShiftState | null | undefined): string | null {
+export function shiftSentence(shift: ShiftState | null | undefined, locale: Locale = "en"): string | null {
 	if (!shift) return null;
-	if (shift.changes_at === null) return shift.on ? "On shift" : "Off shift";
-	return shift.on
-		? `On shift until ${dayPrefix(shift.changes_at)}${clockOf(shift.changes_at)}`
-		: `Off shift · back ${dayPrefix(shift.changes_at)}at ${clockOf(shift.changes_at)}`;
+	const p = P(locale);
+	if (shift.changes_at === null) return shift.on ? p.onShift : p.offShift;
+	const day = dayPhrase(shift.changes_at, locale);
+	const time = clockOf(shift.changes_at);
+	if (shift.on) return day ? interpolate(p.onShiftUntilDay, { day, time }) : interpolate(p.onShiftUntil, { time });
+	return day ? interpolate(p.backAtDay, { day, time }) : interpolate(p.backAt, { time });
 }
 
 /** «09:00» en la zona horaria de quien lee, a partir de un instante. */
@@ -241,13 +265,15 @@ function clockOf(unixSeconds: number): string {
  * Alguien sin horario puesto se lee exactamente igual que antes de que
  * existieran los turnos.
  */
-export function presenceLine(presence: PublicPresence | undefined): string | null {
+export function presenceLine(presence: PublicPresence | undefined, locale: Locale = "en"): string | null {
 	if (!presence) return null;
 
 	const offShift = presence.shift != null && !presence.shift.on;
 
 	if (presence.status === "offline") {
-		return offShift ? shiftSentence(presence.shift) : lastSeenSentence(presence.last_seen_at);
+		return offShift ? shiftSentence(presence.shift, locale) : lastSeenSentence(presence.last_seen_at, locale);
 	}
-	return offShift ? `${presenceLabel(presence)} · ${shiftSentence(presence.shift)}` : presenceLabel(presence);
+	return offShift
+		? interpolate(P(locale).withShift, { status: presenceLabel(presence, locale), shift: shiftSentence(presence.shift, locale) ?? "" })
+		: presenceLabel(presence, locale);
 }

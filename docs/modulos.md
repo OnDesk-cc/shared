@@ -28,7 +28,7 @@ sitio.
 | `components/` | navegador | `theme-provider` (el que escribe la clase `dark`, montado por todas las apps), `confirm-delete-modal`, `form-modal`, `console`, `topbar`, y Nova: `nova` (el marco, las filas, el campo y las sugerencias), `nova-chat` (la hoja, sobre Nova central; la única desde v1.17.0), `nova-chat-tools` (la línea de una lectura en curso y la tarjeta de aprobación de una acción, v1.19.0), `nova-mark` |
 | `calls/` | navegador | `ringer-lease` — **un solo tono por navegador entre todos los productos**; `ring-tone` — el reproductor |
 | `presence/` | navegador | `status` — el vocabulario de presencia que renderizan los seis (`STATUS_META`, `presenceLabel`, `lastSeenShort`); `presence-dot` |
-| `i18n/` | ambos | los tres idiomas (`en`/`es`/`pt`) de la plataforma. El núcleo (`locale`, `format`, `dictionary`, `index`) no usa DOM ni React y entra también en el typecheck del worker: `resolveLocale` (perfil → cookie `ondesk_lang` → navegador → `en`, y siempre `en` con el interruptor apagado), `interpolate`/`plural`/`formatDate`/`formatRelative`/`formatNumber` con `Intl`, y el tipo `Translation<typeof en>` que obliga a que `es` y `pt` estén completos. Ver la spec `ondesk/docs/specs/2026-11-06-plataforma-multilingue.md` |
+| `i18n/` | ambos | los tres idiomas (`en`/`es`/`pt`) de la plataforma. El núcleo (`locale`, `format`, `dictionary`, `index`) no usa DOM ni React y entra también en el typecheck del worker: `resolveLocale` (perfil → cookie `ondesk_lang` → navegador → `en`, y siempre `en` con el interruptor apagado), `interpolate`/`plural`/`formatDate`/`formatRelative`/`formatNumber` con `Intl`, y el tipo `Translation<typeof en>` que obliga a que `es` y `pt` estén completos. En el navegador: `cookie` (`ondesk_lang` en `.ondesk.cc`), `flag` (el interruptor, con el último valor en localStorage), `react` (`I18nProvider`, `useI18n`, `useSharedStrings`), `language-select` y `strings/` (los textos de los componentes de shared). Ver «Idiomas» en [uso.md](uso.md). Ver la spec `ondesk/docs/specs/2026-11-06-plataforma-multilingue.md` |
 | `worker/` | Pages Functions | ver abajo — **es la parte crítica** |
 
 ## `worker/` — lo que de verdad importa
@@ -80,7 +80,7 @@ archivo nuevo es importable sin tocar `package.json`.
 <!-- BEGIN generated:modules -->
 <!-- No edites aquí: lo reescribe `npm run docs`. -->
 
-Módulos de las carpetas publicadas (105), con la primera línea de su comentario de cabecera.
+Módulos de las carpetas publicadas (106), con la primera línea de su comentario de cabecera.
 
 | Archivo | Qué hace |
 | --- | --- |
@@ -133,6 +133,7 @@ Módulos de las carpetas publicadas (105), con la primera línea de su comentari
 | [`lib/use-copy.ts`](../lib/use-copy.ts) | Copiar, hecho una sola vez para todo el proyecto: la misma implementación que partners y developers, la que usa `CopyTicket` en `console.tsx`. |
 | [`lib/utils.ts`](../lib/utils.ts) | `cn` — juntar clases de Tailwind sin que se peleen entre ellas. |
 | [`presence/presence-dot.tsx`](../presence/presence-dot.tsx) | La presencia como anillo del intercambiador, con el mismo significado en las siete apps que la pintan: relleno es Online, con punto Busy, vacío Away, y apagado al 45 %… |
+| [`presence/status.test.ts`](../presence/status.test.ts) | — |
 | [`presence/status.ts`](../presence/status.ts) | El vocabulario de presencia. |
 | [`ui/alert-dialog.tsx`](../ui/alert-dialog.tsx) | El diálogo de consecuencias: el mismo papel que `Dialog`, pero no se cierra al pulsar fuera y el foco empieza en «Cancel», el lado que no hace nada. |
 | [`ui/avatar.tsx`](../ui/avatar.tsx) | La cara de alguien es su monograma: su foto, o sus iniciales en el corte condensado, dentro de un cuadrado con el trazo del mundo. |
@@ -223,7 +224,7 @@ _Sin cron propio._
 | `npm run docs` | `node scripts/gen-docs.mjs` |
 | `npm run docs:check` | `node scripts/gen-docs.mjs --check` |
 | `npm run docs:gaps` | `node scripts/gen-docs.mjs --gaps` |
-| `npm run test` | `tsx --test "worker/**/*.test.ts" "components/**/*.test.ts" "i18n/**/*.test.ts" "scripts/i18n-literals.test.mjs"` |
+| `npm run test` | `tsx --test "worker/**/*.test.ts" "components/**/*.test.ts" "i18n/**/*.test.ts" "presence/**/*.test.ts" "scripts/i18n-literals.test.mjs"` |
 | `npm run i18n:literals` | `node scripts/i18n-literals.mjs components calls ui presence --allow i18n-literals.allow.json` |
 
 <!-- END generated:config -->

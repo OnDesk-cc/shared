@@ -23,6 +23,15 @@
 import type { JsonSchema } from "../../worker/json-schema";
 import type { NovaActionPreview, NovaSubject, NovaTriggerDef } from "../../worker/nova-contract";
 import { novaOrigin } from "../nova-chat-parts";
+import { INTL_TAG, type Locale } from "../../i18n/locale";
+import { interpolate } from "../../i18n/format";
+import { SHARED_STRINGS } from "../../i18n/strings";
+
+// Los textos para la persona salen del diccionario de shared. Cada función que
+// devuelve uno acepta un `locale` final, opcional y `en` por defecto. Las
+// etiquetas del catálogo (disparadores, acciones, campos) llegan del manifiesto
+// de cada app y aquí pasan tal cual.
+const A = (locale: Locale) => SHARED_STRINGS[locale].automations;
 
 export type AutomationProduct = "pulse" | "orbit" | "halo" | "atlas" | "nexus" | "vault";
 
@@ -158,7 +167,6 @@ export const STEP_OUTPUTS: Record<string, readonly string[]> = {
 	"pulse.reply_ticket": ["ticket", "link"],
 };
 
-const OUTPUT_LABELS: Record<string, string> = { ref: "Reference", title: "Title", link: "Link", status: "Status", channel: "Channel", ticket: "Ticket" };
 
 const TOKEN = /\{\{\s*((?:trigger|change|actor|step\d+)\.[a-z_]+)\s*\}\}/g;
 
@@ -170,25 +178,28 @@ function actionOf(catalog: Catalog, tool: string): CatalogAction | null {
 	return catalog.actions.find((a) => a.tool === tool) ?? null;
 }
 
-export function variablesAt(catalog: Catalog, triggerType: string, steps: { tool: string }[], stepIndex: number): Variable[] {
+export function variablesAt(catalog: Catalog, triggerType: string, steps: { tool: string }[], stepIndex: number, locale: Locale = "en"): Variable[] {
+	const a = A(locale);
+	const outputs: Record<string, string> = a.outputs;
 	const trigger = triggerOf(catalog, triggerType);
 	const vars: Variable[] = [];
 	if (trigger) {
 		for (const f of trigger.fields) vars.push({ token: `trigger.${f.key}`, label: f.label, group: trigger.label });
-		for (const f of trigger.change ?? []) vars.push({ token: `change.${f.key}`, label: f.label, group: "What changed" });
+		for (const f of trigger.change ?? []) vars.push({ token: `change.${f.key}`, label: f.label, group: a.whatChanged });
 	}
-	vars.push({ token: "actor.name", label: "Name", group: "Who did it" }, { token: "actor.email", label: "Email", group: "Who did it" });
+	vars.push({ token: "actor.name", label: a.actorName, group: a.whoDidIt }, { token: "actor.email", label: a.actorEmail, group: a.whoDidIt });
 	steps.slice(0, Math.max(0, stepIndex)).forEach((step, i) => {
 		const action = actionOf(catalog, step.tool);
-		const group = `Step ${i + 1}${action ? ` · ${action.label}` : ""}`;
-		for (const key of STEP_OUTPUTS[step.tool] ?? []) vars.push({ token: `step${i + 1}.${key}`, label: OUTPUT_LABELS[key] ?? key, group });
+		const group = action ? interpolate(a.stepGroup, { n: i + 1, action: action.label }) : interpolate(a.step, { n: i + 1 });
+		for (const key of STEP_OUTPUTS[step.tool] ?? []) vars.push({ token: `step${i + 1}.${key}`, label: outputs[key] ?? key, group });
 	});
 	return vars;
 }
 
-export function flowSentence(catalog: Catalog, flow: { trigger_type: string; steps: { tool: string }[] }): string {
+export function flowSentence(catalog: Catalog, flow: { trigger_type: string; steps: { tool: string }[] }, locale: Locale = "en"): string {
+	const a = A(locale);
 	const trigger = triggerOf(catalog, flow.trigger_type);
-	const head = trigger ? `When ${trigger.label}` : "When an unknown trigger fires";
+	const head = trigger ? interpolate(a.whenTrigger, { trigger: trigger.label }) : a.unknownTrigger;
 	const steps = flow.steps.map((s) => {
 		const action = actionOf(catalog, s.tool);
 		return action ? `${action.label} (${PRODUCT_LABELS[action.product]})` : s.tool;
@@ -234,26 +245,31 @@ function isEmpty(value: unknown): boolean {
 	return value === undefined || value === null || (typeof value === "string" && value.trim() === "");
 }
 
-export function draftErrors(catalog: Catalog, draft: FlowDraft): string[] {
+/** «Step 2: Project is required.»: la misma frase la busca el editor del paso para marcar su campo. */
+export function paramRequiredError(stepNumber: number, key: string, locale: Locale = "en"): string {
+	return interpolate(A(locale).errors.paramRequired, { n: stepNumber, param: paramLabel(key) });
+}
+
+export function draftErrors(catalog: Catalog, draft: FlowDraft, locale: Locale = "en"): string[] {
+	const e = A(locale).errors;
 	const errors: string[] = [];
-	if (!draft.name.trim()) errors.push("Give the automation a name.");
-	if (!draft.trigger_type || !triggerOf(catalog, draft.trigger_type)) errors.push("Choose what starts the automation.");
-	if (draft.steps.length === 0) errors.push("Add at least one step.");
-	if (draft.steps.length > MAX_STEPS) errors.push(`An automation can have ${MAX_STEPS} steps at most.`);
+	if (!draft.name.trim()) errors.push(e.name);
+	if (!draft.trigger_type || !triggerOf(catalog, draft.trigger_type)) errors.push(e.trigger);
+	if (draft.steps.length === 0) errors.push(e.noSteps);
+	if (draft.steps.length > MAX_STEPS) errors.push(interpolate(e.tooManySteps, { max: MAX_STEPS }));
 	draft.steps.slice(0, MAX_STEPS).forEach((step, i) => {
 		const action = actionOf(catalog, step.tool);
-		const where = `Step ${i + 1}`;
 		if (!action) {
-			errors.push(`${where}: this action is not available.`);
+			errors.push(interpolate(e.actionGone, { n: i + 1 }));
 			return;
 		}
 		for (const key of action.params.required ?? []) {
-			if (isEmpty(step.params[key])) errors.push(`${where}: ${paramLabel(key)} is required.`);
+			if (isEmpty(step.params[key])) errors.push(paramRequiredError(i + 1, key, locale));
 		}
-		const vars = variablesAt(catalog, draft.trigger_type, draft.steps, i);
+		const vars = variablesAt(catalog, draft.trigger_type, draft.steps, i, locale);
 		for (const value of Object.values(step.params)) {
 			if (typeof value !== "string") continue;
-			for (const token of unknownTokens(value, vars)) errors.push(`${where}: {{${token}}} doesn't exist here.`);
+			for (const token of unknownTokens(value, vars)) errors.push(interpolate(e.unknownToken, { n: i + 1, token: `{{${token}}}` }));
 		}
 	});
 	return errors;
@@ -287,60 +303,37 @@ export function joinSentences(parts: (string | null | undefined)[]): string {
 		.join(". ");
 }
 
-const PAUSED: Record<PausedReason, { tone: ToneWord; detail: string }> = {
-	manual: { tone: "neutral", detail: "Someone paused it." },
-	failing: { tone: "danger", detail: "It failed 3 times in a row. Check the last runs, then resume it." },
-	owner_left: { tone: "danger", detail: "The person it runs as no longer has access. Take it over to run it as you." },
-	plan_limit: { tone: "warning", detail: "Your plan allows fewer automations than this workspace has." },
-};
+const PAUSED_TONE: Record<PausedReason, ToneWord> = { manual: "neutral", failing: "danger", owner_left: "danger", plan_limit: "warning" };
 
 /** El estado de una automatización como palabra, tono y, si está pausada, por qué. */
-export function statusLine(flow: { status: FlowStatus; paused_reason: PausedReason | null }): { tone: ToneWord; label: string; detail: string | null } {
-	if (flow.status === "active") return { tone: "success", label: "Active", detail: null };
-	const why = PAUSED[flow.paused_reason ?? "manual"];
-	return { tone: why.tone, label: "Paused", detail: why.detail };
+export function statusLine(flow: { status: FlowStatus; paused_reason: PausedReason | null }, locale: Locale = "en"): { tone: ToneWord; label: string; detail: string | null } {
+	const a = A(locale);
+	if (flow.status === "active") return { tone: "success", label: a.active, detail: null };
+	const why = flow.paused_reason ?? "manual";
+	return { tone: PAUSED_TONE[why], label: a.paused, detail: a.pausedWhy[why] };
 }
 
-const OUTCOMES: Record<FlowOutcome | "running", { tone: ToneWord; label: string }> = {
-	done: { tone: "success", label: "Done" },
-	failed: { tone: "danger", label: "Failed" },
-	unknown: { tone: "warning", label: "Check it" },
-	skipped: { tone: "neutral", label: "Skipped" },
-	running: { tone: "accent", label: "Running" },
-};
+const OUTCOME_TONE: Record<FlowOutcome | "running", ToneWord> = { done: "success", failed: "danger", unknown: "warning", skipped: "neutral", running: "accent" };
 
-export function outcomeLine(outcome: FlowOutcome | "running"): { tone: ToneWord; label: string } {
-	return OUTCOMES[outcome];
+export function outcomeLine(outcome: FlowOutcome | "running", locale: Locale = "en"): { tone: ToneWord; label: string } {
+	return { tone: OUTCOME_TONE[outcome], label: A(locale).outcomes[outcome] };
 }
-
-const REASONS: Record<string, string> = {
-	not_visible: "The person it runs as can't see this item.",
-	owner_access: "The person it runs as no longer has access to the app.",
-	subject_unavailable: "The app didn't answer in time, so nothing ran.",
-	chain: "Stopped: another automation started it, and the chain was already 3 deep.",
-	stale: "Skipped: the event was more than 24 hours old when it reached the automation.",
-	rate_limited: "Skipped: the workspace ran 5,000 automations today.",
-	paused: "Skipped: the automation was paused.",
-	deleted: "Skipped: the automation was deleted.",
-	changed: "Skipped: the automation was changed and no longer applies to this event.",
-	conditions: "Skipped: the item no longer met the conditions.",
-	internal: "Something went wrong on our side and it couldn't run. Check in the app whether any step was done.",
-	unknown_outcome: "The app stopped answering mid-step. Check in the app whether it was done; it won't be retried.",
-};
 
 /** El motivo de una ejecución en una frase; uno que no se conoce se enseña tal cual. */
-export function reasonText(reason: string | null): string {
+export function reasonText(reason: string | null, locale: Locale = "en"): string {
 	if (!reason) return "";
-	return REASONS[reason] ?? reason;
+	const reasons: Record<string, string> = A(locale).reasons;
+	return Object.hasOwn(reasons, reason) ? reasons[reason] : reason;
 }
 
 /** «Just now», «5 min ago», «3 h ago», o la fecha: la columna de cuándo del historial. */
-export function ago(unixSec: number, nowSec: number = Math.floor(Date.now() / 1000)): string {
+export function ago(unixSec: number, nowSec: number = Math.floor(Date.now() / 1000), locale: Locale = "en"): string {
+	const a = A(locale);
 	const d = Math.max(0, nowSec - unixSec);
-	if (d < 60) return "Just now";
-	if (d < 3600) return `${Math.floor(d / 60)} min ago`;
-	if (d < 86_400) return `${Math.floor(d / 3600)} h ago`;
-	return new Date(unixSec * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+	if (d < 60) return a.justNow;
+	if (d < 3600) return interpolate(a.minutesAgo, { n: Math.floor(d / 60) });
+	if (d < 86_400) return interpolate(a.hoursAgo, { n: Math.floor(d / 3600) });
+	return new Date(unixSec * 1000).toLocaleDateString(INTL_TAG[locale], { month: "short", day: "numeric", year: "numeric" });
 }
 
 // ── Condiciones ─────────────────────────────────────────────────────────────
@@ -354,26 +347,15 @@ export interface ConditionField {
 }
 
 /** Lo que se puede comparar en «Only if»: el objeto, el cambio y quién lo hizo. */
-export function conditionFields(trigger: CatalogTrigger): ConditionField[] {
+export function conditionFields(trigger: CatalogTrigger, locale: Locale = "en"): ConditionField[] {
+	const a = A(locale);
 	return [
 		...trigger.fields.map((f) => ({ field: `trigger.${f.key}`, label: f.label, group: trigger.label, type: f.type, options: f.options })),
-		...(trigger.change ?? []).map((f) => ({ field: `change.${f.key}`, label: f.label, group: "What changed", type: f.type, options: f.options })),
-		{ field: "actor.email", label: "Email", group: "Who did it", type: "text" as const },
-		{ field: "actor.is_automation", label: "Another automation did it", group: "Who did it", type: "bool" as const },
+		...(trigger.change ?? []).map((f) => ({ field: `change.${f.key}`, label: f.label, group: a.whatChanged, type: f.type, options: f.options })),
+		{ field: "actor.email", label: a.actorEmail, group: a.whoDidIt, type: "text" as const },
+		{ field: "actor.is_automation", label: a.anotherAutomation, group: a.whoDidIt, type: "bool" as const },
 	];
 }
-
-const OP_LABELS: Record<FlowOp, string> = {
-	eq: "is",
-	neq: "is not",
-	contains: "contains",
-	not_contains: "doesn't contain",
-	gt: "is more than",
-	lt: "is less than",
-	in: "is one of",
-	is_empty: "is empty",
-	is_not_empty: "is not empty",
-};
 
 const OPS_BY_TYPE: Record<string, FlowOp[]> = {
 	text: ["eq", "neq", "contains", "not_contains", "is_empty", "is_not_empty"],
@@ -385,8 +367,9 @@ const OPS_BY_TYPE: Record<string, FlowOp[]> = {
 	bool: ["eq"],
 };
 
-export function opsFor(type: ConditionField["type"]): { op: FlowOp; label: string }[] {
-	return (OPS_BY_TYPE[type] ?? OPS_BY_TYPE.text).map((op) => ({ op, label: OP_LABELS[op] }));
+export function opsFor(type: ConditionField["type"], locale: Locale = "en"): { op: FlowOp; label: string }[] {
+	const labels = A(locale).ops;
+	return (OPS_BY_TYPE[type] ?? OPS_BY_TYPE.text).map((op) => ({ op, label: labels[op] }));
 }
 
 export function needsValue(op: FlowOp): boolean {

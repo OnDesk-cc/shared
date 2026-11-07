@@ -13,6 +13,7 @@
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { AppTile } from "../sky";
 import { Tag } from "../tag";
+import { useSharedStrings } from "../../i18n/react";
 import { flowProducts, outcomeLine, PRODUCT_LABELS, statusLine, type AutomationProduct, type Catalog, type FlowOutcome, type FlowStatus, type PausedReason } from "./automations-model";
 
 export function FlowRoute({ catalog, flow, size = "sm" }: { catalog: Catalog; flow: { trigger_product: AutomationProduct; steps: { tool: string }[] }; size?: "sm" | "xs" }) {
@@ -32,20 +33,23 @@ export function FlowRoute({ catalog, flow, size = "sm" }: { catalog: Catalog; fl
 }
 
 export function StatusTag({ flow }: { flow: { status: FlowStatus; paused_reason: PausedReason | null } }) {
-	const line = statusLine(flow);
+	const { locale } = useSharedStrings();
+	const line = statusLine(flow, locale);
 	return <Tag tone={line.tone}>{line.label}</Tag>;
 }
 
 export function OutcomeTag({ outcome }: { outcome: FlowOutcome | "running" }) {
-	const line = outcomeLine(outcome);
+	const { locale } = useSharedStrings();
+	const line = outcomeLine(outcome, locale);
 	return <Tag tone={line.tone}>{line.label}</Tag>;
 }
 
-export function BackLink({ onClick, children = "Automations" }: { onClick: () => void; children?: string }) {
+export function BackLink({ onClick, children }: { onClick: () => void; children?: string }) {
+	const { s } = useSharedStrings();
 	return (
 		<button type="button" onClick={onClick} className="ticket ticket--sm ticket--ghost self-start">
 			<ArrowLeft className="size-4" strokeWidth={1.75} aria-hidden="true" />
-			{children}
+			{children ?? s.automations.title}
 		</button>
 	);
 }

@@ -15,6 +15,9 @@ import { LinkArrow, textLinkClass } from "./console";
 import { novaErrorMessage } from "./nova";
 import { groupConversations, historyTime, type NovaConversationSummary } from "./nova-dock-state";
 import { AppTile, Mark } from "./sky";
+import { useSharedStrings } from "../i18n/react";
+import type { Locale } from "../i18n/locale";
+import { SHARED_STRINGS } from "../i18n/strings";
 
 /** Un fallo de `GET /api/me/conversations` con su código, para decir cuál fue. */
 export class NovaHistoryError extends Error {
@@ -31,12 +34,15 @@ export function NovaOriginMark({ product }: { product: string | null }) {
 	return <span className="size-[22px] shrink-0" aria-hidden="true" />;
 }
 
-function failureText(error: unknown): string {
+function failureText(error: unknown, locale: Locale): string {
+	const n = SHARED_STRINGS[locale].nova;
 	if (error instanceof NovaHistoryError) {
-		return error.status === 401 ? "Your session expired. Reload the page to keep talking to Nova." : "Couldn't load your conversations. Try again.";
+		return error.status === 401 ? n.sessionExpired : n.historyError;
 	}
-	return novaErrorMessage(error);
+	return novaErrorMessage(error, locale);
 }
+
+const GROUP_KEY = { Today: "today", "Previous 7 days": "week", Earlier: "earlier" } as const;
 
 export function NovaHistory({
 	status,
@@ -59,9 +65,10 @@ export function NovaHistory({
 	/** `{ondesk}/account/nova`. */
 	accountHref: string;
 }) {
+	const { s, locale } = useSharedStrings();
 	if (status === "pending") {
 		return (
-			<div className="flex flex-col gap-0.5 px-3 py-3" aria-busy="true" aria-label="Loading conversations">
+			<div className="flex flex-col gap-0.5 px-3 py-3" aria-busy="true" aria-label={s.nova.loadingConversations}>
 				{[0, 1, 2].map((i) => (
 					<div key={i} className="flex h-10 items-center gap-3 px-3">
 						<span className="size-[22px] shrink-0 rounded-[6px] bg-(--sk-mist)" />
@@ -76,11 +83,11 @@ export function NovaHistory({
 	if (status === "error") {
 		return (
 			<div className="flex flex-col items-start gap-2 px-6 py-6">
-				<p className="text-[0.9375rem] leading-relaxed text-(--sk-ink-2)">{failureText(error)}</p>
+				<p className="text-[0.9375rem] leading-relaxed text-(--sk-ink-2)">{failureText(error, locale)}</p>
 				{!(error instanceof NovaHistoryError && error.status === 401) && (
 					<button type="button" className={`${textLinkClass} text-[0.875rem]`} onClick={onRetry}>
 						<RotateCcw className="size-3.5" strokeWidth={1.75} aria-hidden="true" />
-						Try again
+						{s.common.tryAgain}
 					</button>
 				)}
 			</div>
@@ -90,12 +97,12 @@ export function NovaHistory({
 	if (items.length === 0) {
 		return (
 			<div className="flex flex-col items-start gap-3 px-6 py-6">
-				<p className="text-[0.9375rem] leading-relaxed text-(--sk-ink-2)">No conversations in this workspace yet.</p>
+				<p className="text-[0.9375rem] leading-relaxed text-(--sk-ink-2)">{s.nova.noConversations}</p>
 				<button
 					type="button"
 					className="inline-flex h-9 items-center rounded-full px-4 text-[0.875rem] font-medium text-(--sk-ink) shadow-[inset_0_0_0_1px_var(--sk-hair-2)] transition-colors duration-150 hover:bg-(--sk-ground) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--sk-accent)"
 					onClick={onAsk}>
-					Ask Nova
+					{s.nova.askNova}
 				</button>
 			</div>
 		);
@@ -105,8 +112,8 @@ export function NovaHistory({
 	return (
 		<div className="sk-nova-log flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-3 pb-4 pt-2">
 			{groupConversations(items, now).map((group) => (
-				<section key={group.label} aria-label={group.label}>
-					<h3 className="sk-small px-3 pb-1.5 pt-3 font-medium">{group.label}</h3>
+				<section key={group.label} aria-label={s.nova.historyGroups[GROUP_KEY[group.label]]}>
+					<h3 className="sk-small px-3 pb-1.5 pt-3 font-medium">{s.nova.historyGroups[GROUP_KEY[group.label]]}</h3>
 					<ul className="flex flex-col gap-0.5">
 						{group.items.map((c) => {
 							const current = c.id === currentId;
@@ -121,8 +128,8 @@ export function NovaHistory({
 											current ? "bg-(--sk-ground) font-medium text-(--sk-ink)" : "text-(--sk-ink-2) hover:bg-(--sk-ground) hover:text-(--sk-ink)"
 										}`}>
 										<NovaOriginMark product={c.product} />
-										<span className="min-w-0 flex-1 truncate">{c.title ?? "Untitled"}</span>
-										<span className="shrink-0 text-[0.8125rem] tabular-nums text-(--sk-ink-3)">{historyTime(c.updated_at, now)}</span>
+										<span className="min-w-0 flex-1 truncate">{c.title ?? s.nova.untitled}</span>
+										<span className="shrink-0 text-[0.8125rem] tabular-nums text-(--sk-ink-3)">{historyTime(c.updated_at, now, undefined, locale)}</span>
 									</button>
 								</li>
 							);
@@ -132,7 +139,7 @@ export function NovaHistory({
 			))}
 			<p className="px-3 pt-5">
 				<a href={accountHref} className={`${textLinkClass} text-[0.875rem]`}>
-					See all in your account
+					{s.nova.seeAll}
 					<LinkArrow />
 				</a>
 			</p>

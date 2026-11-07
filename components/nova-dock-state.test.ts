@@ -142,3 +142,11 @@ test("surfaceName/startedInText", () => {
 	assert.equal(startedInText("pulse", "pulse"), null);
 	assert.equal(startedInText(null, "pulse"), null);
 });
+
+test("startedInText y historyTime en el idioma pedido", () => {
+	assert.equal(startedInText("console", "pulse", "es"), "Empezada en la consola de OnDesk");
+	assert.equal(startedInText("atlas", "pulse", "pt"), "Iniciada no Atlas");
+	assert.equal(startedInText("atlas", "pulse"), "Started in Atlas");
+	const now = new Date(Date.UTC(2026, 9, 10, 12));
+	assert.equal(historyTime(Date.UTC(2026, 9, 3, 12) / 1000, now, "UTC", "es"), "3 oct");
+});

@@ -10,6 +10,7 @@ import { Dialog as DialogPrimitive } from "radix-ui"
 
 import { cn } from "../lib/utils"
 import { Button } from "./button"
+import { useSharedStrings } from "../i18n/react"
 
 function Dialog({
   ...props
@@ -56,6 +57,7 @@ function DialogContent({
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
 }) {
+  const { s } = useSharedStrings()
   return (
     <DialogPortal data-slot="dialog-portal">
       <DialogOverlay />
@@ -72,7 +74,7 @@ function DialogContent({
           <DialogPrimitive.Close
             data-slot="dialog-close"
             className="ticket ticket--glyph absolute top-4 right-4"
-            aria-label="Close"
+            aria-label={s.common.close}
           >
             <XIcon className="size-4" aria-hidden="true" />
           </DialogPrimitive.Close>
@@ -104,6 +106,7 @@ function DialogFooter({
 }: React.ComponentProps<"div"> & {
   showCloseButton?: boolean
 }) {
+  const { s } = useSharedStrings()
   return (
     <div
       data-slot="dialog-footer"
@@ -116,7 +119,7 @@ function DialogFooter({
       {children}
       {showCloseButton && (
         <DialogPrimitive.Close asChild>
-          <Button variant="outline">Close</Button>
+          <Button variant="outline">{s.common.close}</Button>
         </DialogPrimitive.Close>
       )}
     </div>

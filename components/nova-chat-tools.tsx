@@ -23,6 +23,7 @@ import { Button } from "../ui/button";
 import { LinkArrow, textLinkClass } from "./console";
 import { Tag } from "./tag";
 import { actionVerb, NOVA_PRODUCT_NAMES, type NovaToolCard } from "./nova-chat-parts";
+import { useSharedStrings } from "../i18n/react";
 
 type ActionCard = Extract<NovaToolCard, { kind: "action" }>;
 type Answer = (approvalId: string, approved: boolean) => void;
@@ -49,16 +50,18 @@ export function NovaToolCards({ cards, answered, disabled, onAnswer }: { cards: 
 }
 
 const STATUS_TAG = {
-	done: { tone: "success", label: "Done" },
-	cancelled: { tone: "neutral", label: "Cancelled" },
-	failed: { tone: "danger", label: "Not done" },
-	expired: { tone: "neutral", label: "Not approved" },
+	done: { tone: "success", label: "done" },
+	cancelled: { tone: "neutral", label: "cancelled" },
+	failed: { tone: "danger", label: "notDone" },
+	expired: { tone: "neutral", label: "notApproved" },
 } as const;
 
 export function NovaActionCard({ card, disabled, onAnswer }: { card: ActionCard; disabled: boolean; onAnswer: Answer }) {
+	const { s, t, locale } = useSharedStrings();
 	const productName = card.product ? NOVA_PRODUCT_NAMES[card.product] : "OnDesk";
-	const verb = actionVerb(card.tool);
-	const summary = card.preview?.summary || `${verb} in ${productName}`;
+	const verb = actionVerb(card.tool, locale);
+	const actionLabel = t(s.nova.card.actionIn, { verb, product: productName });
+	const summary = card.preview?.summary || actionLabel;
 	const fields = card.preview?.fields ?? [];
 	const approvalId = card.status === "awaiting" ? card.approvalId : null;
 	const tag = card.status === "done" || card.status === "cancelled" || card.status === "failed" || card.status === "expired" ? STATUS_TAG[card.status] : null;
@@ -66,10 +69,10 @@ export function NovaActionCard({ card, disabled, onAnswer }: { card: ActionCard;
 	const quiet = card.status === "cancelled" || card.status === "expired";
 
 	return (
-		<section aria-label={`${verb} in ${productName}`} className={`sk-nova-card max-w-[62ch] rounded-[16px] bg-(--sk-surface) p-4 ${ring} ${quiet ? "opacity-75" : ""}`}>
+		<section aria-label={actionLabel} className={`sk-nova-card max-w-[62ch] rounded-[16px] bg-(--sk-surface) p-4 ${ring} ${quiet ? "opacity-75" : ""}`}>
 			<div className="flex flex-wrap items-center gap-1.5">
 				<Tag>{productName}</Tag>
-				{tag && <Tag tone={tag.tone}>{tag.label}</Tag>}
+				{tag && <Tag tone={tag.tone}>{s.nova.card[tag.label]}</Tag>}
 			</div>
 			<p className="mt-2.5 text-[0.9375rem] font-medium leading-snug text-(--sk-ink) [overflow-wrap:anywhere]">{summary}</p>
 			{fields.length > 0 && (
@@ -86,17 +89,17 @@ export function NovaActionCard({ card, disabled, onAnswer }: { card: ActionCard;
 			{approvalId && (
 				<div className="mt-3.5 flex flex-wrap gap-2">
 					<Button size="sm" variant={card.destructive ? "destructive" : "default"} disabled={disabled} onClick={() => onAnswer(approvalId, true)}>
-						{card.destructive ? verb : "Approve"}
+						{card.destructive ? verb : s.nova.approve}
 					</Button>
 					<Button size="sm" variant="outline" disabled={disabled} onClick={() => onAnswer(approvalId, false)}>
-						Cancel
+						{s.common.cancel}
 					</Button>
 				</div>
 			)}
-			{card.status === "approving" && <p className="sk-nova-writing mt-3 text-[0.875rem]">Working…</p>}
+			{card.status === "approving" && <p className="sk-nova-writing mt-3 text-[0.875rem]">{s.nova.working}</p>}
 			{card.status === "done" && card.link && (
 				<a href={card.link} className={`${textLinkClass} mt-3 text-[0.875rem]`}>
-					Open in {productName}
+					{t(s.nova.card.openIn, { product: productName })}
 					<LinkArrow />
 				</a>
 			)}

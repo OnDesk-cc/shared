@@ -12,6 +12,8 @@
  * rectángulo, nunca a `color`: en el mapa nada se escribe en rojo, verde, azul,
  * naranja, magenta ni turquesa.
  */
+import type { Locale } from "../i18n/locale";
+import { SHARED_STRINGS } from "../i18n/strings";
 
 export type ProductId = "pulse" | "vault" | "orbit" | "nexus" | "halo" | "atlas";
 
@@ -36,6 +38,11 @@ export const APP_TAGLINE: Record<ProductId, string> = {
 	halo: "Meetings",
 	atlas: "Files and knowledge",
 };
+
+/** La misma frase en el idioma de quien lee. `APP_TAGLINE` se queda en inglés por compatibilidad. */
+export function appTagline(id: ProductId, locale: Locale = "en"): string {
+	return SHARED_STRINGS[locale].apps.taglines[id];
+}
 
 /** El origen de producción de cada app; cada producto lo puede sobrescribir por entorno. */
 export const APP_ORIGIN: Record<ProductId, string> = {

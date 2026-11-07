@@ -43,6 +43,7 @@ import {
 import { createPortal } from "react-dom";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "../ui/sheet";
 import { NovaButton } from "./topbar";
+import { useSharedStrings } from "../i18n/react";
 import {
 	DOCK_DEFAULT_WIDTH,
 	DOCK_DESKTOP_QUERY,
@@ -258,6 +259,7 @@ export function useNovaDock(): NovaDockApi {
 
 /** La columna de Nova a la derecha del marco, desde 1280px y con el panel abierto; si no, nada. */
 export function NovaDockColumn() {
+	const { s } = useSharedStrings();
 	const dock = useNovaDock();
 	const viewport = useSyncExternalStore(
 		subscribeResize,
@@ -359,7 +361,7 @@ export function NovaDockColumn() {
 				role="separator"
 				tabIndex={0}
 				aria-orientation="vertical"
-				aria-label="Resize Nova"
+				aria-label={s.nova.resize}
 				aria-valuenow={width}
 				aria-valuemin={min}
 				aria-valuemax={max}
@@ -384,6 +386,7 @@ export function NovaDockColumn() {
  * abierta): abrir un WebSocket por cada página vista sería pagar por nada.
  */
 export function NovaDockHost({ children }: { children: ReactNode }) {
+	const { s } = useSharedStrings();
 	const dock = useNovaDock();
 	const [activated, setActivated] = useState(dock.open);
 	useEffect(() => {
@@ -397,7 +400,7 @@ export function NovaDockHost({ children }: { children: ReactNode }) {
 				showCloseButton={false}
 				className="nova-sheet sk flex h-full w-full flex-col gap-0 bg-(--sk-surface) p-0 shadow-(--sk-shadow-3) max-sm:rounded-none! sm:max-w-[34rem]">
 				<SheetTitle className="sr-only">Nova</SheetTitle>
-				<SheetDescription className="sr-only">Ask Nova about this workspace.</SheetDescription>
+				<SheetDescription className="sr-only">{s.nova.askAboutWorkspace}</SheetDescription>
 				{children}
 			</SheetContent>
 		</Sheet>
