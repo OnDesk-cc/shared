@@ -1,4 +1,5 @@
 import type { D1Database } from "@cloudflare/workers-types";
+import type { Locale } from "../i18n/locale";
 
 /**
  * El espejo del estado de OnDesk — las escrituras que cada producto hace de forma
@@ -24,20 +25,31 @@ export interface MirroredUser {
 	name: string;
 	email: string;
 	logo_url: string | null;
+	/**
+	 * El idioma EFECTIVO de la persona, ya calculado por ondesk (perfil → último
+	 * idioma resuelto → `en`, y `en` con el interruptor apagado). Es el idioma de
+	 * sus correos y notificaciones en este producto.
+	 *
+	 * undefined significa «no tocar», como en `MirroredMemberPatch`: un ondesk
+	 * anterior no lo manda, y entonces la sentencia ni siquiera nombra la columna,
+	 * así que un producto sin la migración sigue funcionando.
+	 */
+	locale?: Locale;
 }
 
 export async function upsertMirroredUser(db: D1Database, user: MirroredUser): Promise<void> {
+	const withLocale = user.locale !== undefined;
 	await db
 		.prepare(
-			`INSERT INTO users (id, name, email, logo_url)
-			 VALUES (?, ?, ?, ?)
+			`INSERT INTO users (id, name, email, logo_url${withLocale ? ", locale" : ""})
+			 VALUES (?, ?, ?, ?${withLocale ? ", ?" : ""})
 			 ON CONFLICT(id) DO UPDATE SET
 			   name       = excluded.name,
 			   email      = excluded.email,
-			   logo_url   = excluded.logo_url,
+			   logo_url   = excluded.logo_url,${withLocale ? "\n\t\t\t   locale     = excluded.locale," : ""}
 			   updated_at = unixepoch()`,
 		)
-		.bind(user.id, user.name, user.email.toLowerCase(), user.logo_url)
+		.bind(user.id, user.name, user.email.toLowerCase(), user.logo_url, ...(withLocale ? [user.locale as string] : []))
 		.run();
 }
 
@@ -50,19 +62,31 @@ export async function upsertMirroredWorkspace(
 		description?: string | null;
 		logo_url: string | null;
 		audit_log_enabled?: boolean;
+		/** El idioma para clientes ya resuelto por ondesk (el propio o el del dueño). undefined: no tocar. */
+		customer_locale?: Locale;
+		/** El interruptor de idiomas de la plataforma. undefined: no tocar. */
+		languages_enabled?: boolean;
 	},
 	createdBy: string,
 ): Promise<void> {
+	// Las dos columnas de idioma sólo se nombran si vienen: mismo motivo que en
+	// `upsertMirroredUser`.
+	const extra: [string, string | number][] = [];
+	if (workspace.customer_locale !== undefined) extra.push(["customer_locale", workspace.customer_locale]);
+	if (workspace.languages_enabled !== undefined) extra.push(["languages_enabled", workspace.languages_enabled ? 1 : 0]);
+	const cols = extra.map(([c]) => `, ${c}`).join("");
+	const marks = extra.map(() => ", ?").join("");
+	const sets = extra.map(([c]) => `\n\t\t\t   ${c} = excluded.${c},`).join("");
 	await db
 		.prepare(
-			`INSERT INTO workspaces (id, name, slug, description, logo_url, audit_log_enabled, created_by)
-			 VALUES (?, ?, ?, ?, ?, ?, ?)
+			`INSERT INTO workspaces (id, name, slug, description, logo_url, audit_log_enabled, created_by${cols})
+			 VALUES (?, ?, ?, ?, ?, ?, ?${marks})
 			 ON CONFLICT(id) DO UPDATE SET
 			   name              = excluded.name,
 			   slug              = excluded.slug,
 			   description       = excluded.description,
 			   logo_url          = excluded.logo_url,
-			   audit_log_enabled = excluded.audit_log_enabled,
+			   audit_log_enabled = excluded.audit_log_enabled,${sets}
 			   updated_at        = unixepoch()`,
 		)
 		.bind(
@@ -73,6 +97,7 @@ export async function upsertMirroredWorkspace(
 			workspace.logo_url,
 			workspace.audit_log_enabled === false ? 0 : 1,
 			createdBy,
+			...extra.map(([, v]) => v),
 		)
 		.run();
 }

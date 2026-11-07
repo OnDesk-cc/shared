@@ -15,7 +15,13 @@
  * La plantilla es el cielo claro de OnDesk hecho apto para correo (la baldosa de la
  * app y su nombre, una tarjeta blanca, la píldora azul marino, filas de datos);
  * ver `renderNotification`.
+ *
+ * Los textos fijos de la plantilla salen de `email-strings.ts` en el idioma del
+ * destinatario (`NotificationEmailInput.locale`).
  */
+import type { Locale } from "../i18n/locale";
+import { interpolate } from "../i18n/format";
+import { EMAIL_STRINGS } from "./email-strings";
 
 interface EmailOptions {
 	to: string;
@@ -99,6 +105,11 @@ export function escapeHtml(value: string): string {
 }
 
 export interface NotificationEmailInput {
+	/**
+	 * El idioma del destinatario (su `users.locale` del espejo). Obligatorio a
+	 * propósito: un correo sin idioma es un correo que alguien olvidó traducir.
+	 */
+	locale: Locale;
 	/** El nombre visible del destinatario. */
 	recipientName: string;
 	/** Titular, p. ej. «ACME-42 was assigned to you». */
@@ -117,7 +128,7 @@ export interface NotificationEmailInput {
 	 * registra quién miró) simplemente no lo pasan nunca.
 	 */
 	preview?: string;
-	/** Etiqueta pequeña sobre la vista previa. Por defecto «Preview». */
+	/** Etiqueta pequeña sobre la vista previa. Por defecto «Preview» en el idioma del destinatario. */
 	previewLabel?: string;
 	/** Se pinta como una caja destructiva con sello. Se usa para caducidad y revocación. */
 	warning?: string;
@@ -246,10 +257,10 @@ function previewBlock(label: string, html: string): string {
 }
 
 /** El marco completo. `footer` es HTML ya compuesto por quien llama (con sus enlaces escapados). */
-function card(input: { title: string; preheader: string; plate: string; app: string | null; content: string; footer: string }): string {
+function card(input: { title: string; lang: string; preheader: string; plate: string; app: string | null; content: string; footer: string }): string {
 	const filler = "&nbsp;&zwnj;".repeat(40);
 	return `<!DOCTYPE html>
-<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<html lang="${escapeHtml(input.lang)}" xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -316,33 +327,39 @@ function renderNotification(
 	cfg: { plate: string; app: string | null; productName: string },
 	input: NotificationEmailInput,
 ): string {
+	const s = EMAIL_STRINGS[input.locale] ?? EMAIL_STRINGS.en;
 	const {
 		recipientName,
 		heading: title,
 		body,
 		url,
-		ctaLabel = `Open in ${cfg.productName}`,
+		ctaLabel = interpolate(s.openIn, { product: cfg.productName }),
 		details,
 		preview,
-		previewLabel = "Preview",
+		previewLabel = s.preview,
 		warning,
 		preferencesUrl,
 	} = input;
 
+	const product = escapeHtml(cfg.productName);
 	const footer = preferencesUrl
-		? `You're receiving this because of your ${escapeHtml(cfg.productName)} notification settings. <a href="${escapeHtml(preferencesUrl)}" style="color:${INK_2};text-decoration:underline;">Manage preferences</a>.`
-		: `You're receiving this because of your ${escapeHtml(cfg.productName)} notification settings.`;
+		? interpolate(s.footerWithLink, {
+				product,
+				link: `<a href="${escapeHtml(preferencesUrl)}" style="color:${INK_2};text-decoration:underline;">${escapeHtml(s.managePreferences)}</a>`,
+			})
+		: interpolate(s.footer, { product });
 
 	return card({
 		title,
-		preheader: `Hi ${recipientName}, ${body}`,
+		lang: s.htmlLang,
+		preheader: interpolate(s.greeting, { name: recipientName, body }),
 		plate: cfg.plate,
 		app: cfg.app,
 		footer,
 		content: [
 			heading(escapeHtml(title)),
-			para(`Hi ${escapeHtml(recipientName)}, ${escapeHtml(body)}`),
-			warning ? stampBox("Warning", escapeHtml(warning)) : "",
+			para(interpolate(s.greeting, { name: escapeHtml(recipientName), body: escapeHtml(body) })),
+			warning ? stampBox(s.warning, escapeHtml(warning)) : "",
 			preview ? previewBlock(previewLabel, escapeHtml(preview).replace(/\n/g, "<br />")) : "",
 			action(url, ctaLabel),
 			details?.length ? facts(details) : "",

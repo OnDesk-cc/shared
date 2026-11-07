@@ -37,11 +37,13 @@ sitio.
 |---|---|
 | **`middleware`** | **`createMiddleware(product)` → los cuatro guards de ruta.** El middleware de autenticación de los seis productos |
 | `sso` | sesión de plataforma y verificación de webhook — **el lado de los productos, nunca el de ondesk** |
-| `mirror` | las escrituras del espejo del control plane, idénticas en los seis |
+| `mirror` | las escrituras del espejo del control plane, idénticas en los seis. Desde v1.26.0 llevan el idioma: `users.locale` (efectivo, ya calculado por ondesk) y `workspaces.customer_locale` + `languages_enabled`; undefined es «no tocar» y la columna ni se nombra, así que un producto sin la migración sigue funcionando |
+| `i18n` | `stripeLocale` (`en`/`es-419`/`pt-BR`) y `localeOr` (valida un idioma que llega de fuera) |
+| `detect-language` | `detectTextLocale(text)`: en/es/pt de un mensaje entrante por palabras frecuentes, sin modelo; quita HTML, cita y firma, y ante la duda devuelve null |
 | `response` | `jsonOk` / `jsonError` |
 | `cookies` | lectura de la cookie de sesión |
 | `jwt` | firma HS256 y tickets con audiencia |
-| `email` | `createEmailer(brand)` y los helpers de plantilla |
+| `email` | `createEmailer(brand)` y los helpers de plantilla. `NotificationEmailInput.locale` es obligatorio: saludo, botón, etiquetas, pie y `lang` salen de `email-strings.ts` |
 | `api` | el núcleo de la API con token bearer (`/api/v1` de cada producto) |
 | **`nova-tools`** | **`createNovaTools` + `defineTool` + `defineAction`: las herramientas y las acciones que un producto publica a Nova central** (token RS256 por llamada, membresía de `access`, parámetros de `json-schema`). Una acción (fase 2) corre en dos tiempos según el `mode` firmado en el token: `preview` devuelve la tarjeta de aprobación sin escribir y `commit` escribe. Desde v1.21.0 (fase 4) la llama también un agente de Nova (`sub` `nova:agent:<id>`): sólo herramientas `automatic`, nunca una destructiva, siempre con `resource` y sin pasar por la membresía; `requireResource` le cierra cualquier otro objeto |
 | `nova-contract` | los tipos del contrato Nova ↔ producto (manifiesto con `automatic`, `offer` y `feed`, respuesta, claims con `mode` y `key`, candidatos y feed de la búsqueda, la tarjeta de una acción `NovaActionPreview`, el saldo de créditos `NovaUsage`, la parte de datos `data-nova-preview` de la tarjeta, `NovaPreviewData`, y desde v1.21.0 la bandeja de eventos de Pulse `NovaEvent`/`NovaEventsFeed` y el borrador `NovaDraftProposal`/`NovaDraftApproval`) y las funciones puras de la identidad de un agente (`agentSubject`, `parseAgentSubject`, `ticketResource`, `parseResource`), sin dependencias de runtime: los importan los productos, el Worker de Nova y la hoja |
@@ -78,7 +80,7 @@ archivo nuevo es importable sin tocar `package.json`.
 <!-- BEGIN generated:modules -->
 <!-- No edites aquí: lo reescribe `npm run docs`. -->
 
-Módulos de las carpetas publicadas (99), con la primera línea de su comentario de cabecera.
+Módulos de las carpetas publicadas (105), con la primera línea de su comentario de cabecera.
 
 | Archivo | Qué hace |
 | --- | --- |
@@ -162,12 +164,18 @@ Módulos de las carpetas publicadas (99), con la primera línea de su comentario
 | [`worker/automation-events.test.ts`](../worker/automation-events.test.ts) | — |
 | [`worker/automation-events.ts`](../worker/automation-events.ts) | La bandeja de eventos de automatización de un producto (2026-10-21). |
 | [`worker/cookies.ts`](../worker/cookies.ts) | Lectura de cookies, y nada más. |
+| [`worker/detect-language.test.ts`](../worker/detect-language.test.ts) | — |
+| [`worker/detect-language.ts`](../worker/detect-language.ts) | ¿En qué idioma escribe alguien que no tiene cuenta? Lo usa Pulse con el primer mensaje de un ticket que entra por correo, para mandarle los textos automáticos (acuse,… |
+| [`worker/email-strings.ts`](../worker/email-strings.ts) | Los textos fijos de la plantilla de correo de producto (`email.ts`) en los tres idiomas. |
 | [`worker/email.test.ts`](../worker/email.test.ts) | — |
 | [`worker/email.ts`](../worker/email.ts) | Email transaccional para las notificaciones de un producto. |
+| [`worker/i18n.test.ts`](../worker/i18n.test.ts) | — |
+| [`worker/i18n.ts`](../worker/i18n.ts) | Idioma en el servidor: validar lo que llega de fuera y traducirlo al código que entiende Stripe. |
 | [`worker/json-schema.test.ts`](../worker/json-schema.test.ts) | — |
 | [`worker/json-schema.ts`](../worker/json-schema.ts) | El subconjunto de JSON Schema con el que se describen los parámetros de una herramienta de Nova, y su validador (2026-10-07, Nova central). |
 | [`worker/jwt.ts`](../worker/jwt.ts) | Firma HS256 y verificación con audiencia, sobre Web Crypto. |
 | [`worker/middleware.ts`](../worker/middleware.ts) | El middleware de autenticación y de workspace con el que cada producto satélite envuelve sus rutas. |
+| [`worker/mirror.test.ts`](../worker/mirror.test.ts) | — |
 | [`worker/mirror.ts`](../worker/mirror.ts) | El espejo del estado de OnDesk — las escrituras que cada producto hace de forma idéntica. |
 | [`worker/nova-contract.test.ts`](../worker/nova-contract.test.ts) | — |
 | [`worker/nova-contract.ts`](../worker/nova-contract.ts) | Los tipos del contrato entre Nova central y las herramientas de un producto (2026-10-07). |
