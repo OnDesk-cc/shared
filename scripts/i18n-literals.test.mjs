@@ -52,6 +52,16 @@ test("el mensaje de respaldo de un cliente de API y el texto de un Error se ven;
 	assert.deepEqual(found, ["Could not load your spaces", "Could not book that time", "Could not save that change", "That file is too big"]);
 });
 
+test("un rótulo devuelto con return se ve (también en las ramas de una condición); siglas y valores en minúscula no", () => {
+	const src = [
+		'export function due(d: number) { if (d === 0) return "Today"; return d > 0 ? "Tomorrow" : "Overdue"; }',
+		'export function method() { return "GET"; }',
+		'export function kind() { return "public"; }',
+	].join("\n");
+	const found = scanSource("format.ts", src).map((f) => f.text);
+	assert.deepEqual(found, ["Today", "Tomorrow", "Overdue"]);
+});
+
 test("las carpetas de diccionarios no se escanean", () => {
 	assert.equal(isDictionaryPath("src/console-i18n/en/auth.ts"), true);
 	assert.equal(isDictionaryPath("src/i18n/locales/en/about.ts"), true);

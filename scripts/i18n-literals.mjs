@@ -124,6 +124,16 @@ export function scanSource(fileName, text, allow = []) {
 			const first = node.arguments?.[0];
 			if (first && (ts.isStringLiteral(first) || ts.isNoSubstitutionTemplateLiteral(first)) && LOOKS_LIKE_TEXT.test(first.text) && /\s/.test(first.text) && !/must be used within/.test(first.text))
 				push(first, first.text);
+		} else if (ts.isReturnStatement(node) && node.expression) {
+			// Un rótulo devuelto (`return "Today"`, `return ok ? "Answered" : "Declined"`):
+			// mayúscula seguida de minúscula, así que ni siglas ni valores.
+			const returned = (e) => {
+				if (ts.isParenthesizedExpression(e)) return returned(e.expression);
+				if (ts.isConditionalExpression(e)) return [...returned(e.whenTrue), ...returned(e.whenFalse)];
+				if ((ts.isStringLiteral(e) || ts.isNoSubstitutionTemplateLiteral(e)) && /^\p{Lu}\p{Ll}/u.test(e.text) && !/must be used within/.test(e.text)) return [e];
+				return [];
+			};
+			for (const lit of returned(node.expression)) push(lit, lit.text);
 		}
 		ts.forEachChild(node, visit);
 	};
