@@ -30,10 +30,18 @@
  *
  * Lo usan pulse, orbit, nexus, halo y atlas. Vault no.
  */
+export type CrudAction = "fetch" | "create" | "update" | "delete";
+
 interface CrudApiConfig {
 	basePath: string;
 	listKey: string;
 	itemKey: string;
+	/**
+	 * El mensaje de una respuesta fallida, escrito por la app: su `serverError` (en el
+	 * idioma de quien lee, spec multilingüe) con su respaldo. Sin él, el texto del
+	 * servidor tal cual o «Failed to … », en inglés.
+	 */
+	fail?: (body: { error?: string; code?: string; params?: Record<string, string | number> }, action: CrudAction) => string;
 }
 
 export async function apiFetch(url: string, options: RequestInit = {}): Promise<Response> {
@@ -43,10 +51,10 @@ export async function apiFetch(url: string, options: RequestInit = {}): Promise<
 	});
 }
 
-async function handleResponse<T>(res: Response, errorMessage: string): Promise<T> {
+async function handleResponse<T>(res: Response, errorMessage: string, action: CrudAction, fail?: CrudApiConfig["fail"]): Promise<T> {
 	if (!res.ok) {
-		const err = (await res.json()) as { error: string };
-		throw new Error(err.error ?? errorMessage);
+		const err = ((await res.json().catch(() => ({}))) ?? {}) as { error?: string; code?: string };
+		throw new Error(fail ? fail(err, action) : (err.error ?? errorMessage));
 	}
 	return res.json() as Promise<T>;
 }
@@ -72,18 +80,18 @@ export function createWorkspaceScopedApi<
 	CreateInput extends { workspace_id: string },
 	UpdateInput,
 >(config: CrudApiConfig): WorkspaceScopedApi<T, CreateInput, UpdateInput> {
-	const { basePath, listKey, itemKey } = config;
+	const { basePath, listKey, itemKey, fail } = config;
 
 	return {
 		async getAll(workspaceId) {
 			const res = await fetch(`${basePath}?workspace_id=${workspaceId}`, { credentials: "include" });
-			const data = await handleResponse<Record<string, T[]>>(res, `Failed to fetch ${listKey}`);
+			const data = await handleResponse<Record<string, T[]>>(res, `Failed to fetch ${listKey}`, "fetch", fail);
 			return data[listKey];
 		},
 
 		async getById(id) {
 			const res = await fetch(`${basePath}/${id}`, { credentials: "include" });
-			const data = await handleResponse<Record<string, T>>(res, `${itemKey} not found`);
+			const data = await handleResponse<Record<string, T>>(res, `${itemKey} not found`, "fetch", fail);
 			return data[itemKey];
 		},
 
@@ -95,7 +103,7 @@ export function createWorkspaceScopedApi<
 				credentials: "include",
 				body: JSON.stringify(body),
 			});
-			const data = await handleResponse<Record<string, T>>(res, `Failed to create ${itemKey}`);
+			const data = await handleResponse<Record<string, T>>(res, `Failed to create ${itemKey}`, "create", fail);
 			return data[itemKey];
 		},
 
@@ -106,7 +114,7 @@ export function createWorkspaceScopedApi<
 				credentials: "include",
 				body: JSON.stringify(input),
 			});
-			const data = await handleResponse<Record<string, T>>(res, `Failed to update ${itemKey}`);
+			const data = await handleResponse<Record<string, T>>(res, `Failed to update ${itemKey}`, "update", fail);
 			return data[itemKey];
 		},
 
@@ -115,7 +123,7 @@ export function createWorkspaceScopedApi<
 				method: "DELETE",
 				credentials: "include",
 			});
-			await handleResponse<unknown>(res, `Failed to delete ${itemKey}`);
+			await handleResponse<unknown>(res, `Failed to delete ${itemKey}`, "delete", fail);
 		},
 	};
 }
@@ -123,18 +131,18 @@ export function createWorkspaceScopedApi<
 export function createUserScopedApi<T, CreateInput, UpdateInput>(
 	config: CrudApiConfig
 ): UserScopedApi<T, CreateInput, UpdateInput> {
-	const { basePath, listKey, itemKey } = config;
+	const { basePath, listKey, itemKey, fail } = config;
 
 	return {
 		async getAll() {
 			const res = await fetch(basePath, { credentials: "include" });
-			const data = await handleResponse<Record<string, T[]>>(res, `Failed to fetch ${listKey}`);
+			const data = await handleResponse<Record<string, T[]>>(res, `Failed to fetch ${listKey}`, "fetch", fail);
 			return data[listKey];
 		},
 
 		async getById(id) {
 			const res = await fetch(`${basePath}/${id}`, { credentials: "include" });
-			const data = await handleResponse<Record<string, T>>(res, `${itemKey} not found`);
+			const data = await handleResponse<Record<string, T>>(res, `${itemKey} not found`, "fetch", fail);
 			return data[itemKey];
 		},
 
@@ -145,7 +153,7 @@ export function createUserScopedApi<T, CreateInput, UpdateInput>(
 				credentials: "include",
 				body: JSON.stringify(input),
 			});
-			const data = await handleResponse<Record<string, T>>(res, `Failed to create ${itemKey}`);
+			const data = await handleResponse<Record<string, T>>(res, `Failed to create ${itemKey}`, "create", fail);
 			return data[itemKey];
 		},
 
@@ -156,7 +164,7 @@ export function createUserScopedApi<T, CreateInput, UpdateInput>(
 				credentials: "include",
 				body: JSON.stringify(input),
 			});
-			const data = await handleResponse<Record<string, T>>(res, `Failed to update ${itemKey}`);
+			const data = await handleResponse<Record<string, T>>(res, `Failed to update ${itemKey}`, "update", fail);
 			return data[itemKey];
 		},
 
@@ -165,7 +173,7 @@ export function createUserScopedApi<T, CreateInput, UpdateInput>(
 				method: "DELETE",
 				credentials: "include",
 			});
-			await handleResponse<unknown>(res, `Failed to delete ${itemKey}`);
+			await handleResponse<unknown>(res, `Failed to delete ${itemKey}`, "delete", fail);
 		},
 	};
 }
