@@ -78,3 +78,29 @@ añade aquí **antes** de usarlo. Spec: `ondesk/docs/specs/2026-11-06-plataforma
 | help | ayuda | ajuda | |
 | legal | legal | jurídico | pie |
 | app | app | app | masculino en pt («o app»), femenino en es («la app») |
+| assignee | responsable | responsável | Pulse, Orbit; también el «owner» de un ticket |
+| canned reply | respuesta predefinida | resposta pronta | Pulse |
+| business hours | horario laboral | horário de trabalho | Pulse (como working hours) |
+| escalate | escalar | escalonar | Pulse, Nova |
+| breached (SLA) | incumplido | descumprido | Pulse |
+| collection | colección | coleção | Vault |
+| credential | credencial | credencial | Vault |
+| secret | secreto | segredo | Vault |
+| rotate / rotation | rotar / rotación | rotacionar / rotação | Vault, Developers |
+| reveal | revelar | revelar | Vault |
+| expire | caducar | expirar | Vault |
+| grant (noun) | concesión | concessão | Vault |
+| trash | papelera | lixeira | |
+| favourites | favoritos | favoritos | |
+| read / write / manage | lectura / escritura / gestión | leitura / escrita / gestão | permisos de Vault |
+| application (OAuth) | aplicación | aplicativo | Developers |
+| scope (OAuth) | scope | scope | Developers; también client ID, redirect URI, token, endpoint en inglés |
+| consent | consentimiento | consentimento | Developers |
+| partner | partner | partner | Partners |
+| referral | referido | indicação | Partners |
+| commission | comisión | comissão | Partners |
+| payout | pago | pagamento | Partners |
+| tier | nivel | nível | Partners; Silver y Gold no se traducen |
+| window (commission) | plazo | prazo | Partners |
+| apply (to the programme) | solicitar (entrar) | candidatar-se | Partners |
+| ledger | libro de comisiones | extrato | Partners |
