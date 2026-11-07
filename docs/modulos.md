@@ -28,6 +28,7 @@ sitio.
 | `components/` | navegador | `theme-provider` (el que escribe la clase `dark`, montado por todas las apps), `confirm-delete-modal`, `form-modal`, `console`, `topbar`, y Nova: `nova` (el marco, las filas, el campo y las sugerencias), `nova-chat` (la hoja, sobre Nova central; la única desde v1.17.0), `nova-chat-tools` (la línea de una lectura en curso y la tarjeta de aprobación de una acción, v1.19.0), `nova-mark` |
 | `calls/` | navegador | `ringer-lease` — **un solo tono por navegador entre todos los productos**; `ring-tone` — el reproductor |
 | `presence/` | navegador | `status` — el vocabulario de presencia que renderizan los seis (`STATUS_META`, `presenceLabel`, `lastSeenShort`); `presence-dot` |
+| `i18n/` | ambos | los tres idiomas (`en`/`es`/`pt`) de la plataforma. El núcleo (`locale`, `format`, `dictionary`, `index`) no usa DOM ni React y entra también en el typecheck del worker: `resolveLocale` (perfil → cookie `ondesk_lang` → navegador → `en`, y siempre `en` con el interruptor apagado), `interpolate`/`plural`/`formatDate`/`formatRelative`/`formatNumber` con `Intl`, y el tipo `Translation<typeof en>` que obliga a que `es` y `pt` estén completos. Ver la spec `ondesk/docs/specs/2026-11-06-plataforma-multilingue.md` |
 | `worker/` | Pages Functions | ver abajo — **es la parte crítica** |
 
 ## `worker/` — lo que de verdad importa
@@ -214,6 +215,6 @@ _Sin cron propio._
 | `npm run docs` | `node scripts/gen-docs.mjs` |
 | `npm run docs:check` | `node scripts/gen-docs.mjs --check` |
 | `npm run docs:gaps` | `node scripts/gen-docs.mjs --gaps` |
-| `npm run test` | `tsx --test "worker/**/*.test.ts" "components/**/*.test.ts"` |
+| `npm run test` | `tsx --test "worker/**/*.test.ts" "components/**/*.test.ts" "i18n/**/*.test.ts"` |
 
 <!-- END generated:config -->
