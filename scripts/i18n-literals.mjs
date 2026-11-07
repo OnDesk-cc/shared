@@ -47,6 +47,8 @@ const TEXT_FIELDS = new Set([...TEXT_ATTRIBUTES, "message", "text", "summary", "
 const LOOKS_LIKE_TEXT = /^[\p{Lu}¿¡"“«(]/u;
 const ACRONYM = /^\p{Lu}+$/u;
 const CALLS = new Set(["toast", "confirm", "alert"]);
+// Los clientes de API cuyo último argumento es el mensaje de respaldo.
+const API_CALLS = /^(apiGet|apiSend|apiPost|apiPatch|apiDelete|apiFetch|unwrap|send|request|requestJson)$/;
 const HAS_LETTER = /\p{L}/u;
 
 function calleeRoot(expr) {
@@ -110,6 +112,18 @@ export function scanSource(fileName, text, allow = []) {
 		} else if (ts.isCallExpression(node) && CALLS.has(calleeRoot(node.expression) ?? "")) {
 			const first = node.arguments[0];
 			if (first && (ts.isStringLiteral(first) || ts.isNoSubstitutionTemplateLiteral(first))) push(first, first.text);
+		} else if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && API_CALLS.test(node.expression.text)) {
+			// El mensaje de respaldo de un cliente de API (`apiGet(url, "Could not load…")`):
+			// sale en pantalla cuando el servidor no manda el suyo.
+			const last = node.arguments[node.arguments.length - 1];
+			if (node.arguments.length > 1 && last && (ts.isStringLiteral(last) || ts.isNoSubstitutionTemplateLiteral(last)) && LOOKS_LIKE_TEXT.test(last.text) && /\s/.test(last.text))
+				push(last, last.text);
+		} else if (ts.isNewExpression(node) && ts.isIdentifier(node.expression) && /Error$/.test(node.expression.text)) {
+			// `throw new Error("That file is too big")` acaba en un toast. Los errores de
+			// desarrollo («useX must be used within…») no son para nadie que no programe.
+			const first = node.arguments?.[0];
+			if (first && (ts.isStringLiteral(first) || ts.isNoSubstitutionTemplateLiteral(first)) && LOOKS_LIKE_TEXT.test(first.text) && /\s/.test(first.text) && !/must be used within/.test(first.text))
+				push(first, first.text);
 		}
 		ts.forEachChild(node, visit);
 	};

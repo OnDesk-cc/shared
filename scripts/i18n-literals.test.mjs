@@ -37,6 +37,20 @@ test("un atributo visible con una condición reporta cada rama de texto (tambié
 	assert.deepEqual(found, ["A workspace needs a name.", "Ready"]);
 });
 
+test("el mensaje de respaldo de un cliente de API y el texto de un Error se ven; los errores de desarrollo no", () => {
+	const src = [
+		'export const a = () => apiGet(url, "Could not load your spaces");',
+		'export const b = () => unwrap(res, "Could not book that time");',
+		'export const c = () => apiSend(url, "POST", body, "Could not save that change");',
+		'export const d = () => { throw new Error("That file is too big"); };',
+		'export const e = () => { throw new Error("useAuth must be used within AuthProvider"); };',
+		'export const f = () => apiGet(url, L().dict.common.requestFailed);',
+		'export const g = () => fetch(url, { method: "POST" });',
+	].join("\n");
+	const found = scanSource("api.ts", src).map((f) => f.text);
+	assert.deepEqual(found, ["Could not load your spaces", "Could not book that time", "Could not save that change", "That file is too big"]);
+});
+
 test("las carpetas de diccionarios no se escanean", () => {
 	assert.equal(isDictionaryPath("src/console-i18n/en/auth.ts"), true);
 	assert.equal(isDictionaryPath("src/i18n/locales/en/about.ts"), true);
