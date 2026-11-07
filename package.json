@@ -14,7 +14,8 @@
     "docs": "node scripts/gen-docs.mjs",
     "docs:check": "node scripts/gen-docs.mjs --check",
     "docs:gaps": "node scripts/gen-docs.mjs --gaps",
-    "test": "tsx --test \"worker/**/*.test.ts\" \"components/**/*.test.ts\" \"i18n/**/*.test.ts\""
+    "test": "tsx --test \"worker/**/*.test.ts\" \"components/**/*.test.ts\" \"i18n/**/*.test.ts\" \"scripts/i18n-literals.test.mjs\"",
+    "i18n:literals": "node scripts/i18n-literals.mjs components calls ui presence --allow i18n-literals.allow.json"
   },
   "peerDependencies": {
     "@ai-sdk/react": "^4.0.0",

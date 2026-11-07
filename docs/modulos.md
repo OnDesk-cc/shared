@@ -215,6 +215,7 @@ _Sin cron propio._
 | `npm run docs` | `node scripts/gen-docs.mjs` |
 | `npm run docs:check` | `node scripts/gen-docs.mjs --check` |
 | `npm run docs:gaps` | `node scripts/gen-docs.mjs --gaps` |
-| `npm run test` | `tsx --test "worker/**/*.test.ts" "components/**/*.test.ts" "i18n/**/*.test.ts"` |
+| `npm run test` | `tsx --test "worker/**/*.test.ts" "components/**/*.test.ts" "i18n/**/*.test.ts" "scripts/i18n-literals.test.mjs"` |
+| `npm run i18n:literals` | `node scripts/i18n-literals.mjs components calls ui presence --allow i18n-literals.allow.json` |
 
 <!-- END generated:config -->
