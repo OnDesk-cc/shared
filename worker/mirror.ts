@@ -27,7 +27,7 @@ export interface MirroredUser {
 	logo_url: string | null;
 	/**
 	 * El idioma EFECTIVO de la persona, ya calculado por ondesk (perfil → último
-	 * idioma resuelto → `en`, y `en` con el interruptor apagado). Es el idioma de
+	 * idioma resuelto → `en`). Es el idioma de
 	 * sus correos y notificaciones en este producto.
 	 *
 	 * undefined significa «no tocar», como en `MirroredMemberPatch`: un ondesk
@@ -64,16 +64,13 @@ export async function upsertMirroredWorkspace(
 		audit_log_enabled?: boolean;
 		/** El idioma para clientes ya resuelto por ondesk (el propio o el del dueño). undefined: no tocar. */
 		customer_locale?: Locale;
-		/** El interruptor de idiomas de la plataforma. undefined: no tocar. */
-		languages_enabled?: boolean;
 	},
 	createdBy: string,
 ): Promise<void> {
-	// Las dos columnas de idioma sólo se nombran si vienen: mismo motivo que en
+	// La columna de idioma sólo se nombra si viene: mismo motivo que en
 	// `upsertMirroredUser`.
 	const extra: [string, string | number][] = [];
 	if (workspace.customer_locale !== undefined) extra.push(["customer_locale", workspace.customer_locale]);
-	if (workspace.languages_enabled !== undefined) extra.push(["languages_enabled", workspace.languages_enabled ? 1 : 0]);
 	const cols = extra.map(([c]) => `, ${c}`).join("");
 	const marks = extra.map(() => ", ?").join("");
 	const sets = extra.map(([c]) => `\n\t\t\t   ${c} = excluded.${c},`).join("");

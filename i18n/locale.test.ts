@@ -3,24 +3,20 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { isLocale, localeFromTag, resolveLocale } from "./locale.ts";
 
-test("resolveLocale: apagado siempre es en", () => {
-	assert.equal(resolveLocale({ enabled: false, profile: "es", cookie: "pt", navigator: ["pt-BR"] }), "en");
-});
-
 test("resolveLocale: el perfil gana", () => {
-	assert.equal(resolveLocale({ enabled: true, profile: "pt", cookie: "es", navigator: ["en-US"] }), "pt");
+	assert.equal(resolveLocale({ profile: "pt", cookie: "es", navigator: ["en-US"] }), "pt");
 });
 
 test("resolveLocale: cookie antes que navegador", () => {
-	assert.equal(resolveLocale({ enabled: true, profile: null, cookie: "es", navigator: ["pt-BR"] }), "es");
+	assert.equal(resolveLocale({ profile: null, cookie: "es", navigator: ["pt-BR"] }), "es");
 });
 
 test("resolveLocale: cookie inválida se ignora", () => {
-	assert.equal(resolveLocale({ enabled: true, profile: null, cookie: "de", navigator: ["pt-PT", "en"] }), "pt");
+	assert.equal(resolveLocale({ profile: null, cookie: "de", navigator: ["pt-PT", "en"] }), "pt");
 });
 
 test("resolveLocale: nada conocido es en", () => {
-	assert.equal(resolveLocale({ enabled: true, profile: null, cookie: null, navigator: ["de-DE", "fr"] }), "en");
+	assert.equal(resolveLocale({ profile: null, cookie: null, navigator: ["de-DE", "fr"] }), "en");
 });
 
 test("localeFromTag", () => {

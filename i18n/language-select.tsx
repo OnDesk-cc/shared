@@ -58,11 +58,10 @@ export function LanguageSelect({
 /**
  * El selector discreto de una página pública (un enlace compartido, una página de
  * reservas): sin perfil que guardar, la elección va a la cookie `ondesk_lang` y
- * cambia la página al momento. No se enseña con el interruptor apagado.
+ * cambia la página al momento.
  */
 export function PublicLanguageSelect({ className = "" }: { className?: string }) {
-	const { locale, enabled, setLocale } = useI18n<unknown>();
-	if (!enabled) return null;
+	const { locale, setLocale } = useI18n<unknown>();
 	return (
 		<LanguageSelect
 			className={className}

@@ -73,22 +73,20 @@ export function conversationKey(product: NovaSurface, workspaceId: string, scope
 }
 
 /**
- * Lo que acompaña a cada turno. `locale` (spec multilingüe) sólo va con los
- * idiomas encendidos: entonces Nova contesta en el idioma de la app por defecto y
- * escribe sus avisos en él; sin él, contesta en el idioma en que escribe la persona.
+ * Lo que acompaña a cada turno. `locale` (spec multilingüe) es el idioma de la
+ * app: Nova contesta en él por defecto y escribe sus avisos en él.
  */
 export function chatBody(input: {
 	surface: NovaSurface;
 	place: Record<string, unknown> | undefined;
 	timezone: string;
 	locale: Locale;
-	enabled: boolean;
 }): Record<string, unknown> {
 	return {
 		product: input.surface,
 		place: input.place ?? {},
 		timezone: input.timezone,
-		...(input.enabled ? { locale: input.locale } : {}),
+		locale: input.locale,
 	};
 }
 

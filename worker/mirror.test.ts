@@ -8,8 +8,7 @@ const SCHEMA = `
 CREATE TABLE users (id TEXT PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL, logo_url TEXT, locale TEXT,
   updated_at INTEGER);
 CREATE TABLE workspaces (id TEXT PRIMARY KEY, name TEXT NOT NULL, slug TEXT NOT NULL, description TEXT, logo_url TEXT,
-  audit_log_enabled INTEGER NOT NULL DEFAULT 1, created_by TEXT, customer_locale TEXT,
-  languages_enabled INTEGER NOT NULL DEFAULT 0, updated_at INTEGER);
+  audit_log_enabled INTEGER NOT NULL DEFAULT 1, created_by TEXT, customer_locale TEXT, updated_at INTEGER);
 `;
 
 function open(schema: string) {
@@ -40,12 +39,12 @@ test("upsertMirroredUser sin locale funciona en un producto sin la columna", asy
 	assert.equal((await db.prepare("SELECT name FROM users").first())?.name, "Ana");
 });
 
-test("upsertMirroredWorkspace guarda customer_locale y languages_enabled", async () => {
+test("upsertMirroredWorkspace guarda customer_locale", async () => {
 	const db = open(SCHEMA);
-	await upsertMirroredWorkspace(db, { id: "w1", name: "Acme", slug: "acme", logo_url: null, customer_locale: "pt", languages_enabled: true }, "u1");
-	const row = await db.prepare("SELECT customer_locale, languages_enabled FROM workspaces").first();
-	assert.deepEqual({ ...row }, { customer_locale: "pt", languages_enabled: 1 });
+	await upsertMirroredWorkspace(db, { id: "w1", name: "Acme", slug: "acme", logo_url: null, customer_locale: "pt" }, "u1");
+	const row = await db.prepare("SELECT customer_locale FROM workspaces").first();
+	assert.deepEqual({ ...row }, { customer_locale: "pt" });
 	await upsertMirroredWorkspace(db, { id: "w1", name: "Acme 2", slug: "acme", logo_url: null }, "u1");
-	const after = await db.prepare("SELECT name, customer_locale, languages_enabled FROM workspaces").first();
-	assert.deepEqual({ ...after }, { name: "Acme 2", customer_locale: "pt", languages_enabled: 1 });
+	const after = await db.prepare("SELECT name, customer_locale FROM workspaces").first();
+	assert.deepEqual({ ...after }, { name: "Acme 2", customer_locale: "pt" });
 });

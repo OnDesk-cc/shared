@@ -3,10 +3,7 @@
  *
  * El orden lo fijó el usuario (spec 2026-11-06-plataforma-multilingue): lo que
  * la persona configuró en su perfil → el idioma con el que leyó el sitio (la
- * cookie `ondesk_lang`) → el navegador → inglés. Con el interruptor de la
- * plataforma apagado el resultado es siempre inglés, aunque haya datos
- * guardados en otro idioma: así se puede desplegar todo antes del lanzamiento
- * sin que nadie vea nada.
+ * cookie `ondesk_lang`) → el navegador → inglés.
  *
  * Sin DOM ni React: lo importan tanto las SPAs como los workers.
  */
@@ -35,8 +32,6 @@ export function localeFromTag(tag: string | null | undefined): Locale | null {
 }
 
 export interface ResolveLocaleInput {
-	/** El interruptor `languages_enabled` de la plataforma. */
-	enabled: boolean;
 	/** `users.locale`: null es «Automático». */
 	profile: Locale | null;
 	/** El valor crudo de la cookie `ondesk_lang`; se valida aquí. */
@@ -46,7 +41,6 @@ export interface ResolveLocaleInput {
 }
 
 export function resolveLocale(input: ResolveLocaleInput): Locale {
-	if (!input.enabled) return DEFAULT_LOCALE;
 	if (input.profile && isLocale(input.profile)) return input.profile;
 	const fromCookie = localeFromTag(input.cookie);
 	if (fromCookie) return fromCookie;

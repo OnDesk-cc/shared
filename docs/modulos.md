@@ -28,7 +28,7 @@ sitio.
 | `components/` | navegador | `theme-provider` (el que escribe la clase `dark`, montado por todas las apps), `confirm-delete-modal`, `form-modal`, `console`, `topbar`, y Nova: `nova` (el marco, las filas, el campo y las sugerencias), `nova-chat` (la hoja, sobre Nova central; la única desde v1.17.0), `nova-chat-tools` (la línea de una lectura en curso y la tarjeta de aprobación de una acción, v1.19.0), `nova-mark` |
 | `calls/` | navegador | `ringer-lease` — **un solo tono por navegador entre todos los productos**; `ring-tone` — el reproductor |
 | `presence/` | navegador | `status` — el vocabulario de presencia que renderizan los seis (`STATUS_META`, `presenceLabel`, `lastSeenShort`); `presence-dot` |
-| `i18n/` | ambos | los tres idiomas (`en`/`es`/`pt`) de la plataforma. El núcleo (`locale`, `format`, `dictionary`, `index`) no usa DOM ni React y entra también en el typecheck del worker: `resolveLocale` (perfil → cookie `ondesk_lang` → navegador → `en`, y siempre `en` con el interruptor apagado), `interpolate`/`plural`/`formatDate`/`formatRelative`/`formatNumber` con `Intl`, y el tipo `Translation<typeof en>` que obliga a que `es` y `pt` estén completos. En el navegador: `cookie` (`ondesk_lang` en `.ondesk.cc`), `flag` (el interruptor, con el último valor en localStorage), `react` (`I18nProvider`, `useI18n`, `useSharedStrings`), `language-select` y `strings/` (los textos de los componentes de shared). Ver «Idiomas» en [uso.md](uso.md). Ver la spec `ondesk/docs/specs/2026-11-06-plataforma-multilingue.md` |
+| `i18n/` | ambos | los tres idiomas (`en`/`es`/`pt`) de la plataforma. El núcleo (`locale`, `format`, `dictionary`, `index`) no usa DOM ni React y entra también en el typecheck del worker: `resolveLocale` (perfil → cookie `ondesk_lang` → navegador → `en`), `interpolate`/`plural`/`formatDate`/`formatRelative`/`formatNumber` con `Intl`, y el tipo `Translation<typeof en>` que obliga a que `es` y `pt` estén completos. En el navegador: `cookie` (`ondesk_lang` en `.ondesk.cc`), `react` (`I18nProvider`, `useI18n`, `useSharedStrings`), `language-select` y `strings/` (los textos de los componentes de shared). Ver «Idiomas» en [uso.md](uso.md). Ver la spec `ondesk/docs/specs/2026-11-06-plataforma-multilingue.md` |
 | `worker/` | Pages Functions | ver abajo — **es la parte crítica** |
 
 ## `worker/` — lo que de verdad importa
@@ -37,7 +37,7 @@ sitio.
 |---|---|
 | **`middleware`** | **`createMiddleware(product)` → los cuatro guards de ruta.** El middleware de autenticación de los seis productos |
 | `sso` | sesión de plataforma y verificación de webhook — **el lado de los productos, nunca el de ondesk** |
-| `mirror` | las escrituras del espejo del control plane, idénticas en los seis. Desde v1.26.0 llevan el idioma: `users.locale` (efectivo, ya calculado por ondesk) y `workspaces.customer_locale` + `languages_enabled`; undefined es «no tocar» y la columna ni se nombra, así que un producto sin la migración sigue funcionando |
+| `mirror` | las escrituras del espejo del control plane, idénticas en los seis. Desde v1.26.0 llevan el idioma: `users.locale` (efectivo, ya calculado por ondesk) y `workspaces.customer_locale` (`languages_enabled` desapareció en v1.27.0); undefined es «no tocar» y la columna ni se nombra, así que un producto sin la migración sigue funcionando |
 | `i18n` | `stripeLocale` (`en`/`es-419`/`pt-BR`) y `localeOr` (valida un idioma que llega de fuera) |
 | `detect-language` | `detectTextLocale(text)`: en/es/pt de un mensaje entrante por palabras frecuentes, sin modelo; quita HTML, cita y firma, y ante la duda devuelve null |
 | `response` | `jsonOk` / `jsonError` |
@@ -80,7 +80,7 @@ archivo nuevo es importable sin tocar `package.json`.
 <!-- BEGIN generated:modules -->
 <!-- No edites aquí: lo reescribe `npm run docs`. -->
 
-Módulos de las carpetas publicadas (106), con la primera línea de su comentario de cabecera.
+Módulos de las carpetas publicadas (109), con la primera línea de su comentario de cabecera.
 
 | Archivo | Qué hace |
 | --- | --- |
@@ -92,6 +92,8 @@ Módulos de las carpetas publicadas (106), con la primera línea de su comentari
 | [`components/automations/automations-model.test.ts`](../components/automations/automations-model.test.ts) | — |
 | [`components/automations/automations-model.ts`](../components/automations/automations-model.ts) | El modelo del editor de automatizaciones (2026-10-21), sin React, para probarlo en Node. |
 | [`components/automations/automations-panel.tsx`](../components/automations/automations-panel.tsx) | Las automatizaciones en una app y en la consola (2026-10-21). |
+| [`components/automations/catalog-i18n.test.ts`](../components/automations/catalog-i18n.test.ts) | — |
+| [`components/automations/catalog-i18n.ts`](../components/automations/catalog-i18n.ts) | El catálogo de automatizaciones en el idioma de quien lee (Tarea 19 de la spec multilingüe). |
 | [`components/automations/condition-editor.tsx`](../components/automations/condition-editor.tsx) | «Only if»: las condiciones de una automatización (2026-10-21). |
 | [`components/automations/flow-parts.tsx`](../components/automations/flow-parts.tsx) | Las piezas pequeñas de las automatizaciones (2026-10-21): |
 | [`components/automations/index.ts`](../components/automations/index.ts) | Las automatizaciones entre apps en la interfaz (2026-10-21): lo que montan las apps en Ajustes (`AutomationsPanel`) y la consola de ondesk (`AutomationsConsole`). |
@@ -125,6 +127,7 @@ Módulos de las carpetas publicadas (106), con la primera línea de su comentari
 | [`components/theme-provider.tsx`](../components/theme-provider.tsx) | El mundo del mapa se lee a la luz del día: no hay tema oscuro en el sitio, en la puerta, en las consolas ni en los seis productos (decidido el 2026-09-29). |
 | [`components/topbar.tsx`](../components/topbar.tsx) | Las piezas de la barra superior de un producto (2026-10-06): el buscador, la campana, la ayuda y el botón de glifo sobre el que van. |
 | [`hooks/map.ts`](../hooks/map.ts) | Los hooks de las piezas de consola (`components/console-kit.tsx`), iguales que en `ondesk/src/features/frontend/hooks.ts`: el reloj del horario, el aviso que se apaga… |
+| [`lib/crud-api.test.ts`](../lib/crud-api.test.ts) | — |
 | [`lib/crud-api.ts`](../lib/crud-api.ts) | El cliente CRUD que se repetía en cada feature, escrito una vez. |
 | [`lib/crud-hooks.ts`](../lib/crud-hooks.ts) | Los hooks de React Query que van encima de `crud-api.ts`. |
 | [`lib/initials.ts`](../lib/initials.ts) | Dos letras en lugar de alguien que todavía no tiene avatar. |
@@ -224,7 +227,7 @@ _Sin cron propio._
 | `npm run docs` | `node scripts/gen-docs.mjs` |
 | `npm run docs:check` | `node scripts/gen-docs.mjs --check` |
 | `npm run docs:gaps` | `node scripts/gen-docs.mjs --gaps` |
-| `npm run test` | `tsx --test "worker/**/*.test.ts" "components/**/*.test.ts" "i18n/**/*.test.ts" "presence/**/*.test.ts" "scripts/i18n-literals.test.mjs"` |
+| `npm run test` | `tsx --test "worker/**/*.test.ts" "components/**/*.test.ts" "i18n/**/*.test.ts" "presence/**/*.test.ts" "lib/**/*.test.ts" "scripts/i18n-literals.test.mjs"` |
 | `npm run i18n:literals` | `node scripts/i18n-literals.mjs components calls ui presence --allow i18n-literals.allow.json` |
 
 <!-- END generated:config -->
