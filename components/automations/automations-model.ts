@@ -26,6 +26,7 @@ import { novaOrigin } from "../nova-chat-parts";
 import { INTL_TAG, type Locale } from "../../i18n/locale";
 import { interpolate } from "../../i18n/format";
 import { SHARED_STRINGS } from "../../i18n/strings";
+import { paramText } from "./catalog-i18n";
 
 // Los textos para la persona salen del diccionario de shared. Cada función que
 // devuelve uno acepta un `locale` final, opcional y `en` por defecto. Las
@@ -247,7 +248,7 @@ function isEmpty(value: unknown): boolean {
 
 /** «Step 2: Project is required.»: la misma frase la busca el editor del paso para marcar su campo. */
 export function paramRequiredError(stepNumber: number, key: string, locale: Locale = "en"): string {
-	return interpolate(A(locale).errors.paramRequired, { n: stepNumber, param: paramLabel(key) });
+	return interpolate(A(locale).errors.paramRequired, { n: stepNumber, param: paramText(key, locale) });
 }
 
 export function draftErrors(catalog: Catalog, draft: FlowDraft, locale: Locale = "en"): string[] {

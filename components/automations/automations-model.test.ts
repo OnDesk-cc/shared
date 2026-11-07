@@ -279,5 +279,5 @@ test("los textos del modelo en es y pt; sin idioma, inglés", () => {
 test("paramRequiredError es la misma frase que da draftErrors", () => {
 	const errors = draftErrors(catalog, { ...good, steps: [{ tool: "orbit.create_task", params: { project: "", title: "x" } }] }, "es");
 	assert.ok(errors.includes(paramRequiredError(1, "project", "es")));
-	assert.equal(paramRequiredError(1, "project", "es"), "Paso 1: Project es obligatorio.");
+	assert.equal(paramRequiredError(1, "project", "es"), "Paso 1: Proyecto es obligatorio.");
 });

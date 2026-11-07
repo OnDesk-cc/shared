@@ -18,7 +18,8 @@ import { ArrowDown, ArrowUp, Trash2 } from "lucide-react";
 import type { JsonSchema } from "../../worker/json-schema";
 import { FieldShell } from "../console-kit";
 import { AppTile } from "../sky";
-import { hasList, paramControl, paramLabel, paramRequiredError, PRODUCT_LABELS, visibleParams, type CatalogAction, type FlowStep, type Variable } from "./automations-model";
+import { hasList, paramControl, paramRequiredError, PRODUCT_LABELS, visibleParams, type CatalogAction, type FlowStep, type Variable } from "./automations-model";
+import { catalogText, paramText } from "./catalog-i18n";
 import { useSharedStrings } from "../../i18n/react";
 import { TemplateField } from "./template-field";
 import { useFlowOptions } from "./use-automations";
@@ -138,9 +139,9 @@ function ParamField({
 	onChange: (value: unknown) => void;
 }) {
 	const id = useId();
-	const { s, t } = useSharedStrings();
+	const { s, t, locale } = useSharedStrings();
 	const a = s.automations;
-	const label = required ? paramLabel(name) : t(a.optional, { label: paramLabel(name) });
+	const label = required ? paramText(name, locale) : t(a.optional, { label: paramText(name, locale) });
 	const text = value === undefined || value === null ? "" : String(value);
 	const [asVariable, setAsVariable] = useState(text.includes("{{"));
 	const options = useFlowOptions(novaHost, workspaceId, control === "options" ? (schema["x-options"] ?? null) : null);
@@ -170,7 +171,7 @@ function ParamField({
 
 	const choices =
 		control === "enum"
-			? (schema.enum ?? []).map((v) => ({ value: String(v), label: String(v).replace(/_/g, " ") }))
+			? (schema.enum ?? []).map((v) => ({ value: String(v), label: catalogText(String(v).replace(/_/g, " "), locale) }))
 			: (options.data ?? []);
 	return (
 		<FieldShell id={id} label={label} error={error} hint={control === "options" && options.isError ? a.listError : undefined}>

@@ -10,11 +10,16 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { automationsApi, automationsKeys, type FlowInput } from "./automations-api";
 import type { FlowOutcome } from "./automations-model";
+import { localizeCatalog } from "./catalog-i18n";
+import { useSharedStrings } from "../../i18n/react";
 
 export function useAutomationsCatalog(novaHost: string, workspaceId: string) {
+	// El catálogo llega en inglés de los manifiestos; se pinta en el idioma de quien lee.
+	const { locale } = useSharedStrings();
 	return useQuery({
 		queryKey: automationsKeys.catalog(workspaceId),
 		queryFn: () => automationsApi.catalog(novaHost, workspaceId),
+		select: (catalog) => localizeCatalog(catalog, locale),
 		staleTime: 5 * 60_000,
 	});
 }
