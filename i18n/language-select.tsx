@@ -16,6 +16,8 @@ export function LanguageSelect({
 	onChange,
 	disabled = false,
 	allowAutomatic = true,
+	label,
+	automaticLabel,
 	className = "",
 }: {
 	/** null es «Automático». */
@@ -24,20 +26,24 @@ export function LanguageSelect({
 	disabled?: boolean;
 	/** En una página pública no hay perfil: sólo los tres idiomas. */
 	allowAutomatic?: boolean;
+	/** El rótulo del campo; por defecto «Language» en el idioma de quien lee. */
+	label?: string;
+	/** Lo que significa null aquí; por defecto «Automatic» («Same as the owner» en un workspace). */
+	automaticLabel?: string;
 	className?: string;
 }) {
 	const { s } = useSharedStrings();
 	const id = useId();
 	return (
 		<label htmlFor={id} className={`flex flex-col gap-1.5 ${className}`}>
-			<span className="sk-label mb-0!">{s.language.label}</span>
+			<span className="sk-label mb-0!">{label ?? s.language.label}</span>
 			<select
 				id={id}
 				className="field sk-select"
 				value={value ?? ""}
 				disabled={disabled}
 				onChange={(e) => onChange(e.target.value === "" ? null : (e.target.value as Locale))}>
-				{allowAutomatic && <option value="">{s.language.automatic}</option>}
+				{allowAutomatic && <option value="">{automaticLabel ?? s.language.automatic}</option>}
 				{LOCALES.map((l) => (
 					<option key={l} value={l} lang={l}>
 						{LOCALE_NATIVE_NAME[l]}

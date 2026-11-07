@@ -17,7 +17,7 @@
  * marcas, códigos y nombres propios que no se traducen. Sale con 1 si queda algo.
  * Ver la spec `ondesk/docs/specs/2026-11-06-plataforma-multilingue.md`.
  */
-import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
+import { readFileSync, readdirSync, statSync, existsSync, realpathSync } from "node:fs";
 import { join, relative, basename, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import ts from "typescript";
@@ -37,7 +37,15 @@ const TEXT_ATTRIBUTES = new Set([
 	"heading",
 	"subtitle",
 	"hint",
+	"error",
 ]);
+// Los campos de un objeto que acaban en pantalla (migas, opciones, entradas de menú,
+// errores que se enseñan): `{ label: "Account" }`.
+const TEXT_FIELDS = new Set([...TEXT_ATTRIBUTES, "message", "text", "summary", "subheading"]);
+// En un objeto sólo cuenta lo que parece frase o rótulo: empieza en mayúscula y no es
+// una sigla entera («GET», «JSON»). Ids y valores («form», "json") quedan fuera.
+const LOOKS_LIKE_TEXT = /^[\p{Lu}¿¡"“«(]/u;
+const ACRONYM = /^\p{Lu}+$/u;
 const CALLS = new Set(["toast", "confirm", "alert"]);
 const HAS_LETTER = /\p{L}/u;
 
@@ -50,7 +58,8 @@ function calleeRoot(expr) {
 /** Los hallazgos de un archivo: `{ line, text }`, en orden. `allow` quita textos exactos. */
 export function scanSource(fileName, text, allow = []) {
 	const allowed = new Set(allow);
-	const sf = ts.createSourceFile(fileName, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+	const kind = fileName.endsWith(".ts") ? ts.ScriptKind.TS : ts.ScriptKind.TSX;
+	const sf = ts.createSourceFile(fileName, text, ts.ScriptTarget.Latest, true, kind);
 	const found = [];
 	const push = (node, value) => {
 		const clean = value.replace(/\s+/g, " ").trim();
@@ -90,8 +99,14 @@ export function scanSource(fileName, text, allow = []) {
 					// `Remove ${x}` → «Remove …»: el texto fijo de la plantilla, con un hueco por variable.
 					const tpl = init.expression;
 					push(tpl, [tpl.head.text, ...tpl.templateSpans.map((span) => span.literal.text)].join("…"));
-				}
+				} else if (ts.isJsxExpression(init) && init.expression && (ts.isConditionalExpression(init.expression) || ts.isBinaryExpression(init.expression)))
+					// `error={missing ? "Needs a name." : null}`: cada rama de texto.
+					visitChildExpression(init.expression);
 			}
+		} else if (ts.isPropertyAssignment(node) && TEXT_FIELDS.has(node.name.getText(sf).replace(/["']/g, ""))) {
+			const init = node.initializer;
+			if ((ts.isStringLiteral(init) || ts.isNoSubstitutionTemplateLiteral(init)) && LOOKS_LIKE_TEXT.test(init.text) && !ACRONYM.test(init.text))
+				push(init, init.text);
 		} else if (ts.isCallExpression(node) && CALLS.has(calleeRoot(node.expression) ?? "")) {
 			const first = node.arguments[0];
 			if (first && (ts.isStringLiteral(first) || ts.isNoSubstitutionTemplateLiteral(first))) push(first, first.text);
@@ -102,12 +117,24 @@ export function scanSource(fileName, text, allow = []) {
 	return found;
 }
 
+/** Las carpetas de diccionarios (`console-i18n/`, `i18n/`, `locales/`) son el texto, no un hueco. */
+export function isDictionaryPath(path) {
+	return /(^|[\\/])([\w-]*i18n|locales)([\\/]|$)/.test(path);
+}
+
+const isSource = (f) => /\.tsx?$/.test(f) && !/\.(test|d)\.tsx?$/.test(f);
+
 function* walk(dir) {
+	if (!statSync(dir).isDirectory()) {
+		if (isSource(dir)) yield dir;
+		return;
+	}
 	for (const entry of readdirSync(dir)) {
 		if (entry === "node_modules" || entry.startsWith(".")) continue;
 		const full = join(dir, entry);
-		if (statSync(full).isDirectory()) yield* walk(full);
-		else if (full.endsWith(".tsx") && !full.endsWith(".test.tsx")) yield full;
+		if (statSync(full).isDirectory()) {
+			if (!isDictionaryPath(entry)) yield* walk(full);
+		} else if (isSource(full)) yield full;
 	}
 }
 
@@ -139,4 +166,7 @@ function main(argv) {
 	process.exit(total === 0 ? 0 : 1);
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) main(process.argv.slice(2));
+// realpath: llamado por node_modules/@ondesk/shared (un enlace a ../shared en local),
+// import.meta.url ya es la ruta real y la del argumento no; sin esto no escaneaba nada
+// y salía con 0.
+if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(resolve(process.argv[1]))).href) main(process.argv.slice(2));

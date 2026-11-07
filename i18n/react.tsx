@@ -15,9 +15,9 @@
  * resolver cuando llega. Los componentes de `@ondesk/shared` leen el idioma del
  * mismo contexto con `useSharedStrings()`; sin provider (admin) hablan inglés.
  */
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, Fragment, createElement, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { INTL_TAG, resolveLocale, type Locale } from "./locale";
-import { formatDate, formatNumber, formatRelative, interpolate, plural, type PluralForms, type Vars } from "./format";
+import { formatDate, formatNumber, formatRelative, interpolate, plural, splitTemplate, type PluralForms, type Vars } from "./format";
 import { readLangCookie } from "./cookie";
 import { cachedLanguagesEnabled, fetchLanguagesEnabled } from "./flag";
 import { SHARED_STRINGS, type SharedDict } from "./strings";
@@ -27,6 +27,8 @@ export interface I18nTools {
 	/** El interruptor de la plataforma. Apagado, `locale` es siempre `en`. */
 	enabled: boolean;
 	t: (template: string, vars?: Vars) => string;
+	/** Como `t`, pero los valores pueden ser elementos: «Lee los {link} antes de seguir». */
+	rich: (template: string, vars: Record<string, ReactNode>) => ReactNode;
 	pl: (forms: PluralForms, count: number, vars?: Vars) => string;
 	date: (value: number | Date, opts?: Intl.DateTimeFormatOptions) => string;
 	relative: (value: number | Date, now?: Date) => string;
@@ -52,11 +54,24 @@ interface State {
 
 const I18nContext = createContext<State | null>(null);
 
+/**
+ * El idioma y el diccionario que pinta ahora mismo el provider, para el código que
+ * no es un componente (validaciones, modelos, mensajes de error de un cliente de
+ * API): lo lee AL LLAMARSE, nunca al cargar el módulo, así que una constante de
+ * módulo no puede usarlo. Una SPA tiene un solo provider; sin él, inglés.
+ */
+let current: { locale: Locale; enabled: boolean; dict: unknown } = { locale: "en", enabled: false, dict: null };
+
+export function getCurrentI18n<D>(fallback: D): I18nTools & { dict: D } {
+	return { ...makeTools(current.locale, current.enabled), dict: (current.dict as D | null) ?? fallback };
+}
+
 export function makeTools(locale: Locale, enabled: boolean): I18nTools {
 	return {
 		locale,
 		enabled,
 		t: interpolate,
+		rich: (template, vars) => createElement(Fragment, null, ...splitTemplate<ReactNode>(template, vars).map((part, i) => createElement(Fragment, { key: i }, part))),
 		pl: (forms, count, vars) => plural(locale, forms, count, vars),
 		date: (value, opts) => formatDate(locale, value, opts),
 		relative: (value, now) => formatRelative(locale, value, now),
@@ -104,8 +119,18 @@ export function I18nProvider<D>(props: {
 	}, [locale]);
 
 	const setLocale = useCallback((next: Locale | null) => setOverride(next), []);
+	current = { locale, enabled, dict: dictionaries[locale] };
 	const value = useMemo<State>(() => ({ locale, enabled, dict: dictionaries[locale], setLocale }), [locale, enabled, dictionaries, setLocale]);
-	return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
+	// La llave es el idioma: al cambiarlo se vuelve a montar todo lo de dentro. Sin
+	// ella, React se salta los componentes que no leen el contexto (el texto que
+	// sale de `getCurrentI18n()`: las paradas de una página, las etiquetas de un
+	// modelo) y se quedarían en el idioma anterior hasta el siguiente render.
+	// Cambiar de idioma es raro; perder el estado de un formulario a medias, aceptable.
+	return (
+		<I18nContext.Provider value={value}>
+			<Fragment key={locale}>{children}</Fragment>
+		</I18nContext.Provider>
+	);
 }
 
 /** El diccionario de la app y las herramientas. Fuera de un provider es un error de programación. */

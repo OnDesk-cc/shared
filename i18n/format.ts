@@ -70,3 +70,27 @@ export function formatRelative(locale: Locale, value: number | Date, now: Date =
 	}
 	return rtf.format(0, "second");
 }
+
+/**
+ * Una plantilla en trozos: el texto y los valores tal cual, sin pasarlos a
+ * texto. Es lo que necesita una frase con un enlace o un `<strong>` dentro
+ * («Lee los {link} antes de seguir»): el valor es un elemento de React. Un
+ * marcador sin valor se queda escrito, como en `interpolate`.
+ */
+export function splitTemplate<T>(template: string, vars: Record<string, T>): (string | T)[] {
+	const out: (string | T)[] = [];
+	let text = "";
+	let last = 0;
+	for (const m of template.matchAll(/\{(\w+)\}/g)) {
+		text += template.slice(last, m.index);
+		last = (m.index ?? 0) + m[0].length;
+		if (m[1] in vars) {
+			if (text) out.push(text);
+			text = "";
+			out.push(vars[m[1]]);
+		} else text += m[0];
+	}
+	text += template.slice(last);
+	if (text) out.push(text);
+	return out;
+}

@@ -1,7 +1,7 @@
 // Interpolación, plurales y formato con Intl: `npm test`.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { formatDate, formatNumber, formatRelative, interpolate, plural } from "./format.ts";
+import { formatDate, formatNumber, formatRelative, interpolate, plural, splitTemplate } from "./format.ts";
 
 test("interpolate rellena y deja intacto un placeholder sin valor", () => {
 	assert.equal(interpolate("Hola {name}, {x}", { name: "Ana" }), "Hola Ana, {x}");
@@ -37,4 +37,12 @@ test("formatRelative habla el idioma pedido", () => {
 test("formatNumber agrupa según el idioma", () => {
 	assert.equal(formatNumber("en", 1234.5), "1,234.5");
 	assert.equal(formatNumber("pt", 1234.5), "1.234,5");
+});
+
+test("splitTemplate parte en texto y valores, sin tocar los objetos", () => {
+	const link = { kind: "a" };
+	assert.deepEqual(splitTemplate("Read our {link} first, {name}.", { link, name: "Ana" }), ["Read our ", link, " first, ", "Ana", "."]);
+	assert.deepEqual(splitTemplate("Sin marcas", {}), ["Sin marcas"]);
+	assert.deepEqual(splitTemplate("{a}{b}", { a: 1, b: 2 }), [1, 2]);
+	assert.deepEqual(splitTemplate("Falta {x}", {}), ["Falta {x}"]);
 });
