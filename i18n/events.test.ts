@@ -73,3 +73,8 @@ test("renderEventVar escribe un valor suelto", () => {
 	assert.equal(renderEventVar(book, "es", { word: "minutes", vars: { count: 45 } }), "45 minutos");
 	assert.equal(renderEventVar(book, "en", "Retro"), "Retro");
 });
+
+test("una fecha sola, sin hora", () => {
+	const at = Date.UTC(2026, 10, 7, 15, 30) / 1000;
+	assert.equal(renderEventVar(book, "es", { at, tz: "UTC", dateOnly: true }), "7 nov 2026");
+});

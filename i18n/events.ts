@@ -19,7 +19,7 @@
 import { formatDate, interpolate, plural, type PluralForms } from "./format";
 import type { Locale } from "./locale";
 
-export type EventVar = string | number | { at: number; tz?: string; zone?: boolean; full?: boolean } | { word: string; vars?: EventVars };
+export type EventVar = string | number | { at: number; tz?: string; zone?: boolean; full?: boolean; dateOnly?: boolean } | { word: string; vars?: EventVars };
 export type EventVars = Record<string, EventVar>;
 
 export interface EventCopy {
@@ -43,7 +43,9 @@ function renderWord(book: EventBook, locale: Locale, word: string, vars: EventVa
 function renderVar(book: EventBook, locale: Locale, value: EventVar): string | number {
 	if (typeof value === "string" || typeof value === "number") return value;
 	if ("word" in value) return renderWord(book, locale, value.word, value.vars);
-	const style: Intl.DateTimeFormatOptions = { dateStyle: value.full ? "full" : "medium", timeStyle: "short" };
+	const style: Intl.DateTimeFormatOptions = value.dateOnly
+		? { dateStyle: value.full ? "full" : "medium" }
+		: { dateStyle: value.full ? "full" : "medium", timeStyle: "short" };
 	let tz = value.tz;
 	let text: string;
 	try {
