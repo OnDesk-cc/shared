@@ -233,7 +233,10 @@ export interface NovaIndexFeed {
 
 /** Lo que enseña la tarjeta de aprobación: lo escribe el producto en `preview`. */
 export interface NovaActionPreview {
-	/** Una frase, en inglés como el resto de lo que lee la persona en la hoja: «Create task "Ship v2" in Launch». */
+	/**
+	 * Una frase: «Create task "Ship v2" in Launch». Desde la spec multilingüe (2026-11-07) cada
+	 * producto la escribe, con los rótulos de `fields`, en el idioma de quien pregunta (`users.locale`).
+	 */
 	summary: string;
 	fields: { label: string; value: string }[];
 }
