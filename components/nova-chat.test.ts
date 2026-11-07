@@ -5,6 +5,7 @@ import {
 	actionErrorText,
 	actionVerb,
 	asPreviewData,
+	chatBody,
 	chatErrorText,
 	classifyHistoryStatus,
 	collectPreviews,
@@ -217,4 +218,18 @@ test("usageLine en es con plural y número local", () => {
 	assert.equal(usageLine(usage, "es"), "Te queda 1 crédito este mes.");
 	const out = { limit: 1000, remaining: 0, renews_at: "2026-12-01T00:00:00Z" } as never;
 	assert.equal(usageLine(out, "pt"), "Você não tem mais créditos da Nova este mês. Eles renovam em 1 de dezembro (UTC).");
+});
+
+test("chatBody manda el idioma de la app sólo con los idiomas encendidos", () => {
+	assert.deepEqual(chatBody({ surface: "pulse", place: { ticket_id: "t1" }, timezone: "UTC", locale: "pt", enabled: true }), {
+		product: "pulse",
+		place: { ticket_id: "t1" },
+		timezone: "UTC",
+		locale: "pt",
+	});
+	assert.deepEqual(chatBody({ surface: "console", place: undefined, timezone: "Europe/Madrid", locale: "en", enabled: false }), {
+		product: "console",
+		place: {},
+		timezone: "Europe/Madrid",
+	});
 });
