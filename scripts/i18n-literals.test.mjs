@@ -26,9 +26,10 @@ test("reporta el texto de un objeto (migas, opciones, menús) por el nombre de s
 		'const back = { to: "/", label: "Back to sign in" };',
 		'const err = { message: "Something went wrong.", code: "invalid_locale" };',
 		'const kind = { type: "Bearer", hint: "Like ?api_key=<key> at the end of every call." };',
+		'const opt = { value: "public", blurb: "Everyone in the workspace can read and post." };',
 	].join("\n");
 	const found = scanSource("objects.ts", src).map((f) => f.text);
-	assert.deepEqual(found, ["Account", "Form-encoded", "Back to sign in", "Something went wrong.", "Like ?api_key=<key> at the end of every call."]);
+	assert.deepEqual(found, ["Account", "Form-encoded", "Back to sign in", "Something went wrong.", "Like ?api_key=<key> at the end of every call.", "Everyone in the workspace can read and post."]);
 });
 
 test("un atributo visible con una condición reporta cada rama de texto (también `error`)", () => {

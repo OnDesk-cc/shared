@@ -41,7 +41,7 @@ const TEXT_ATTRIBUTES = new Set([
 ]);
 // Los campos de un objeto que acaban en pantalla (migas, opciones, entradas de menú,
 // errores que se enseñan): `{ label: "Account" }`.
-const TEXT_FIELDS = new Set([...TEXT_ATTRIBUTES, "message", "text", "summary", "subheading"]);
+const TEXT_FIELDS = new Set([...TEXT_ATTRIBUTES, "message", "text", "summary", "subheading", "blurb", "caption", "detail", "help"]);
 // En un objeto sólo cuenta lo que parece frase o rótulo: empieza en mayúscula y no es
 // una sigla entera («GET», «JSON»). Ids y valores («form», "json") quedan fuera.
 const LOOKS_LIKE_TEXT = /^[\p{Lu}¿¡"“«(]/u;
