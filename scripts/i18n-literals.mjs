@@ -27,6 +27,8 @@ const TEXT_ATTRIBUTES = new Set([
 	"title",
 	"aria-label",
 	"aria-description",
+	// El rótulo de columna que site.css enseña en móvil (`content: attr(data-label)`).
+	"data-label",
 	"alt",
 	"label",
 	"description",

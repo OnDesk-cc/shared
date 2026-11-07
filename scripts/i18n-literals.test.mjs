@@ -73,3 +73,8 @@ test("la lista de permitidos quita lo que nombra", () => {
 	assert.equal(found.length, 6);
 	assert.ok(!found.includes("OnDesk"));
 });
+
+test("data-label: el rótulo de columna que el CSS enseña en móvil también es texto visible", () => {
+	const found = scanSource("table.tsx", 'export const R = () => <td data-label="Status">x</td>;').map((f) => f.text);
+	assert.ok(found.includes("Status"));
+});
