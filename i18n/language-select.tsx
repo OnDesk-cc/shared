@@ -6,7 +6,8 @@
  */
 import { useId } from "react";
 import { LOCALES, type Locale } from "./locale";
-import { useSharedStrings } from "./react";
+import { useI18n, useSharedStrings } from "./react";
+import { writeLangCookie } from "./cookie";
 
 /** El nombre de cada idioma en sí mismo. No se traduce. */
 export const LOCALE_NATIVE_NAME: Record<Locale, string> = { en: "English", es: "Español", pt: "Português" };
@@ -51,5 +52,27 @@ export function LanguageSelect({
 				))}
 			</select>
 		</label>
+	);
+}
+
+/**
+ * El selector discreto de una página pública (un enlace compartido, una página de
+ * reservas): sin perfil que guardar, la elección va a la cookie `ondesk_lang` y
+ * cambia la página al momento. No se enseña con el interruptor apagado.
+ */
+export function PublicLanguageSelect({ className = "" }: { className?: string }) {
+	const { locale, enabled, setLocale } = useI18n<unknown>();
+	if (!enabled) return null;
+	return (
+		<LanguageSelect
+			className={className}
+			value={locale}
+			allowAutomatic={false}
+			onChange={(next) => {
+				if (!next) return;
+				writeLangCookie(next);
+				setLocale(next);
+			}}
+		/>
 	);
 }
