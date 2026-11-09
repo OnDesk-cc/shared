@@ -1,7 +1,7 @@
 /**
  * Idioma en el servidor: validar lo que llega de fuera y traducirlo al código que
  * entiende Stripe. El idioma efectivo de una persona lo calcula ondesk (perfil,
- * último idioma resuelto, interruptor) y llega a los productos por el espejo.
+ * último idioma resuelto) y llega a los productos por el espejo.
  */
 import { DEFAULT_LOCALE, isLocale, type Locale } from "../i18n/locale";
 

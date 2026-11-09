@@ -220,16 +220,17 @@ test("usageLine en es con plural y número local", () => {
 	assert.equal(usageLine(out, "pt"), "Você não tem mais créditos da Nova este mês. Eles renovam em 1 de dezembro (UTC).");
 });
 
-test("chatBody manda el idioma de la app sólo con los idiomas encendidos", () => {
-	assert.deepEqual(chatBody({ surface: "pulse", place: { ticket_id: "t1" }, timezone: "UTC", locale: "pt", enabled: true }), {
+test("chatBody manda siempre el idioma de la app", () => {
+	assert.deepEqual(chatBody({ surface: "pulse", place: { ticket_id: "t1" }, timezone: "UTC", locale: "pt" }), {
 		product: "pulse",
 		place: { ticket_id: "t1" },
 		timezone: "UTC",
 		locale: "pt",
 	});
-	assert.deepEqual(chatBody({ surface: "console", place: undefined, timezone: "Europe/Madrid", locale: "en", enabled: false }), {
+	assert.deepEqual(chatBody({ surface: "console", place: undefined, timezone: "Europe/Madrid", locale: "en" }), {
 		product: "console",
 		place: {},
 		timezone: "Europe/Madrid",
+		locale: "en",
 	});
 });

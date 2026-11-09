@@ -167,12 +167,12 @@ export function NovaConversation({
 	const [sessionExpired, setSessionExpired] = useState(false);
 
 	// Antes de useAgentChat: el cuerpo de cada turno lleva el idioma de la app (chatBody).
-	const { s, locale, enabled } = useSharedStrings();
+	const { s, locale } = useSharedStrings();
 	const agent = useAgent({ agent: "NovaChat", name: `${workspaceId}~${conversationId}`, host: novaHost, ...(scope ? { query: { scope } } : {}) });
 	const { messages, sendMessage, status, error, regenerate, addToolApprovalResponse } = useAgentChat({
 		agent,
 		credentials: "include",
-		body: () => chatBody({ surface, place, timezone, locale, enabled }),
+		body: () => chatBody({ surface, place, timezone, locale }),
 		// El historial lo pide esto y no el SDK, que convierte cualquier fallo en
 		// «sin mensajes»: con la sesión caducada se dice, y una conversación guardada
 		// que es de otra persona u otro workspace se cambia por una nueva.

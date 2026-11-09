@@ -4,18 +4,17 @@ import assert from "node:assert/strict";
 import { shouldReportLocale } from "./report-locale";
 
 test("con «Automático» y un idioma nuevo, se avisa", () => {
-	assert.equal(shouldReportLocale({ locale: null, last_locale: "en" }, true, "es", null), true);
-	assert.equal(shouldReportLocale({ locale: null, last_locale: null }, true, "pt", null), true);
+	assert.equal(shouldReportLocale({ locale: null, last_locale: "en" }, "es", null), true);
+	assert.equal(shouldReportLocale({ locale: null, last_locale: null }, "pt", null), true);
 });
 
-test("no se avisa sin sesión, con el interruptor apagado, con un idioma elegido, si ya coincide o si ya se mandó", () => {
-	assert.equal(shouldReportLocale(null, true, "es", null), false);
-	assert.equal(shouldReportLocale({ locale: null, last_locale: "en" }, false, "es", null), false);
-	assert.equal(shouldReportLocale({ locale: "pt", last_locale: "en" }, true, "es", null), false);
-	assert.equal(shouldReportLocale({ locale: null, last_locale: "es" }, true, "es", null), false);
-	assert.equal(shouldReportLocale({ locale: null, last_locale: "en" }, true, "es", "es"), false);
+test("no se avisa sin sesión, con un idioma elegido, si ya coincide o si ya se mandó", () => {
+	assert.equal(shouldReportLocale(null, "es", null), false);
+	assert.equal(shouldReportLocale({ locale: "pt", last_locale: "en" }, "es", null), false);
+	assert.equal(shouldReportLocale({ locale: null, last_locale: "es" }, "es", null), false);
+	assert.equal(shouldReportLocale({ locale: null, last_locale: "en" }, "es", "es"), false);
 });
 
 test("un usuario de una app que todavía no recibe los campos de idioma también avisa", () => {
-	assert.equal(shouldReportLocale({}, true, "es", null), true);
+	assert.equal(shouldReportLocale({}, "es", null), true);
 });

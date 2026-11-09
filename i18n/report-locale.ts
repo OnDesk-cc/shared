@@ -4,7 +4,7 @@
  *
  * Mientras el perfil diga «Automático» (`locale` null), los correos de la persona
  * salen en `last_locale`: el último idioma que resolvió alguna de sus pantallas.
- * Se avisa sólo si hay sesión, el interruptor está encendido, el perfil no fija
+ * Se avisa sólo si hay sesión, el perfil no fija
  * un idioma, el resuelto no es ya el guardado y no se mandó antes en esta carga.
  */
 import type { Locale } from "./locale";
@@ -15,8 +15,8 @@ export interface LocaleProfile {
 	last_locale?: Locale | null;
 }
 
-export function shouldReportLocale(user: LocaleProfile | null | undefined, enabled: boolean, resolved: Locale, alreadySent: Locale | null): boolean {
-	if (!user || !enabled) return false;
+export function shouldReportLocale(user: LocaleProfile | null | undefined, resolved: Locale, alreadySent: Locale | null): boolean {
+	if (!user) return false;
 	if (user.locale) return false;
 	if (user.last_locale === resolved) return false;
 	return alreadySent !== resolved;

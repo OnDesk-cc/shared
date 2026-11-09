@@ -20,12 +20,12 @@ import { reportResolvedLocale, shouldReportLocale, type LocaleProfile } from "./
 let sent: Locale | null = null;
 
 function ReportLocale({ user, ondeskOrigin }: { user: LocaleProfile | null | undefined; ondeskOrigin: string }) {
-	const { locale, enabled } = useI18n<unknown>();
+	const { locale } = useI18n<unknown>();
 	useEffect(() => {
-		if (!shouldReportLocale(user, enabled, locale, sent)) return;
+		if (!shouldReportLocale(user, locale, sent)) return;
 		sent = locale;
 		void reportResolvedLocale(ondeskOrigin, locale);
-	}, [user, enabled, locale, ondeskOrigin]);
+	}, [user, locale, ondeskOrigin]);
 	return null;
 }
 
@@ -42,7 +42,7 @@ export function AppI18nProvider<D>({
 }) {
 	const profileLocale = user === undefined ? undefined : user ? (user.locale ?? null) : null;
 	return (
-		<I18nProvider dictionaries={dictionaries} profileLocale={profileLocale} ondeskOrigin={ondeskOrigin}>
+		<I18nProvider dictionaries={dictionaries} profileLocale={profileLocale}>
 			<ReportLocale user={user} ondeskOrigin={ondeskOrigin} />
 			{children}
 		</I18nProvider>
